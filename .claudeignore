@@ -1,0 +1,79 @@
+# ============================================================
+# .claudeignore — MyNook Project
+# Tối ưu context window: Claude sẽ không quét các path này.
+# ============================================================
+
+# ---------------------------
+# 1. Dependencies
+# ---------------------------
+node_modules/
+mynook-be/node_modules/
+mynook-fe/node_modules/
+
+# ---------------------------
+# 2. Build outputs
+# ---------------------------
+mynook-fe/.next/
+mynook-be/dist/
+build/
+out/
+.turbo/
+
+# ---------------------------
+# 3. Logs & cache
+# ---------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.npm/
+.cache/
+mynook-fe/.next/cache/
+
+# ---------------------------
+# 4. Environment & sensitive files
+# ---------------------------
+.env
+.env.*
+!.env.example
+
+# ---------------------------
+# 5. VCS & IDE
+# ---------------------------
+.git/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---------------------------
+# 6. Large binary / media files
+# ---------------------------
+*.mp4
+*.mov
+*.avi
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.pdf
+*.zip
+*.tar.gz
+
+# ---------------------------
+# 7. Test coverage & reports
+# ---------------------------
+coverage/
+mynook-be/coverage/
+mynook-fe/coverage/
+*.lcov
+
+# ---------------------------
+# 8. Misc generated files
+# ---------------------------
+*.tsbuildinfo
+mynook-fe/.next/
+mynook-be/dist/
