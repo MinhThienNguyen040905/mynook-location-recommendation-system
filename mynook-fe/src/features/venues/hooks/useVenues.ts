@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { venueService } from '@/services/venue.service';
+import { venueService } from '@/features/venues/services';
 import type { Venue } from '@/types/venue.types';
 
 export function useVenues() {

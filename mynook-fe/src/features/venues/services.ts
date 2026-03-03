@@ -1,4 +1,4 @@
-import apiClient from './api.client';
+import apiClient from '@/services/api.client';
 
 export const venueService = {
   getAll: () => apiClient.get('/venues'),

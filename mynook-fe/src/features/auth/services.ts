@@ -1,4 +1,4 @@
-import apiClient from './api.client';
+import apiClient from '@/services/api.client';
 
 export const authService = {
   login: (email: string, password: string) =>
