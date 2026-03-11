@@ -4,13 +4,13 @@ Hệ thống Đánh giá & Khám phá địa điểm, xây dựng trên kiến t
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Monorepo | Nx 22.5 (npm workspaces) |
-| Frontend | Next.js 16 (App Router) |
-| API Gateway | NestJS (HTTP REST) |
-| Microservices | NestJS (TCP / RabbitMQ) |
-| Package Manager | npm |
+| Layer           | Technology               |
+| --------------- | ------------------------ |
+| Monorepo        | Nx 22.5 (npm workspaces) |
+| Frontend        | Next.js 16 (App Router)  |
+| API Gateway     | NestJS (HTTP REST)       |
+| Microservices   | NestJS (TCP / RabbitMQ)  |
+| Package Manager | npm                      |
 
 ## Cấu trúc dự án
 
@@ -106,11 +106,11 @@ npx nx build web-client
 
 ## Shared Libraries
 
-| Library | Import | Mô tả |
-|---|---|---|
-| shared-types | `@mynook/shared-types` | Enums (`UserRole`, `VenueCategory`, `BookingStatus`), Interfaces (`IUser`, `IVenue`, `IReview`), Service constants |
-| database | `@mynook/database` | Cấu hình kết nối DB, entity schemas |
-| rmq-messaging | `@mynook/rmq-messaging` | `RmqModule.register()` cho RabbitMQ client/server |
+| Library       | Import                  | Mô tả                                                                                                              |
+| ------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| shared-types  | `@mynook/shared-types`  | Enums (`UserRole`, `VenueCategory`, `BookingStatus`), Interfaces (`IUser`, `IVenue`, `IReview`), Service constants |
+| database      | `@mynook/database`      | Cấu hình kết nối DB, entity schemas                                                                                |
+| rmq-messaging | `@mynook/rmq-messaging` | `RmqModule.register()` cho RabbitMQ client/server                                                                  |
 
 ## Các lệnh Nx hữu ích
 
@@ -134,14 +134,14 @@ npx nx affected -t serve
 
 ## Cổng (Ports)
 
-| Service | Port | Transport |
-|---|---|---|
-| web-client | 3000 (dev) | HTTP |
-| api-gateway | 3000 | HTTP REST |
-| auth-service | 3001 | TCP |
-| venue-service | 3002 | TCP |
-| interaction-service | 3003 | TCP |
-| search-ai-service | 3004 | TCP |
+| Service             | Port       | Transport |
+| ------------------- | ---------- | --------- |
+| web-client          | 3000 (dev) | HTTP      |
+| api-gateway         | 3000       | HTTP REST |
+| auth-service        | 3001       | TCP       |
+| venue-service       | 3002       | TCP       |
+| interaction-service | 3003       | TCP       |
+| search-ai-service   | 3004       | TCP       |
 
 > **Lưu ý:** web-client (Next.js) và api-gateway cùng port 3000 mặc định. Khi chạy đồng thời, Next.js sẽ tự tìm port trống tiếp theo (3005+). Hoặc cấu hình lại port Next.js dev server trong `apps/web-client/next.config.ts`.
 
