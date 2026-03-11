@@ -76,6 +76,63 @@ npx nx serve search-ai-service
 npx nx run-many -t serve --projects=api-gateway,auth-service,venue-service,interaction-service,search-ai-service
 ```
 
+## Cài đặt Package
+
+> **Quy tắc vàng:** Trong Nx monorepo, **LUÔN cài package từ thư mục root**. Không bao giờ `cd` vào từng app để cài.
+
+### Package dùng chung cho Backend (NestJS)
+
+```bash
+# Database
+npm install typeorm @nestjs/typeorm pg
+
+# Validation
+npm install class-validator class-transformer
+
+# Authentication
+npm install @nestjs/passport passport passport-jwt
+npm install -D @types/passport-jwt
+
+# Config / Environment variables
+npm install @nestjs/config
+```
+
+### Package dùng chung cho Frontend (Next.js)
+
+```bash
+# UI Components — shadcn/ui (dùng --cwd để trỏ vào app FE)
+npx shadcn@latest init --cwd apps/web-client
+npx shadcn@latest add button --cwd apps/web-client
+
+# State management
+npm install zustand
+
+# HTTP client
+npm install axios
+
+# Form handling
+npm install react-hook-form zod @hookform/resolvers
+```
+
+### Package cho Microservices (RabbitMQ)
+
+```bash
+# Chỉ cần khi chuyển sang RabbitMQ (production)
+npm install amqplib amqp-connection-manager
+npm install -D @types/amqplib
+```
+
+### Quy tắc cài đặt
+
+| Tình huống | Lệnh | Ví dụ |
+| --- | --- | --- |
+| Package runtime | `npm install <pkg>` | `npm install axios` |
+| Package dev-only | `npm install -D <pkg>` | `npm install -D @types/node` |
+| CLI tool (chạy 1 lần) | `npx <pkg>` | `npx shadcn@latest add button --cwd apps/web-client` |
+| Xóa package | `npm uninstall <pkg>` | `npm uninstall axios` |
+
+> **Tại sao không cài trong từng app?** Nx monorepo chỉ có **1 `package.json`** và **1 `node_modules/`** ở root. Tất cả apps/libs dùng chung. App nào cần thì `import`, app không import sẽ không bị ảnh hưởng (tree-shaking khi build).
+
 ## Build
 
 ```bash
