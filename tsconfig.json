@@ -1,0 +1,52 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/web-client-e2e"
+    },
+    {
+      "path": "./apps/web-client"
+    },
+    {
+      "path": "./apps/api-gateway-e2e"
+    },
+    {
+      "path": "./apps/api-gateway"
+    },
+    {
+      "path": "./apps/auth-service-e2e"
+    },
+    {
+      "path": "./apps/auth-service"
+    },
+    {
+      "path": "./apps/venue-service-e2e"
+    },
+    {
+      "path": "./apps/venue-service"
+    },
+    {
+      "path": "./apps/interaction-service-e2e"
+    },
+    {
+      "path": "./apps/interaction-service"
+    },
+    {
+      "path": "./apps/search-ai-service-e2e"
+    },
+    {
+      "path": "./apps/search-ai-service"
+    },
+    {
+      "path": "./libs/shared-types"
+    },
+    {
+      "path": "./libs/database"
+    },
+    {
+      "path": "./libs/rmq-messaging"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Nx cache & build
+.nx/
+dist/
+tmp/
+out-tsc/
+
+# Next.js build
+.next/
+out/
+
+# Package lock (too large, not useful for context)
+package-lock.json
+
+# Coverage
+coverage/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
