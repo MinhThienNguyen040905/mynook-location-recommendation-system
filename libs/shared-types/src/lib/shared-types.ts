@@ -49,9 +49,13 @@ export interface IReview {
   createdAt: Date;
 }
 
-// ---- Microservice message patterns ----
+// ---- Service URLs (HTTP) ----
 
-export const AUTH_SERVICE = 'AUTH_SERVICE';
-export const VENUE_SERVICE = 'VENUE_SERVICE';
-export const INTERACTION_SERVICE = 'INTERACTION_SERVICE';
-export const SEARCH_AI_SERVICE = 'SEARCH_AI_SERVICE';
+export const AUTH_SERVICE_URL =
+  process.env['AUTH_SERVICE_URL'] || 'http://localhost:3001';
+export const VENUE_SERVICE_URL =
+  process.env['VENUE_SERVICE_URL'] || 'http://localhost:3002';
+export const INTERACTION_SERVICE_URL =
+  process.env['INTERACTION_SERVICE_URL'] || 'http://localhost:3003';
+export const SEARCH_AI_SERVICE_URL =
+  process.env['SEARCH_AI_SERVICE_URL'] || 'http://localhost:3004';

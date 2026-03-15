@@ -9,7 +9,7 @@ Hệ thống Đánh giá & Khám phá địa điểm, xây dựng trên kiến t
 | Monorepo        | Nx 22.5 (npm workspaces) |
 | Frontend        | Next.js 16 (App Router)  |
 | API Gateway     | NestJS (HTTP REST)       |
-| Microservices   | NestJS (TCP / RabbitMQ)  |
+| Microservices   | NestJS (HTTP REST)       |
 | Package Manager | npm                      |
 
 ## Cấu trúc dự án
@@ -18,10 +18,10 @@ Hệ thống Đánh giá & Khám phá địa điểm, xây dựng trên kiến t
 ├── apps/
 │   ├── web-client/            # Frontend Next.js        (port 3000 dev)
 │   ├── api-gateway/           # REST API Gateway         (port 3000)
-│   ├── auth-service/          # Microservice xác thực    (TCP 3001)
-│   ├── venue-service/         # Microservice địa điểm    (TCP 3002)
-│   ├── interaction-service/   # Microservice tương tác   (TCP 3003)
-│   └── search-ai-service/     # Microservice tìm kiếm AI (TCP 3004)
+│   ├── auth-service/          # Microservice xác thực    (HTTP 3001)
+│   ├── venue-service/         # Microservice địa điểm    (HTTP 3002)
+│   ├── interaction-service/   # Microservice tương tác   (HTTP 3003)
+│   └── search-ai-service/     # Microservice tìm kiếm AI (HTTP 3004)
 │
 ├── libs/
 │   ├── shared-types/          # Enums, Interfaces dùng chung (FE + BE)
@@ -33,7 +33,7 @@ Hệ thống Đánh giá & Khám phá địa điểm, xây dựng trên kiến t
 
 - **Node.js** >= 20
 - **npm** >= 10
-- **RabbitMQ** (cho production, dev dùng TCP transport)
+- **RabbitMQ** (tùy chọn, cho giao tiếp bất đồng bộ giữa các service)
 
 ## Cài đặt
 
@@ -165,19 +165,19 @@ npx nx build web-client
 ## Kiến trúc
 
 ```
-[Client] → [web-client :4200]
+[Client] → [web-client :3000]
                  ↓ HTTP
            [api-gateway :3000]  ← REST API duy nhất expose ra ngoài
             ↙    ↓    ↘    ↘
-     TCP  TCP  TCP   TCP
+    HTTP  HTTP  HTTP  HTTP
         ↙      ↓      ↘      ↘
 [auth]    [venue]  [interaction] [search-ai]
 :3001     :3002      :3003        :3004
 ```
 
-- **api-gateway** là điểm vào duy nhất, nhận HTTP request và chuyển tiếp tới các microservice qua TCP.
-- Các microservice **không** expose HTTP endpoint, chỉ lắng nghe TCP message patterns.
-- Trong production, giao tiếp nội bộ chuyển sang **RabbitMQ** thông qua `@mynook/rmq-messaging`.
+- **api-gateway** là điểm vào duy nhất, nhận HTTP request và chuyển tiếp tới các microservice qua HTTP (sử dụng `@nestjs/axios`).
+- Các microservice là NestJS HTTP apps nội bộ, không expose ra internet khi deploy.
+- Giao tiếp bất đồng bộ giữa các service (events) sử dụng **RabbitMQ** thông qua `@mynook/rmq-messaging`.
 
 ## Shared Libraries
 
@@ -213,10 +213,10 @@ npx nx affected -t serve
 | ------------------- | ---------- | --------- |
 | web-client          | 3000 (dev) | HTTP      |
 | api-gateway         | 3000       | HTTP REST |
-| auth-service        | 3001       | TCP       |
-| venue-service       | 3002       | TCP       |
-| interaction-service | 3003       | TCP       |
-| search-ai-service   | 3004       | TCP       |
+| auth-service        | 3001       | HTTP      |
+| venue-service       | 3002       | HTTP      |
+| interaction-service | 3003       | HTTP      |
+| search-ai-service   | 3004       | HTTP      |
 
 > **Lưu ý:** web-client (Next.js) và api-gateway cùng port 3000 mặc định. Khi chạy đồng thời, Next.js sẽ tự tìm port trống tiếp theo (3005+). Hoặc cấu hình lại port Next.js dev server trong `apps/web-client/next.config.ts`.
 
