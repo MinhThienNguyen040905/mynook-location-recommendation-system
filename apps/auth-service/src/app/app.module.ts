@@ -9,7 +9,8 @@ import { AuthService } from './auth.service.js';
     DatabaseModule.forRoot({ entities: [User] }),
     JwtModule.register({
       secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
-      signOptions: { expiresIn: '7d' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signOptions: { expiresIn: (process.env['JWT_ACCESS_EXPIRES_IN'] ?? '15m') as any },
     }),
   ],
   controllers: [AuthController],

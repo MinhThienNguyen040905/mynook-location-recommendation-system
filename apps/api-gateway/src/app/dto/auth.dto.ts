@@ -1,23 +1,28 @@
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class RegisterDto {
+export class GatewayRegisterDto {
   @ApiProperty({ example: 'user@example.com' })
-  @IsEmail()
   email!: string;
 
   @ApiProperty({ example: 'password123', minLength: 6 })
-  @IsString()
-  @MinLength(6)
   password!: string;
 
   @ApiPropertyOptional({ example: 'Nguyễn Văn A' })
-  @IsString()
-  @IsOptional()
   full_name?: string;
 
   @ApiPropertyOptional({ example: '0901234567' })
-  @IsString()
-  @IsOptional()
   phone_number?: string;
+}
+
+export class GatewayLoginDto {
+  @ApiProperty({ example: 'user@example.com' })
+  email!: string;
+
+  @ApiProperty({ example: 'password123' })
+  password!: string;
+}
+
+export class GatewayRefreshTokenDto {
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  refresh_token!: string;
 }
