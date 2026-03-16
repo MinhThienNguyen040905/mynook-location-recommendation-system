@@ -1,7 +1,17 @@
-import { Controller, Post, Get, Body, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  UseInterceptors,
+  Request,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { AUTH_SERVICE_URL } from '@mynook/shared-types';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { AuthHeadersInterceptor } from './interceptors/auth-headers.interceptor.js';
 
 @Controller('auth')
 export class AuthController {
@@ -23,11 +33,15 @@ export class AuthController {
     return data;
   }
 
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
   @Get('profile')
-  async getProfile(@Headers('authorization') auth: string) {
+  async getProfile(
+    @Request() req: { authHeaders: Record<string, string> },
+  ) {
     const { data } = await firstValueFrom(
       this.http.get(`${AUTH_SERVICE_URL}/auth/profile`, {
-        headers: { authorization: auth },
+        headers: req.authHeaders,
       }),
     );
     return data;

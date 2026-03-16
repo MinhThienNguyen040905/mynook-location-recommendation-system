@@ -75,3 +75,52 @@ npx shadcn@latest add <component> --cwd apps/web-client  # shadcn UI
 | search-ai-service | 3004 | HTTP |
 
 Note: web-client and api-gateway share port 3000 by default. When running together, Next.js auto-selects the next available port.
+
+## Quy chuẩn Xác thực & Giao tiếp (Authentication & Communication Guidelines)
+
+Hệ thống áp dụng mô hình **API Gateway Authentication Offloading**. Mọi logic xác thực JWT được xử lý tập trung tại API Gateway — các downstream service KHÔNG tự giải mã token.
+
+### Rule 1: Gateway là nơi DUY NHẤT xác thực JWT
+
+- `JwtStrategy` và `JwtAuthGuard` chỉ tồn tại tại `apps/api-gateway/src/app/strategies/` và `apps/api-gateway/src/app/guards/`.
+- API Gateway là nơi duy nhất giữ và sử dụng `JWT_SECRET` để verify token.
+- Các downstream services (venue-service, interaction-service, search-ai-service) **TUYỆT ĐỐI KHÔNG** import `@nestjs/passport`, `passport-jwt`, hoặc tự tạo `AuthGuard`/`JwtStrategy`.
+- auth-service giữ `JwtModule` chỉ để **sign** token (login/register), KHÔNG dùng để verify request.
+
+### Rule 2: Gateway forward thông tin user qua custom headers
+
+- Sau khi verify JWT thành công, Gateway map payload thành headers:
+  - `x-user-id` ← `payload.sub` (UUID của user)
+  - `x-user-role` ← `payload.role` (UserRole enum)
+- Sử dụng `AuthHeadersInterceptor` + helper `buildUserHeaders()` từ `apps/api-gateway/src/app/interceptors/auth-headers.interceptor.ts`.
+- **KHÔNG forward nguyên JWT token** (`Authorization` header) xuống downstream services.
+- Pattern sử dụng trong Gateway controller:
+  ```typescript
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Get('some-endpoint')
+  async handler(@Request() req: { authHeaders: Record<string, string> }) {
+    const { data } = await firstValueFrom(
+      this.http.get(`${SERVICE_URL}/endpoint`, { headers: req.authHeaders }),
+    );
+    return data;
+  }
+  ```
+
+### Rule 3: Downstream services dùng @CurrentUser() để lấy thông tin user
+
+- Khi tạo bất kỳ API Controller nào ở service con cần thông tin user, **PHẢI** dùng decorator `@CurrentUser()` (import từ `@mynook/shared-types`).
+- Decorator đọc giá trị từ `x-user-id` và `x-user-role` headers và trả về `CurrentUserPayload { id, role }`.
+- **KHÔNG** dùng `@UseGuards(AuthGuard('jwt'))` ở service con.
+- **KHÔNG** import bất kỳ package JWT/Passport nào vào service con (trừ auth-service cần JwtModule để sign token).
+- Pattern sử dụng trong downstream controller:
+  ```typescript
+  import { CurrentUser, CurrentUserPayload } from '@mynook/shared-types';
+
+  @Get('my-resource')
+  getMyResource(@CurrentUser() user: CurrentUserPayload) {
+    // user.id   — authenticated user's UUID
+    // user.role — authenticated user's role (UserRole enum)
+    return this.service.findByUserId(user.id);
+  }
+  ```

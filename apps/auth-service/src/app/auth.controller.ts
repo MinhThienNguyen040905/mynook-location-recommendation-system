@@ -1,12 +1,6 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import { Controller, Post, Get, Body } from '@nestjs/common';
+import { CurrentUser } from '@mynook/shared-types';
+import type { CurrentUserPayload } from '@mynook/shared-types';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -25,9 +19,8 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Get('profile')
-  getProfile(@Request() req: { user: { sub: string } }) {
-    return this.authService.getProfile(req.user.sub);
+  getProfile(@CurrentUser() user: CurrentUserPayload) {
+    return this.authService.getProfile(user.id);
   }
 }
