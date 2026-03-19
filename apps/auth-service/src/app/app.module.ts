@@ -1,21 +1,19 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
 import { DatabaseModule, User } from '@mynook/database';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
-import { JwtStrategy } from './strategies/jwt.strategy.js';
 
 @Module({
   imports: [
     DatabaseModule.forRoot({ entities: [User] }),
-    PassportModule,
     JwtModule.register({
       secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
-      signOptions: { expiresIn: '7d' },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      signOptions: { expiresIn: (process.env['JWT_ACCESS_EXPIRES_IN'] ?? '15m') as any },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService],
 })
 export class AppModule {}

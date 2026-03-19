@@ -220,6 +220,20 @@ npx nx affected -t serve
 
 > **Lưu ý:** web-client (Next.js) và api-gateway cùng port 3000 mặc định. Khi chạy đồng thời, Next.js sẽ tự tìm port trống tiếp theo (3005+). Hoặc cấu hình lại port Next.js dev server trong `apps/web-client/next.config.ts`.
 
+## API Documentation (Swagger)
+
+Mỗi service đều có Swagger UI riêng, truy cập tại đường dẫn `/docs`.
+
+| Service             | Swagger URL                       | Mô tả                                      |
+| ------------------- | --------------------------------- | ------------------------------------------- |
+| **API Gateway**     | http://localhost:3000/docs        | **Docs chính** — Public API cho frontend    |
+| Auth Service        | http://localhost:3001/docs        | Internal — đăng ký, đăng nhập, refresh token |
+| Venue Service       | http://localhost:3002/docs        | Internal — quản lý địa điểm                 |
+| Interaction Service | http://localhost:3003/docs        | Internal — reviews, bookmarks, bookings      |
+| Search AI Service   | http://localhost:3004/docs        | Internal — tìm kiếm, gợi ý AI              |
+
+> **Lưu ý:** Frontend và các client bên ngoài chỉ nên tham khảo **API Gateway docs** (`localhost:3000/docs`). Swagger của các service con là tài liệu nội bộ, dùng để debug và phát triển.
+
 ## License
 
 MIT

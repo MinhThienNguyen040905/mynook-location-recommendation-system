@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '@mynook/database';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 
 @Injectable()
 export class AuthService {
@@ -77,11 +78,44 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
+  async refresh(dto: RefreshTokenDto) {
+    try {
+      // Verify refresh token using the refresh secret
+      const payload = this.jwtService.verify(dto.refresh_token, {
+        secret: process.env['JWT_REFRESH_SECRET'] || 'mynook-refresh-dev-secret',
+      });
+
+      // Ensure user still exists and is active
+      const user = await this.userRepo.findOne({
+        where: { id: payload.sub },
+      });
+      if (!user || !user.is_active) {
+        throw new UnauthorizedException('User không tồn tại hoặc đã bị vô hiệu hóa');
+      }
+
+      return this.buildTokens(user);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
+    }
+  }
+
   private buildResponse(user: User) {
+    return {
+      ...this.buildTokens(user),
+      user: this.sanitizeUser(user),
+    };
+  }
+
+  private buildTokens(user: User) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
-      user: this.sanitizeUser(user),
+      refresh_token: this.jwtService.sign(payload, {
+        secret: process.env['JWT_REFRESH_SECRET'] || 'mynook-refresh-dev-secret',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expiresIn: (process.env['JWT_REFRESH_EXPIRES_IN'] ?? '7d') as any,
+      }),
     };
   }
 
