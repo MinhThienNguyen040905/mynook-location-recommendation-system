@@ -16,19 +16,39 @@ npx nx build web-client        # Production build
 npx nx typecheck web-client    # Type checking
 ```
 
-## Tech Stack (planned)
+## Tech Stack (installed)
 
-| Layer | Tech |
-|-------|------|
-| Framework | Next.js 16 App Router, React 19 |
-| UI Components | shadcn/ui (Radix primitives) |
-| Styling | Tailwind CSS 4 |
-| Forms | React Hook Form + Zod validation |
-| State (client) | Zustand |
-| Data fetching | TanStack Query (React Query) |
-| Maps | Leaflet / React Leaflet |
-| Media upload | Cloudinary (via API Gateway) |
-| Icons | Lucide React |
+| Layer | Tech | Version |
+|-------|------|---------|
+| Framework | Next.js App Router, React | 16.x, 19.x |
+| UI Components | shadcn/ui (Radix UI) | latest (new-york style) |
+| Styling | Tailwind CSS (CSS-first, v4) | 4.2.x |
+| Forms | React Hook Form + Zod | 7.x + 4.x |
+| State (client) | Zustand | 5.x |
+| Data fetching | TanStack React Query | 5.x |
+| Maps | Leaflet / React Leaflet | not yet installed |
+| Media upload | Cloudinary (via API Gateway) | not yet installed |
+| Icons | Lucide React | 0.577.x |
+| Notifications | Sonner (toast) | via shadcn |
+
+### shadcn/ui Setup
+
+- Config file: `apps/web-client/components.json` (style: new-york, icon: lucide)
+- shadcn was initialized **manually** (not via `shadcn init`) due to Nx monorepo detection issues
+- Add components: `npx shadcn@latest add <component> --cwd apps/web-client`
+- Components auto-install to `src/components/ui/`
+- CSS variables defined in `src/app/global.css` using Tailwind v4 `@theme inline` block
+
+### Tailwind CSS v4 Setup
+
+- PostCSS config: `apps/web-client/postcss.config.mjs` (uses `@tailwindcss/postcss`)
+- No `tailwind.config.ts` needed — Tailwind v4 uses CSS-first configuration
+- All theme tokens in `src/app/global.css` via `@theme inline { ... }`
+- Dark mode via `.dark` class on `<html>`
+
+### Installed shadcn Components
+
+button, card, dialog, drawer, input, label, tabs, sonner, textarea, select, badge, avatar, dropdown-menu, sheet, separator, skeleton, switch, table
 
 ## Folder Structure
 
