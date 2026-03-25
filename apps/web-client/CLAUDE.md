@@ -1,0 +1,309 @@
+# CLAUDE.md — MyNook Web Client (Next.js)
+
+## Overview
+
+Mobile-first responsive web app for **MyNook** — a location review & discovery platform (cafés, restaurants, workspaces). Built with **Next.js 16 App Router** + **React 19** inside an **Nx monorepo**.
+
+- Path alias: `@/*` → `./src/*`
+- All npm packages install at **monorepo root** (`npm install <pkg>` from root)
+- shadcn/ui components: `npx shadcn@latest add <component> --cwd apps/web-client`
+
+## Commands
+
+```bash
+npx nx dev web-client          # Dev server (auto-picks port if 3000 taken)
+npx nx build web-client        # Production build
+npx nx typecheck web-client    # Type checking
+```
+
+## Tech Stack (installed)
+
+| Layer | Tech | Version |
+|-------|------|---------|
+| Framework | Next.js App Router, React | 16.x, 19.x |
+| UI Components | shadcn/ui (Radix UI) | latest (new-york style) |
+| Styling | Tailwind CSS (CSS-first, v4) | 4.2.x |
+| Forms | React Hook Form + Zod | 7.x + 4.x |
+| State (client) | Zustand | 5.x |
+| Data fetching | TanStack React Query | 5.x |
+| Maps | Leaflet / React Leaflet | not yet installed |
+| Media upload | Cloudinary (via API Gateway) | not yet installed |
+| Icons | Lucide React | 0.577.x |
+| Notifications | Sonner (toast) | via shadcn |
+
+### shadcn/ui Setup
+
+- Config file: `apps/web-client/components.json` (style: new-york, icon: lucide)
+- shadcn was initialized **manually** (not via `shadcn init`) due to Nx monorepo detection issues
+- Add components: `npx shadcn@latest add <component> --cwd apps/web-client`
+- Components auto-install to `src/components/ui/`
+- CSS variables defined in `src/app/global.css` using Tailwind v4 `@theme inline` block
+
+### Tailwind CSS v4 Setup
+
+- PostCSS config: `apps/web-client/postcss.config.mjs` (uses `@tailwindcss/postcss`)
+- No `tailwind.config.ts` needed — Tailwind v4 uses CSS-first configuration
+- All theme tokens in `src/app/global.css` via `@theme inline { ... }`
+- Dark mode via `.dark` class on `<html>`
+
+### Installed shadcn Components
+
+button, card, dialog, drawer, input, label, tabs, sonner, textarea, select, badge, avatar, dropdown-menu, sheet, separator, skeleton, switch, table
+
+## Folder Structure
+
+```
+src/
+├── app/                              # Next.js App Router (file-based routing)
+│   ├── layout.tsx                    # Root layout: providers, fonts, metadata
+│   ├── page.tsx                      # Landing / Home page
+│   ├── global.css                    # Tailwind directives + global styles
+│   ├── not-found.tsx                 # 404 page
+│   ├── loading.tsx                   # Global loading UI
+│   ├── error.tsx                     # Global error boundary
+│   ├── middleware.ts                 # → Actually at src/middleware.ts (Next.js convention)
+│   │
+│   ├── (auth)/                       # Route group: Auth pages (minimal layout, no nav)
+│   │   ├── layout.tsx                # Centered card layout
+│   │   ├── login/page.tsx
+│   │   ├── register/page.tsx
+│   │   └── forgot-password/page.tsx
+│   │
+│   ├── (public)/                     # Route group: Public pages (header + footer)
+│   │   ├── layout.tsx                # Header, footer, mobile bottom nav
+│   │   ├── search/page.tsx           # Search results & filters (grid + map view)
+│   │   └── venues/[id]/page.tsx      # Venue detail (gallery, info, menu, reviews)
+│   │
+│   ├── (user)/                       # Route group: Authenticated user pages
+│   │   ├── layout.tsx                # Header with user nav
+│   │   ├── profile/page.tsx          # User profile
+│   │   ├── bookings/
+│   │   │   ├── page.tsx              # My bookings list (tabs: upcoming/completed/cancelled)
+│   │   │   └── [id]/page.tsx         # Booking detail (QR code, pre-orders)
+│   │   └── favorites/page.tsx        # Saved collections
+│   │
+│   ├── (owner)/                      # Route group: Owner dashboard
+│   │   ├── layout.tsx                # Sidebar + topbar layout
+│   │   └── dashboard/
+│   │       ├── page.tsx              # Overview: stats, crowd toggle, pending bookings
+│   │       ├── venue/page.tsx        # Venue info editor
+│   │       ├── menu/page.tsx         # Digital menu CRUD
+│   │       ├── bookings/page.tsx     # Booking manager (calendar/list + approve/reject)
+│   │       └── reviews/page.tsx      # Review manager + reply
+│   │
+│   └── (admin)/                      # Route group: Admin panel
+│       ├── layout.tsx                # Admin sidebar layout
+│       └── admin/
+│           ├── page.tsx              # Dashboard: charts, system stats
+│           ├── users/page.tsx        # User & owner management (ban/unban)
+│           ├── venues/page.tsx       # Venue approval queue
+│           └── reports/page.tsx      # Report management
+│
+├── components/                       # All React components
+│   ├── ui/                           # shadcn/ui primitives (auto-generated by CLI)
+│   │   └── (button, card, dialog, drawer, input, toast, tabs, ...)
+│   │
+│   ├── layout/                       # Layout building blocks
+│   │   ├── header.tsx                # Public header: logo, search bar, auth buttons
+│   │   ├── footer.tsx                # Site footer
+│   │   ├── mobile-nav.tsx            # Mobile bottom tab navigation
+│   │   ├── sidebar.tsx               # Dashboard sidebar (owner/admin)
+│   │   └── topbar.tsx                # Dashboard top bar
+│   │
+│   ├── home/                         # Homepage-specific sections
+│   │   ├── hero-banner.tsx           # Promotion slider/banner
+│   │   ├── nearby-section.tsx        # "Near you" venue list (GPS-based)
+│   │   ├── trending-section.tsx      # Top-rated venues
+│   │   ├── suggestion-section.tsx    # "Suggestions for you" (study/date/family filters)
+│   │   └── category-filter.tsx       # Quick category chips
+│   │
+│   ├── venue/                        # Venue-related components
+│   │   ├── venue-card.tsx            # Venue card (grid/list item)
+│   │   ├── venue-gallery.tsx         # Image/video carousel
+│   │   ├── venue-info.tsx            # Info tab (address, hours, amenities)
+│   │   ├── venue-map.tsx             # Embedded map
+│   │   ├── venue-menu.tsx            # Menu display by category
+│   │   ├── crowd-badge.tsx           # Realtime crowd level indicator (green/yellow/red)
+│   │   └── favorite-button.tsx       # Heart toggle
+│   │
+│   ├── search/                       # Search & filter components
+│   │   ├── search-bar.tsx            # Semantic search input
+│   │   ├── filter-panel.tsx          # Advanced filter drawer/sidebar
+│   │   ├── search-results.tsx        # Results grid
+│   │   ├── map-view.tsx              # Map view with venue markers
+│   │   └── view-toggle.tsx           # Grid/Map view toggle
+│   │
+│   ├── booking/                      # Booking flow components
+│   │   ├── booking-form.tsx          # Multi-step booking modal
+│   │   ├── booking-card.tsx          # Booking list item
+│   │   ├── booking-detail.tsx        # Full booking detail
+│   │   ├── booking-calendar.tsx      # Date/time picker
+│   │   ├── pre-order-cart.tsx        # Pre-order food selection
+│   │   └── qr-code.tsx              # QR code / check-in code display
+│   │
+│   ├── review/                       # Review components
+│   │   ├── review-card.tsx           # Single review display
+│   │   ├── review-list.tsx           # Review list with filter tabs
+│   │   ├── review-form.tsx           # Write review modal (stars + text + media)
+│   │   ├── rating-stars.tsx          # Star rating input & display
+│   │   └── media-upload.tsx          # Image/video upload with preview
+│   │
+│   ├── dashboard/                    # Owner dashboard components
+│   │   ├── stats-card.tsx            # KPI stat card
+│   │   ├── crowd-toggle.tsx          # Crowd level switch (realtime)
+│   │   ├── booking-table.tsx         # Booking management table
+│   │   ├── menu-editor.tsx           # Menu item CRUD
+│   │   ├── venue-form.tsx            # Venue info edit form
+│   │   └── review-reply.tsx          # Reply to review form
+│   │
+│   ├── admin/                        # Admin panel components
+│   │   ├── stats-chart.tsx           # Dashboard chart widgets
+│   │   ├── user-table.tsx            # User management data table
+│   │   ├── venue-approval.tsx        # Venue approval card
+│   │   └── report-table.tsx          # Report management table
+│   │
+│   └── shared/                       # Reusable generic components
+│       ├── empty-state.tsx           # Empty state placeholder
+│       ├── loading-skeleton.tsx      # Skeleton loaders
+│       ├── confirm-dialog.tsx        # Confirmation dialog
+│       ├── avatar.tsx                # User avatar
+│       ├── badge.tsx                 # Status badges
+│       ├── pagination.tsx            # Pagination controls
+│       ├── data-table.tsx            # Generic sortable/filterable table
+│       └── image-upload.tsx          # Generic image upload
+│
+├── hooks/                            # Custom React hooks
+│   ├── use-auth.ts                   # Auth state & actions
+│   ├── use-current-user.ts           # Current user data
+│   ├── use-debounce.ts               # Debounced value
+│   ├── use-geolocation.ts            # Browser geolocation API
+│   ├── use-media-query.ts            # Responsive breakpoint detection
+│   ├── use-infinite-scroll.ts        # Infinite scroll pagination
+│   └── use-local-storage.ts          # LocalStorage with React state
+│
+├── lib/                              # Utilities & core logic
+│   ├── utils.ts                      # cn() (shadcn), formatDate, formatCurrency
+│   ├── constants.ts                  # Token keys, crowd labels, breakpoints, limits
+│   ├── api/                          # API client layer (all requests → API Gateway)
+│   │   ├── client.ts                 # Axios instance + auth interceptor
+│   │   ├── auth.ts                   # login, register, refresh, profile
+│   │   ├── venues.ts                 # list, detail, search, nearby, trending
+│   │   ├── bookings.ts              # list, create, cancel, detail
+│   │   ├── reviews.ts               # list, create, reply
+│   │   ├── search.ts                # semantic search, suggestions
+│   │   ├── admin.ts                 # user mgmt, venue approval, reports
+│   │   └── upload.ts                # file upload (Cloudinary via gateway)
+│   └── validators/                   # Zod schemas for form validation
+│       ├── auth.ts                   # login/register schemas
+│       ├── booking.ts                # booking form schema
+│       ├── review.ts                 # review form schema
+│       └── venue.ts                  # venue edit form schema
+│
+├── stores/                           # Zustand stores (client state)
+│   ├── auth-store.ts                 # Auth tokens, user, login/logout
+│   ├── search-store.ts              # Search query, filters, view mode
+│   ├── booking-store.ts             # Multi-step booking flow state
+│   └── ui-store.ts                  # Sidebar open, active modals, toasts
+│
+├── providers/                        # React context providers (wrap in root layout)
+│   ├── auth-provider.tsx             # Auth context + token refresh
+│   ├── theme-provider.tsx            # Dark/light theme
+│   └── query-provider.tsx            # TanStack Query client provider
+│
+├── config/                           # App-level configuration
+│   ├── site.ts                       # Site name, description, URL
+│   ├── routes.ts                     # Route path constants (ROUTES.LOGIN, etc.)
+│   └── api.ts                        # API_BASE_URL + API_ENDPOINTS map
+│
+├── types/                            # Frontend TypeScript types
+│   ├── index.ts                      # Barrel re-export
+│   ├── auth.ts                       # AuthUser, LoginRequest, RegisterRequest
+│   ├── venue.ts                      # Venue, MenuItem, CrowdLevel, VenueSearchParams
+│   ├── booking.ts                    # Booking, BookingItem, BookingStatus
+│   ├── review.ts                     # Review, ReviewReply, CreateReviewRequest
+│   └── api.ts                        # PaginatedResponse<T>, ApiError
+│
+└── middleware.ts                     # Next.js middleware (auth route protection)
+```
+
+## Routing Architecture
+
+Uses **Next.js Route Groups** `(groupName)` to apply different layouts without affecting URL paths:
+
+| Route Group | URL Prefix | Layout | Purpose |
+|-------------|-----------|--------|---------|
+| `(auth)` | `/login`, `/register`, `/forgot-password` | Centered card, no nav | Authentication |
+| `(public)` | `/search`, `/venues/[id]` | Header + Footer + MobileNav | Public browsing |
+| `(user)` | `/profile`, `/bookings`, `/favorites` | Header with user nav | Authenticated user |
+| `(owner)` | `/dashboard/**` | Sidebar + Topbar | Owner management |
+| `(admin)` | `/admin/**` | Admin sidebar | System administration |
+
+Root `page.tsx` (Home/Landing) lives at `app/page.tsx` — outside any route group.
+
+## Authentication Flow (Frontend)
+
+1. User submits login form → `lib/api/auth.ts` calls `POST /api/auth/login` on API Gateway
+2. Gateway verifies credentials via auth-service, returns JWT tokens
+3. Frontend stores `access_token` in cookie (for middleware) + Zustand store (for API calls)
+4. `middleware.ts` checks cookies for route protection (no server-side JWT verification)
+5. `lib/api/client.ts` attaches `Authorization: Bearer <token>` header on every API request
+6. API Gateway handles all JWT verification — frontend never decodes tokens
+
+## Component Conventions
+
+- **shadcn/ui** components go in `components/ui/` (auto-generated, do not manually edit)
+- **Feature components** are grouped by domain: `venue/`, `booking/`, `review/`, etc.
+- **Layout components** in `components/layout/` are shared across route groups
+- **Shared components** in `components/shared/` are domain-agnostic reusables
+- Use `@/components/ui/button` import pattern (via path alias)
+- All components are **React Server Components by default**; add `'use client'` only when needed (state, effects, browser APIs)
+
+## API Communication
+
+- **All API calls go through API Gateway** (`/api` prefix) — never call microservices directly
+- API client config: `src/config/api.ts` defines all endpoints
+- HTTP client: `src/lib/api/client.ts` (Axios instance with auth interceptor)
+- Use **TanStack Query** for server state (caching, refetching, optimistic updates)
+- Use **Zustand** only for client-only state (UI state, multi-step form state)
+
+## Key UI Patterns
+
+- **Mobile-first**: Design for mobile, enhance for desktop. Use Tailwind responsive prefixes (`md:`, `lg:`)
+- **Realtime indicators**: Crowd level badges (`crowd-badge.tsx`) use colored dots (green/yellow/orange/red)
+- **Sticky action bar**: Venue detail has a sticky bottom bar on mobile with "Book now" CTA
+- **Multi-step modals**: Booking flow uses a stepped dialog (not separate pages)
+- **Map + Grid toggle**: Search results support both grid view and map view (Leaflet)
+- **Skeleton loading**: Use `loading-skeleton.tsx` for content loading states
+
+## Environment Variables
+
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000      # Frontend URL
+NEXT_PUBLIC_API_URL=http://localhost:3000/api   # API Gateway URL
+NEXT_PUBLIC_MAP_TILE_URL=                       # Map tile server (Leaflet)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=              # Cloudinary cloud name
+```
+
+## Page Inventory (MVP Priority Order)
+
+1. **Home Page** (`/`) — hero banner, nearby, trending, suggestions
+2. **Search & Filter** (`/search`) — grid/map view, advanced filters
+3. **Venue Detail** (`/venues/[id]`) — gallery, info, menu, reviews, booking CTA
+4. **Login / Register** (`/login`, `/register`) — email/password + social login
+5. **Owner Dashboard** (`/dashboard`) — crowd toggle, stats, pending bookings
+6. **Owner Menu Editor** (`/dashboard/menu`) — CRUD menu items
+7. **Booking Flow** (modal on venue detail) — date/time, pre-order, confirm
+8. **My Bookings** (`/bookings`) — list with tabs, detail with QR
+9. **Write Review** (modal on venue detail) — stars, text, media upload
+10. **User Profile** (`/profile`) — avatar, bio, review stats
+11. **Favorites** (`/favorites`) — saved venue collections
+12. **Owner Venue Editor** (`/dashboard/venue`) — edit venue info, media, hours
+13. **Owner Booking Manager** (`/dashboard/bookings`) — calendar, approve/reject
+14. **Owner Review Manager** (`/dashboard/reviews`) — view + reply
+15. **Admin Dashboard** (`/admin`) — system stats charts
+16. **Admin User Management** (`/admin/users`) — ban/unban, reset password
+17. **Admin Venue Approval** (`/admin/venues`) — approval queue
+18. **Admin Reports** (`/admin/reports`) — handle user reports
+19. **Forgot Password** (`/forgot-password`) — email → OTP → reset
+
+Total: ~25-30 screens (including modals and multi-step flows)
