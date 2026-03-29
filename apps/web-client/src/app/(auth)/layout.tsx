@@ -1,11 +1,7 @@
 /**
- * Auth Layout — minimal centered layout for login/register/forgot-password.
- * No header or footer, just a centered card.
+ * Auth Layout — passthrough.
+ * Login / Register pages each own their full-screen split layout (form + image).
  */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md">{children}</div>
-    </div>
-  );
+  return <>{children}</>;
 }

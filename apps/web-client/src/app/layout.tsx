@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './global.css';
+import { QueryProvider } from '@/providers/query-provider';
 
 export const metadata: Metadata = {
   title: 'MyNook — Khám phá địa điểm yêu thích',
@@ -15,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

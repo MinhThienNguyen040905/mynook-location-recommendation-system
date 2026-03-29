@@ -1,14 +1,14 @@
+import { Navbar } from '@/components/layout/navbar';
+
 /**
- * Public Layout — used by home, search, venue detail.
- * Includes the main header (logo, search, auth) and footer.
+ * Public Layout — Search & Venue Detail pages.
+ * Renders the sticky Navbar above the page content.
  */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      {/* <Header /> */}
+      <Navbar />
       <main className="min-h-screen">{children}</main>
-      {/* <Footer /> */}
-      {/* <MobileNav /> — sticky bottom nav for mobile */}
     </>
   );
 }
