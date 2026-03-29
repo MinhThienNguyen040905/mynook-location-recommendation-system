@@ -2,12 +2,28 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, ArrowRight, Github, Chrome, MapPin } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Mail, Lock, ArrowRight, Github, Chrome, Zap } from 'lucide-react';
+import { NookLogo } from '@/components/shared/nook-logo';
 import { motion } from 'motion/react';
 
+const DEMO_ACCOUNTS = [
+  { label: 'User',  email: 'user@mynook.dev',  role: 'user',  redirect: '/',      color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'       },
+  { label: 'Owner', email: 'owner@mynook.dev', role: 'owner', redirect: '/',      color: 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100' },
+  { label: 'Admin', email: 'admin@mynook.dev', role: 'admin', redirect: '/admin', color: 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'    },
+];
+
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  function loginAsDemo(role: string, redirect: string) {
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `access_token=demo_token_${role}; expires=${expires}; path=/`;
+    document.cookie = `user_role=${role}; expires=${expires}; path=/`;
+    router.push(redirect);
+  }
 
   return (
     <div className="min-h-screen flex items-stretch bg-nook-cream">
@@ -15,11 +31,8 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-24 py-12 bg-white">
         <div className="max-w-md w-full mx-auto">
           {/* Logo — Link href replaces react-router-dom <Link to> */}
-          <Link href="/" className="flex items-center gap-2 mb-12 group">
-            <div className="w-10 h-10 bg-nook-olive rounded-xl flex items-center justify-center text-white transition-transform group-hover:rotate-12">
-              <MapPin size={24} />
-            </div>
-            <span className="text-2xl font-serif font-bold tracking-tight text-nook-olive">MyNook</span>
+          <Link href="/" className="mb-12 inline-block">
+            <NookLogo size="md" />
           </Link>
 
           <motion.div
@@ -32,23 +45,23 @@ export default function LoginPage() {
 
             <form className="space-y-4 mb-8" onSubmit={(e) => e.preventDefault()}>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
+                <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
                 <input
                   type="email"
                   placeholder="Email Address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="nook-input pl-12"
+                  className="nook-input pr-12"
                 />
               </div>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
+                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
                 <input
                   type="password"
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="nook-input pl-12"
+                  className="nook-input pr-12"
                 />
               </div>
 
@@ -70,6 +83,25 @@ export default function LoginPage() {
                 <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
               </button>
             </form>
+
+            {/* Demo accounts */}
+            <div className="mb-6 p-4 rounded-2xl border border-dashed border-nook-sand bg-nook-cream/40">
+              <p className="text-xs font-bold text-nook-ink/40 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <Zap size={12} /> Tài khoản demo
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.role}
+                    onClick={() => loginAsDemo(acc.role, acc.redirect)}
+                    className={`flex flex-col items-start px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${acc.color}`}
+                  >
+                    <span className="font-bold">{acc.label}</span>
+                    <span className="text-xs opacity-70 truncate w-full">{acc.email}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="relative mb-8">
               <div className="absolute inset-0 flex items-center">

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, User, ArrowRight, Github, Chrome, MapPin } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Github, Chrome } from 'lucide-react';
+import { NookLogo } from '@/components/shared/nook-logo';
 import { motion } from 'motion/react';
 
 export default function RegisterPage() {
@@ -16,11 +17,8 @@ export default function RegisterPage() {
       <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 lg:px-24 py-12 bg-white">
         <div className="max-w-md w-full mx-auto">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 mb-12 group">
-            <div className="w-10 h-10 bg-nook-olive rounded-xl flex items-center justify-center text-white transition-transform group-hover:rotate-12">
-              <MapPin size={24} />
-            </div>
-            <span className="text-2xl font-serif font-bold tracking-tight text-nook-olive">MyNook</span>
+          <Link href="/" className="mb-12 inline-block">
+            <NookLogo size="md" />
           </Link>
 
           <motion.div
@@ -35,33 +33,33 @@ export default function RegisterPage() {
 
             <form className="space-y-4 mb-8" onSubmit={(e) => e.preventDefault()}>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
+                <User className="absolute right-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
                 <input
                   type="text"
                   placeholder="Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="nook-input pl-12"
+                  className="nook-input pr-12"
                 />
               </div>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
+                <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
                 <input
                   type="email"
                   placeholder="Email Address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="nook-input pl-12"
+                  className="nook-input pr-12"
                 />
               </div>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
+                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
                 <input
                   type="password"
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="nook-input pl-12"
+                  className="nook-input pr-12"
                 />
               </div>
 

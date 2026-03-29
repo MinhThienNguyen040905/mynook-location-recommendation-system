@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Search,
-  MapPin,
   ArrowRight,
   Sparkles,
   Coffee,
@@ -13,7 +12,9 @@ import {
   Laptop,
   Brain,
   Loader2,
+  MapPin,
 } from 'lucide-react';
+import { NookLogo } from '@/components/shared/nook-logo';
 import { motion, AnimatePresence } from 'motion/react';
 import { MOCK_VENUES } from '@/data/mockVenues';
 import { VenueCard } from '@/components/venue/venue-card';
@@ -358,11 +359,8 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-12 bg-white border-t border-nook-sand">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className="w-8 h-8 bg-nook-olive rounded-lg flex items-center justify-center text-white">
-              <MapPin size={18} />
-            </div>
-            <span className="text-xl font-serif font-bold text-nook-olive">MyNook</span>
+          <div className="flex justify-center mb-6">
+            <NookLogo size="sm" />
           </div>
           <p className="text-nook-ink/40 text-sm mb-8">
             © 2026 MyNook. All rights reserved. Built for the community.

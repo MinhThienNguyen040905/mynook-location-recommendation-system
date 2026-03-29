@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useParams } from 'next/navigation'; // replaces react-router-dom useParams
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Star,
@@ -19,8 +19,11 @@ import {
   Plus,
   Info,
 } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import { MOCK_VENUES } from '@/data/mockVenues';
 import { cn } from '@/lib/utils';
+import { WriteReviewModal } from '@/components/review/write-review-modal';
+import { AllReviewsModal } from '@/components/review/all-reviews-modal';
 
 export default function VenueDetailPage() {
   // useParams from next/navigation — same usage as react-router-dom
@@ -28,6 +31,8 @@ export default function VenueDetailPage() {
   const venue = useMemo(() => MOCK_VENUES.find((v) => v.id === id), [id]);
   const [activeImage, setActiveImage] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showWriteReview, setShowWriteReview] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   if (!venue) {
     return (
@@ -221,43 +226,64 @@ export default function VenueDetailPage() {
             {/* Reviews Section */}
             <section id="reviews">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-serif font-bold text-nook-ink">Reviews</h3>
-                <button className="nook-button-secondary flex items-center gap-2">
+                <div>
+                  <h3 className="text-2xl font-serif font-bold text-nook-ink">Bình luận</h3>
+                  <p className="text-sm text-nook-ink/40 mt-1">{venue.reviewCount} đánh giá</p>
+                </div>
+                <button
+                  onClick={() => setShowWriteReview(true)}
+                  className="nook-button-secondary flex items-center gap-2"
+                >
                   <Plus size={18} />
-                  <span>Write a Review</span>
+                  <span>Viết bình luận</span>
                 </button>
               </div>
 
-              <div className="space-y-8">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-6 rounded-2xl border border-nook-sand bg-white shadow-sm">
+              <div className="space-y-6">
+                {[
+                  { id: 1, name: 'Minh Tuấn',   rating: 5, date: '2 ngày trước',  text: 'Quán cực kỳ yên tĩnh và thoải mái. Wi-Fi nhanh, cà phê ngon. Mình hay đến đây làm việc mỗi sáng.' },
+                  { id: 2, name: 'Thu Hương',   rating: 4, date: '5 ngày trước',  text: 'Không gian đẹp, nhân viên thân thiện. Chỉ hơi tiếc là buổi chiều đông nên đôi khi không có chỗ ngồi.' },
+                  { id: 3, name: 'Phúc Nguyễn', rating: 5, date: '1 tuần trước', text: 'Địa điểm lý tưởng để đọc sách hoặc làm việc một mình. Ánh sáng tự nhiên rất tốt, âm nhạc nhẹ nhàng.' },
+                ].map((review) => (
+                  <div key={review.id} className="p-6 rounded-2xl border border-nook-sand bg-white shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 bg-nook-sand rounded-full overflow-hidden">
                           <img
-                            src={`https://picsum.photos/seed/user${i}/100/100`}
-                            alt="User"
+                            src={`https://picsum.photos/seed/user${review.id}/100/100`}
+                            alt={review.name}
+                            referrerPolicy="no-referrer"
                           />
                         </div>
                         <div>
-                          <h4 className="font-bold text-nook-ink">User {i}</h4>
-                          <span className="text-xs text-nook-ink/40">2 days ago</span>
+                          <h4 className="font-bold text-nook-ink">{review.name}</h4>
+                          <span className="text-xs text-nook-ink/40">{review.date}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-nook-olive">
+                      <div className="flex items-center gap-0.5">
                         {[...Array(5)].map((_, star) => (
-                          <Star key={star} size={14} fill={star < 4 ? 'currentColor' : 'none'} />
+                          <Star
+                            key={star}
+                            size={14}
+                            className={star < review.rating ? 'text-amber-400 fill-amber-400' : 'text-nook-sand fill-nook-sand'}
+                          />
                         ))}
                       </div>
                     </div>
-                    <p className="text-nook-ink/70 leading-relaxed">
-                      &ldquo;I absolutely love this spot! The atmosphere is perfect for getting work
-                      done. The coffee is excellent and the Wi-Fi is super fast. Highly recommend
-                      for anyone looking for a quiet place to study.&rdquo;
-                    </p>
+                    <p className="text-nook-ink/70 leading-relaxed">{review.text}</p>
                   </div>
                 ))}
               </div>
+
+              {/* See all button */}
+              {venue.reviewCount > 3 && (
+                <button
+                  onClick={() => setShowAllReviews(true)}
+                  className="mt-8 w-full py-4 border-2 border-dashed border-nook-sand rounded-2xl text-nook-ink/50 font-bold hover:border-nook-olive hover:text-nook-olive transition-colors text-sm"
+                >
+                  Xem tất cả {venue.reviewCount} bình luận →
+                </button>
+              )}
             </section>
           </div>
 
@@ -304,6 +330,28 @@ export default function VenueDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Modals */}
+      <AnimatePresence>
+        {showWriteReview && (
+          <WriteReviewModal
+            venueName={venue.name}
+            onClose={() => setShowWriteReview(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAllReviews && (
+          <AllReviewsModal
+            venueName={venue.name}
+            rating={venue.rating}
+            reviewCount={venue.reviewCount}
+            onClose={() => setShowAllReviews(false)}
+            onWriteReview={() => setShowWriteReview(true)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
