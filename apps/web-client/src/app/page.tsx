@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,6 +13,8 @@ import {
   Brain,
   Loader2,
   MapPin,
+  Mic,
+  MicOff,
 } from 'lucide-react';
 import { NookLogo } from '@/components/shared/nook-logo';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,6 +31,66 @@ export default function HomePage() {
   const [recommendations, setRecommendations] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [homeSearchQuery, setHomeSearchQuery] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const handleVoiceSearch = async () => {
+    // Nếu đang ghi → dừng lại
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
+        const formData = new FormData();
+        formData.append('file', blob, 'recording.webm');
+        formData.append('model', 'whisper-large-v3');
+        formData.append('language', 'vi');
+        formData.append('response_format', 'json');
+
+        try {
+          const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_GROQ_API_KEY}`,
+            },
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.text) setHomeSearchQuery(data.text.trim());
+        } catch (err) {
+          console.error('Groq transcription error:', err);
+        } finally {
+          setIsRecording(false);
+        }
+      };
+
+      setIsRecording(true);
+      mediaRecorder.start();
+
+      // Tự dừng sau 15 giây
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') mediaRecorder.stop();
+      }, 15000);
+    } catch (err) {
+      console.error('Microphone access error:', err);
+      setIsRecording(false);
+    }
+  };
 
   const handleHomeSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +154,7 @@ export default function HomePage() {
               className="max-w-2xl mx-auto bg-white p-2 rounded-2xl shadow-xl shadow-nook-olive/10 border border-nook-sand flex flex-col md:flex-row items-stretch gap-2"
             >
               <div className="flex-1 flex items-center gap-3 px-4 py-3 border-b md:border-b-0 md:border-r border-nook-sand">
-                <MapPin className="text-nook-olive" size={20} />
+                <MapPin className="text-nook-olive flex-shrink-0" size={20} />
                 <input
                   type="text"
                   value={homeSearchQuery}
@@ -100,6 +162,19 @@ export default function HomePage() {
                   placeholder="Where are you looking?"
                   className="w-full bg-transparent border-none focus:ring-0 text-nook-ink placeholder:text-nook-ink/30"
                 />
+                <button
+                  type="button"
+                  onClick={handleVoiceSearch}
+                  disabled={isRecording}
+                  title={isRecording ? 'Nhấn để dừng ghi âm' : 'Tìm kiếm bằng giọng nói'}
+                  className={`flex-shrink-0 p-1.5 rounded-full transition-colors ${
+                    isRecording
+                      ? 'text-red-500 animate-pulse bg-red-50'
+                      : 'text-nook-ink/40 hover:text-nook-olive hover:bg-nook-olive/10'
+                  }`}
+                >
+                  {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+                </button>
               </div>
               <button
                 type="submit"
