@@ -30,6 +30,7 @@ npx nx typecheck web-client    # Type checking
 | Media upload | Cloudinary (via API Gateway) | not yet installed |
 | Icons | Lucide React | 0.577.x |
 | Notifications | Sonner (toast) | via shadcn |
+| Voice Search | Groq Whisper API (`whisper-large-v3`) + `MediaRecorder` | browser built-in + Groq REST |
 
 ### shadcn/ui Setup
 
@@ -274,15 +275,20 @@ Root `page.tsx` (Home/Landing) lives at `app/page.tsx` — outside any route gro
 - **Multi-step modals**: Booking flow uses a stepped dialog (not separate pages)
 - **Map + Grid toggle**: Search results support both grid view and map view (Leaflet)
 - **Skeleton loading**: Use `loading-skeleton.tsx` for content loading states
+- **Voice Search**: `Mic` button in hero search bar — `MediaRecorder` captures audio, sends to Groq Whisper (`POST https://api.groq.com/openai/v1/audio/transcriptions`), result fills the input. Click once to start, click again (or wait 15s) to stop.
 
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_APP_URL=http://localhost:3000      # Frontend URL
-NEXT_PUBLIC_API_URL=http://localhost:3000/api   # API Gateway URL
-NEXT_PUBLIC_MAP_TILE_URL=                       # Map tile server (Leaflet)
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=              # Cloudinary cloud name
+NEXT_PUBLIC_APP_URL=http://localhost:3000        # Frontend URL
+NEXT_PUBLIC_API_URL=http://localhost:3000/api    # API Gateway URL
+NEXT_PUBLIC_GEMINI_API_KEY=                      # Google Gemini — AI Nook Finder feature
+NEXT_PUBLIC_GROQ_API_KEY=                        # Groq — Voice Search (Whisper transcription)
+NEXT_PUBLIC_MAP_TILE_URL=                        # Map tile server (Leaflet)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=               # Cloudinary cloud name
 ```
+
+> **Bảo mật:** `NEXT_PUBLIC_GROQ_API_KEY` bị expose ra browser bundle. Chỉ dùng cho dev/demo. Production cần proxy qua API Gateway (tạo route `POST /api/transcribe`) để giữ key phía server.
 
 ## Page Inventory (MVP Priority Order)
 
