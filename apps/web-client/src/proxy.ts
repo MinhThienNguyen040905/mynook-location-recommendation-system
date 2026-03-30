@@ -3,7 +3,8 @@ import type { NextRequest } from 'next/server';
 import { AUTH_ROUTES, PUBLIC_ROUTES, OWNER_PREFIX, ADMIN_PREFIX } from '@/config/routes';
 
 /**
- * Next.js Middleware — handles auth-based route protection.
+ * Next.js Proxy (Next.js 16) — auth-based route protection.
+ * Renamed from middleware.ts → proxy.ts per Next.js 16 convention.
  *
  * Logic:
  * - Public routes: always accessible
@@ -12,7 +13,13 @@ import { AUTH_ROUTES, PUBLIC_ROUTES, OWNER_PREFIX, ADMIN_PREFIX } from '@/config
  * - Admin routes: require admin role
  * - User routes: require authentication
  */
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
+  // ── Dev bypass: skip auth in development ──────────────────────────────
+  if (process.env.NODE_ENV === 'development') {
+    return NextResponse.next();
+  }
+  // ──────────────────────────────────────────────────────────────────────
+
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('access_token')?.value;
   // Role is stored in a separate cookie after login (set by auth-provider)

@@ -1,0 +1,230 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Search, User, Heart, Menu, X, ChevronDown, LogOut, LayoutDashboard } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '@/lib/utils';
+import { NookLogo } from '@/components/shared/nook-logo';
+
+/* ── Đọc cookie client-side ──────────────────────────────────── */
+function getCookie(name: string) {
+  if (typeof document === 'undefined') return null;
+  return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1] ?? null;
+}
+
+/* ── User avatar dropdown ────────────────────────────────────── */
+function UserMenu({ role }: { role: string | null }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function close(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  function handleLogout() {
+    document.cookie = 'access_token=; Max-Age=0; path=/';
+    document.cookie = 'user_role=; Max-Age=0; path=/';
+    window.location.href = '/';
+  }
+
+  const isOwner = role === 'owner';
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 pl-1 pr-3 py-1.5 rounded-xl hover:bg-nook-sand/60 transition-colors"
+      >
+        <img
+          src="https://picsum.photos/seed/user-profile/100/100"
+          alt="Avatar"
+          className="size-8 rounded-full border-2 border-nook-olive/30 object-cover"
+        />
+        <span className="text-sm font-medium text-nook-ink hidden sm:block">Tài khoản</span>
+        <ChevronDown size={14} className="text-nook-ink/40" />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-nook-sand py-1.5 z-50"
+          >
+            <Link href="/profile"
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
+              <User size={15} className="text-nook-olive" /> Thông tin cá nhân
+            </Link>
+            <Link href="/favorites"
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
+              <Heart size={15} className="text-nook-olive" /> Yêu thích
+            </Link>
+            {isOwner && (
+              <Link href="/dashboard"
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
+                <LayoutDashboard size={15} className="text-nook-olive" /> Quản lý quán
+              </Link>
+            )}
+            <hr className="my-1 border-nook-sand" />
+            <button onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
+              <LogOut size={15} /> Đăng xuất
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ── Navbar ──────────────────────────────────────────────────── */
+export function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const pathname = usePathname();
+
+  /* Kiểm tra cookie sau khi mount (client-only) */
+  useEffect(() => {
+    const token = getCookie('access_token');
+    const role  = getCookie('user_role');
+    setIsLoggedIn(!!token);
+    setUserRole(role);
+  }, [pathname]);
+
+  /* Nav links — Profile chỉ hiện khi đã đăng nhập */
+  const publicLinks = [
+    { name: 'Trang chủ', path: '/'       },
+    { name: 'Tìm kiếm',  path: '/search' },
+  ];
+
+  const authLinks = [
+    ...publicLinks,
+    { name: 'Yêu thích', path: '/favorites' },
+    { name: 'Hồ sơ',     path: '/profile'   },
+  ];
+
+  const navLinks = isLoggedIn ? authLinks : publicLinks;
+
+  return (
+    <nav className="sticky top-0 z-50 bg-nook-cream/80 backdrop-blur-md border-b border-nook-sand">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-20 items-center">
+
+          {/* Logo */}
+          <Link href="/">
+            <NookLogo size="md" />
+          </Link>
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                href={link.path}
+                className={cn(
+                  'text-sm font-medium transition-colors hover:text-nook-olive',
+                  pathname === link.path ? 'text-nook-olive' : 'text-nook-ink/60'
+                )}
+              >
+                {link.name}
+                {pathname === link.path && (
+                  <motion.div
+                    layoutId="nav-underline"
+                    className="h-0.5 bg-nook-olive mt-0.5 rounded-full"
+                  />
+                )}
+              </Link>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="hidden md:flex items-center gap-3">
+            <button className="p-2 text-nook-ink/60 hover:text-nook-olive transition-colors">
+              <Search size={20} />
+            </button>
+
+            {isLoggedIn ? (
+              <UserMenu role={userRole} />
+            ) : (
+              <Link href="/login" className="nook-button-primary flex items-center gap-2">
+                <User size={18} />
+                <span>Đăng nhập</span>
+              </Link>
+            )}
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 text-nook-ink/60 hover:text-nook-olive transition-colors"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-white border-b border-nook-sand overflow-hidden"
+          >
+            <div className="px-4 pt-2 pb-6 space-y-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  href={link.path}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={cn(
+                    'block px-3 py-4 text-base font-medium rounded-xl',
+                    pathname === link.path
+                      ? 'bg-nook-cream text-nook-olive'
+                      : 'text-nook-ink/60 hover:bg-nook-cream/50'
+                  )}
+                >
+                  {link.name}
+                </Link>
+              ))}
+              <div className="pt-4">
+                {isLoggedIn ? (
+                  <button
+                    onClick={() => {
+                      document.cookie = 'access_token=; Max-Age=0; path=/';
+                      document.cookie = 'user_role=; Max-Age=0; path=/';
+                      window.location.href = '/';
+                    }}
+                    className="w-full nook-button-secondary text-center flex items-center justify-center gap-2"
+                  >
+                    <LogOut size={16} /> Đăng xuất
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="nook-button-primary text-center block"
+                  >
+                    Đăng nhập / Đăng ký
+                  </Link>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+}
