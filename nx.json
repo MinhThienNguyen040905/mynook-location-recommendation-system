@@ -44,6 +44,13 @@
     },
     {
       "plugin": "@nx/webpack/plugin",
+      "exclude": [
+        "apps/api-gateway/**",
+        "apps/auth-service/**",
+        "apps/venue-service/**",
+        "apps/interaction-service/**",
+        "apps/search-ai-service/**"
+      ],
       "options": {
         "buildTargetName": "build",
         "serveTargetName": "serve",
