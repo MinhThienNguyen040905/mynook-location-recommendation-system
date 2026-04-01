@@ -16,12 +16,12 @@ Hệ thống Đánh giá & Khám phá địa điểm, xây dựng trên kiến t
 
 ```
 ├── apps/
-│   ├── web-client/            # Frontend Next.js        (port 3000 dev)
-│   ├── api-gateway/           # REST API Gateway         (port 3000)
-│   ├── auth-service/          # Microservice xác thực    (HTTP 3001)
-│   ├── venue-service/         # Microservice địa điểm    (HTTP 3002)
-│   ├── interaction-service/   # Microservice tương tác   (HTTP 3003)
-│   └── search-ai-service/     # Microservice tìm kiếm AI (HTTP 3004)
+│   ├── web-client/            # Frontend Next.js        (port 3000)
+│   ├── api-gateway/           # REST API Gateway         (port 3001)
+│   ├── auth-service/          # Microservice xác thực    (HTTP 3002)
+│   ├── venue-service/         # Microservice địa điểm    (HTTP 3003)
+│   ├── interaction-service/   # Microservice tương tác   (HTTP 3004)
+│   └── search-ai-service/     # Microservice tìm kiếm AI (HTTP 3005)
 │
 ├── libs/
 │   ├── shared-types/          # Enums, Interfaces dùng chung (FE + BE)
@@ -48,20 +48,25 @@ npm install
 
 ## Chạy dự án
 
-### Khởi động tất cả apps cùng lúc
+### Khởi động tất cả apps cùng lúc (bao gồm frontend)
 
 ```bash
 npx nx run-many -t serve
 ```
 
+Sau khi khởi động, truy cập:
+- **Frontend:** http://localhost:3000
+- **API Gateway:** http://localhost:3001/api
+- **Swagger docs:** http://localhost:3001/docs
+
 ### Khởi động từng app riêng lẻ
 
 ```bash
-# API Gateway (HTTP :3000)
-npx nx serve api-gateway
+# Frontend (Next.js dev server :3000)
+npx nx serve web-client
 
-# Frontend (Next.js dev server)
-npx nx dev web-client
+# API Gateway (:3001)
+npx nx serve api-gateway
 
 # Microservices
 npx nx serve auth-service
@@ -165,14 +170,14 @@ npx nx build web-client
 ## Kiến trúc
 
 ```
-[Client] → [web-client :3000]
+[Browser] → [web-client :3000]
                  ↓ HTTP
-           [api-gateway :3000]  ← REST API duy nhất expose ra ngoài
+           [api-gateway :3001]  ← REST API duy nhất expose ra ngoài
             ↙    ↓    ↘    ↘
     HTTP  HTTP  HTTP  HTTP
         ↙      ↓      ↘      ↘
 [auth]    [venue]  [interaction] [search-ai]
-:3001     :3002      :3003        :3004
+:3002     :3003      :3004        :3005
 ```
 
 - **api-gateway** là điểm vào duy nhất, nhận HTTP request và chuyển tiếp tới các microservice qua HTTP (sử dụng `@nestjs/axios`).
@@ -209,30 +214,28 @@ npx nx affected -t serve
 
 ## Cổng (Ports)
 
-| Service             | Port       | Transport |
-| ------------------- | ---------- | --------- |
-| web-client          | 3000 (dev) | HTTP      |
-| api-gateway         | 3000       | HTTP REST |
-| auth-service        | 3001       | HTTP      |
-| venue-service       | 3002       | HTTP      |
-| interaction-service | 3003       | HTTP      |
-| search-ai-service   | 3004       | HTTP      |
-
-> **Lưu ý:** web-client (Next.js) và api-gateway cùng port 3000 mặc định. Khi chạy đồng thời, Next.js sẽ tự tìm port trống tiếp theo (3005+). Hoặc cấu hình lại port Next.js dev server trong `apps/web-client/next.config.ts`.
+| Service             | Port | Transport |
+| ------------------- | ---- | --------- |
+| web-client          | 3000 | HTTP      |
+| api-gateway         | 3001 | HTTP REST |
+| auth-service        | 3002 | HTTP      |
+| venue-service       | 3003 | HTTP      |
+| interaction-service | 3004 | HTTP      |
+| search-ai-service   | 3005 | HTTP      |
 
 ## API Documentation (Swagger)
 
 Mỗi service đều có Swagger UI riêng, truy cập tại đường dẫn `/docs`.
 
-| Service             | Swagger URL                       | Mô tả                                      |
-| ------------------- | --------------------------------- | ------------------------------------------- |
-| **API Gateway**     | http://localhost:3000/docs        | **Docs chính** — Public API cho frontend    |
-| Auth Service        | http://localhost:3001/docs        | Internal — đăng ký, đăng nhập, refresh token |
-| Venue Service       | http://localhost:3002/docs        | Internal — quản lý địa điểm                 |
-| Interaction Service | http://localhost:3003/docs        | Internal — reviews, bookmarks, bookings      |
-| Search AI Service   | http://localhost:3004/docs        | Internal — tìm kiếm, gợi ý AI              |
+| Service             | Swagger URL                       | Mô tả                                        |
+| ------------------- | --------------------------------- | -------------------------------------------- |
+| **API Gateway**     | http://localhost:3001/docs        | **Docs chính** — Public API cho frontend     |
+| Auth Service        | http://localhost:3002/docs        | Internal — đăng ký, đăng nhập, refresh token |
+| Venue Service       | http://localhost:3003/docs        | Internal — quản lý địa điểm                  |
+| Interaction Service | http://localhost:3004/docs        | Internal — reviews, bookmarks, bookings       |
+| Search AI Service   | http://localhost:3005/docs        | Internal — tìm kiếm, gợi ý AI               |
 
-> **Lưu ý:** Frontend và các client bên ngoài chỉ nên tham khảo **API Gateway docs** (`localhost:3000/docs`). Swagger của các service con là tài liệu nội bộ, dùng để debug và phát triển.
+> **Lưu ý:** Frontend và các client bên ngoài chỉ nên tham khảo **API Gateway docs** (`localhost:3001/docs`). Swagger của các service con là tài liệu nội bộ, dùng để debug và phát triển.
 
 ## License
 
