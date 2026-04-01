@@ -52,10 +52,10 @@ export interface IReview {
 // ---- Service URLs (HTTP) ----
 
 export const AUTH_SERVICE_URL =
-  process.env['AUTH_SERVICE_URL'] || 'http://localhost:3001';
+  process.env['AUTH_SERVICE_URL'] || 'http://localhost:3002';
 export const VENUE_SERVICE_URL =
-  process.env['VENUE_SERVICE_URL'] || 'http://localhost:3002';
+  process.env['VENUE_SERVICE_URL'] || 'http://localhost:3003';
 export const INTERACTION_SERVICE_URL =
-  process.env['INTERACTION_SERVICE_URL'] || 'http://localhost:3003';
+  process.env['INTERACTION_SERVICE_URL'] || 'http://localhost:3004';
 export const SEARCH_AI_SERVICE_URL =
-  process.env['SEARCH_AI_SERVICE_URL'] || 'http://localhost:3004';
+  process.env['SEARCH_AI_SERVICE_URL'] || 'http://localhost:3005';
