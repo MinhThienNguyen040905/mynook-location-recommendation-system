@@ -15,7 +15,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  const port = Number(process.env.PORT) || 3004;
+  const port = Number(process.env.PORT) || 3005;
   await app.listen(port);
 
   Logger.log(`Search AI Service is running on: http://localhost:${port}`);
