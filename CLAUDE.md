@@ -54,6 +54,7 @@ npx shadcn@latest add <component> --cwd apps/web-client  # shadcn UI
 | shared-types | `@mynook/shared-types` | Enums (AccountType, VenueCategory, BookingStatus), interfaces (IAccount, IVenue, IReview), service URL constants (AUTH_SERVICE_URL, VENUE_SERVICE_URL, etc.) |
 | database | `@mynook/database` | DB connection config, entity schemas |
 | rmq-messaging | `@mynook/rmq-messaging` | `RmqModule.register()` for RabbitMQ client/server setup |
+| cloudinary | `@mynook/cloudinary` | `CloudinaryModule` + `CloudinaryService` for image/video upload to Cloudinary |
 
 ## Key Conventions
 
