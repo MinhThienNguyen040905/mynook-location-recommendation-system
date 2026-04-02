@@ -1,357 +1,155 @@
-'use client';
+import { Footer } from "@/components/layout/footer";
+import { VenueHeader } from "@/components/venue-detail/venue-header";
+import { VenueGallery } from "@/components/venue-detail/venue-gallery";
+import { VenueAmenities } from "@/components/venue-detail/venue-amenities";
+import { BookingCard } from "@/components/venue-detail/booking-card";
+import { BadgeCheck, Star } from "lucide-react";
 
-import { useState, useMemo } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import {
-  Star,
-  MapPin,
-  Clock,
-  Share2,
-  Heart,
-  ArrowLeft,
-  Coffee,
-  Wifi,
-  VolumeX,
-  Zap,
-  ChevronRight,
-  ChevronLeft,
-  Plus,
-  Info,
-} from 'lucide-react';
-import { AnimatePresence } from 'motion/react';
-import { MOCK_VENUES } from '@/data/mockVenues';
-import { cn } from '@/lib/utils';
-import { WriteReviewModal } from '@/components/review/write-review-modal';
-import { AllReviewsModal } from '@/components/review/all-reviews-modal';
-
-export default function VenueDetailPage() {
-  // useParams from next/navigation — same usage as react-router-dom
-  const { id } = useParams<{ id: string }>();
-  const venue = useMemo(() => MOCK_VENUES.find((v) => v.id === id), [id]);
-  const [activeImage, setActiveImage] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [showWriteReview, setShowWriteReview] = useState(false);
-  const [showAllReviews, setShowAllReviews] = useState(false);
-
-  if (!venue) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
-        <div className="w-24 h-24 bg-nook-sand rounded-full flex items-center justify-center mb-6 text-nook-ink/20">
-          <MapPin size={48} />
-        </div>
-        <h2 className="text-3xl font-serif font-bold text-nook-ink mb-4">Venue not found</h2>
-        <p className="text-nook-ink/60 mb-8 max-w-md">
-          The nook you&apos;re looking for doesn&apos;t exist or has been removed.
-        </p>
-        {/* Next.js Link — href replaces to */}
-        <Link href="/search" className="nook-button-primary">
-          Back to Search
-        </Link>
-      </div>
-    );
-  }
-
-  const featureIcons: Record<string, React.ReactNode> = {
-    Quiet: <VolumeX size={20} />,
-    'Fast Wi-Fi': <Wifi size={20} />,
-    'Power Outlets': <Zap size={20} />,
-    'Great Coffee': <Coffee size={20} />,
-    'Ergonomic Chairs': <Zap size={20} />,
-    'Outdoor Seating': <Zap size={20} />,
-    'Pet Friendly': <Zap size={20} />,
-    'Private Pods': <Zap size={20} />,
-    'Meeting Rooms': <Zap size={20} />,
-    'Free Coffee': <Zap size={20} />,
-    Printing: <Zap size={20} />,
-    'Garden View': <Zap size={20} />,
-    'Traditional Tea': <Zap size={20} />,
-    'Shoes Off': <Zap size={20} />,
-  };
-
+export default function VenueDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   return (
-    <div className="min-h-screen bg-white pb-24">
-      {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-nook-sand px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Back link — href replaces to */}
-          <Link
-            href="/search"
-            className="flex items-center gap-2 text-nook-ink/60 hover:text-nook-olive transition-colors font-medium"
-          >
-            <ArrowLeft size={18} />
-            <span>Back to results</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <button className="p-2 text-nook-ink/60 hover:text-nook-olive transition-colors">
-              <Share2 size={20} />
-            </button>
-            <button
-              onClick={() => setIsFavorite(!isFavorite)}
-              className={cn(
-                'p-2 transition-colors',
-                isFavorite ? 'text-red-500' : 'text-nook-ink/60 hover:text-red-500'
-              )}
-            >
-              <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="bg-[#f8f6f5] dark:bg-[#221610] min-h-screen flex flex-col font-sans">
+      {/* Đã xóa <Navbar /> ở đây vì app/(public)/layout.tsx đã render nó rồi */}
 
-      {/* Image Gallery */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[500px]">
-          <div className="lg:col-span-2 relative rounded-2xl overflow-hidden group">
-            {/* Using <img> for external picsum URLs */}
-            <img
-              src={venue.images[activeImage]}
-              alt={venue.name}
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <VenueHeader />
+        <VenueGallery />
 
-            {venue.images.length > 1 && (
-              <>
-                <button
-                  onClick={() =>
-                    setActiveImage((prev) => (prev === 0 ? venue.images.length - 1 : prev - 1))
-                  }
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-nook-ink hover:bg-white transition-all shadow-lg opacity-0 group-hover:opacity-100"
-                >
-                  <ChevronLeft size={24} />
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
+          {/* Left Column: Content */}
+          <div className="lg:col-span-2 space-y-10">
+            {/* Navigation Tabs */}
+            <div className="border-b border-slate-200 dark:border-slate-700">
+              <nav className="-mb-px flex space-x-8">
+                <button className="border-[#e9590c] text-[#e9590c] whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                  Overview
                 </button>
-                <button
-                  onClick={() =>
-                    setActiveImage((prev) => (prev === venue.images.length - 1 ? 0 : prev + 1))
-                  }
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-nook-ink hover:bg-white transition-all shadow-lg opacity-0 group-hover:opacity-100"
-                >
-                  <ChevronRight size={24} />
+                <button className="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                  Menu
                 </button>
-              </>
-            )}
-          </div>
-
-          <div className="hidden lg:grid grid-rows-2 gap-6">
-            {venue.images.slice(1, 3).map((img, i) => (
-              <div
-                key={i}
-                className="rounded-2xl overflow-hidden relative group cursor-pointer"
-                onClick={() => setActiveImage(i + 1)}
-              >
-                <img
-                  src={img}
-                  alt={`${venue.name} ${i + 2}`}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
-                {i === 1 && venue.images.length > 3 && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white font-bold text-xl">
-                    +{venue.images.length - 3} photos
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Left Column */}
-          <div className="lg:col-span-2">
-            <div className="mb-8">
-              <div className="flex flex-wrap gap-2 mb-4">
-                {venue.categories.map((cat) => (
-                  <span
-                    key={cat}
-                    className="px-3 py-1 bg-nook-olive/10 text-nook-olive text-xs font-bold uppercase tracking-wider rounded-full"
-                  >
-                    {cat}
+                <button className="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                  Reviews{" "}
+                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-0.5 px-2 rounded-full text-xs ml-2">
+                    128
                   </span>
-                ))}
-              </div>
-              <h1 className="text-5xl font-serif font-bold text-nook-ink mb-4 leading-tight">
-                {venue.name}
-              </h1>
-              <div className="flex flex-wrap items-center gap-6 text-nook-ink/60">
-                <div className="flex items-center gap-1 text-nook-olive font-bold">
-                  <Star size={18} fill="currentColor" />
-                  <span>{venue.rating}</span>
-                  <span className="text-nook-ink/40 font-medium ml-1">
-                    ({venue.reviewCount} reviews)
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MapPin size={18} />
-                  <span>{venue.address}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock size={18} />
-                  <span>{venue.openingHours}</span>
-                </div>
-              </div>
+                </button>
+              </nav>
             </div>
 
-            <div className="prose prose-nook max-w-none mb-12">
-              <h3 className="text-2xl font-serif font-bold text-nook-ink mb-4">
-                About this Nook
-              </h3>
-              <p className="text-lg text-nook-ink/70 leading-relaxed">{venue.description}</p>
-            </div>
+            {/* Overview Section */}
+            <section>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                About this space
+              </h2>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                A haven for digital nomads and coffee enthusiasts alike. The
+                Workshop Coffee combines industrial aesthetics with warm,
+                inviting corners perfect for deep work or casual catch-ups. We
+                pride ourselves on our single-origin beans roasted in-house and
+                a menu that fuels your productivity.
+              </p>
+            </section>
 
-            <div className="mb-12">
-              <h3 className="text-2xl font-serif font-bold text-nook-ink mb-6">
-                What this nook offers
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {venue.features.map((feature) => (
-                  <div
-                    key={feature}
-                    className="flex items-center gap-4 p-4 rounded-2xl bg-nook-cream/50 border border-nook-sand"
-                  >
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-nook-olive shadow-sm">
-                      {featureIcons[feature] || <Zap size={20} />}
-                    </div>
-                    <span className="font-medium text-nook-ink">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <VenueAmenities />
 
-            {/* Reviews Section */}
-            <section id="reviews">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-2xl font-serif font-bold text-nook-ink">Bình luận</h3>
-                  <p className="text-sm text-nook-ink/40 mt-1">{venue.reviewCount} đánh giá</p>
-                </div>
-                <button
-                  onClick={() => setShowWriteReview(true)}
-                  className="nook-button-secondary flex items-center gap-2"
-                >
-                  <Plus size={18} />
-                  <span>Viết bình luận</span>
+            {/* Popular Dishes */}
+            <section>
+              <div className="flex justify-between items-end mb-4">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                  Popular Dishes
+                </h3>
+                <button className="text-[#e9590c] hover:text-[#c2410b] text-sm font-medium">
+                  View Full Menu
                 </button>
               </div>
-
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 {[
-                  { id: 1, name: 'Minh Tuấn',   rating: 5, date: '2 ngày trước',  text: 'Quán cực kỳ yên tĩnh và thoải mái. Wi-Fi nhanh, cà phê ngon. Mình hay đến đây làm việc mỗi sáng.' },
-                  { id: 2, name: 'Thu Hương',   rating: 4, date: '5 ngày trước',  text: 'Không gian đẹp, nhân viên thân thiện. Chỉ hơi tiếc là buổi chiều đông nên đôi khi không có chỗ ngồi.' },
-                  { id: 3, name: 'Phúc Nguyễn', rating: 5, date: '1 tuần trước', text: 'Địa điểm lý tưởng để đọc sách hoặc làm việc một mình. Ánh sáng tự nhiên rất tốt, âm nhạc nhẹ nhàng.' },
-                ].map((review) => (
-                  <div key={review.id} className="p-6 rounded-2xl border border-nook-sand bg-white shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-nook-sand rounded-full overflow-hidden">
-                          <img
-                            src={`https://picsum.photos/seed/user${review.id}/100/100`}
-                            alt={review.name}
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-nook-ink">{review.name}</h4>
-                          <span className="text-xs text-nook-ink/40">{review.date}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-0.5">
-                        {[...Array(5)].map((_, star) => (
-                          <Star
-                            key={star}
-                            size={14}
-                            className={star < review.rating ? 'text-amber-400 fill-amber-400' : 'text-nook-sand fill-nook-sand'}
-                          />
-                        ))}
-                      </div>
+                  {
+                    title: "Avocado Sourdough",
+                    price: "$12.50 • Breakfast",
+                    img: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?auto=format&fit=crop&q=80&w=400",
+                  },
+                  {
+                    title: "Signature Flat White",
+                    price: "$4.50 • Coffee",
+                    img: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&q=80&w=400",
+                  },
+                  {
+                    title: "Almond Croissant",
+                    price: "$5.00 • Bakery",
+                    img: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=400",
+                  },
+                ].map((dish, i) => (
+                  <div key={i} className="group cursor-pointer">
+                    <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3">
+                      <img
+                        src={dish.img}
+                        alt={dish.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
                     </div>
-                    <p className="text-nook-ink/70 leading-relaxed">{review.text}</p>
+                    <h4 className="font-bold text-slate-900 dark:text-white">
+                      {dish.title}
+                    </h4>
+                    <p className="text-sm text-slate-500">{dish.price}</p>
                   </div>
                 ))}
               </div>
+            </section>
 
-              {/* See all button */}
-              {venue.reviewCount > 3 && (
-                <button
-                  onClick={() => setShowAllReviews(true)}
-                  className="mt-8 w-full py-4 border-2 border-dashed border-nook-sand rounded-2xl text-nook-ink/50 font-bold hover:border-nook-olive hover:text-nook-olive transition-colors text-sm"
-                >
-                  Xem tất cả {venue.reviewCount} bình luận →
-                </button>
-              )}
+            {/* Reviews Snippet */}
+            <section>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                What people are saying
+              </h3>
+              <div className="p-6 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-sm">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100"
+                      alt="Avatar"
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div>
+                      <h5 className="font-bold text-slate-900 dark:text-white text-sm">
+                        Sarah Jenkins
+                      </h5>
+                      <span className="text-xs text-slate-500">2 days ago</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center px-2 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-xs font-medium border border-green-100 dark:border-green-800">
+                    <BadgeCheck size={14} className="mr-1" /> Verified Visit
+                  </div>
+                </div>
+                <div className="flex text-[#e9590c] gap-0.5 mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={16} className="fill-current" />
+                  ))}
+                </div>
+                <p className="text-slate-600 dark:text-slate-300 text-sm">
+                  "Absolutely love the vibe here. The wifi is incredibly fast
+                  and reliable for video calls (quiet corners available). The
+                  almond croissant is a must-try!"
+                </p>
+              </div>
+              <button className="w-full py-3 mt-4 text-center border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                Read all 128 reviews
+              </button>
             </section>
           </div>
 
-          {/* Right Column: Sidebar */}
-          <div className="space-y-8">
-            <div className="nook-card p-8 sticky top-20">
-              <h4 className="text-xl font-serif font-bold text-nook-ink mb-6">Quick Details</h4>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center justify-between text-sm">
-                  <span className="text-nook-ink/40">Price Level</span>
-                  <span className="font-bold text-nook-olive">{'$'.repeat(venue.priceLevel)}</span>
-                </li>
-                <li className="flex items-center justify-between text-sm">
-                  <span className="text-nook-ink/40">Noise Level</span>
-                  <span className="font-bold text-nook-olive">Quiet</span>
-                </li>
-                <li className="flex items-center justify-between text-sm">
-                  <span className="text-nook-ink/40">Best For</span>
-                  <span className="font-bold text-nook-olive">Deep Work</span>
-                </li>
-                <li className="flex items-center justify-between text-sm">
-                  <span className="text-nook-ink/40">Power Outlets</span>
-                  <span className="font-bold text-nook-olive">Available</span>
-                </li>
-              </ul>
-
-              <div className="space-y-3">
-                <button className="nook-button-primary w-full py-4 text-lg">
-                  Get Directions
-                </button>
-                <button className="nook-button-secondary w-full py-4 text-lg">
-                  Save to Favorites
-                </button>
-              </div>
-
-              <div className="mt-8 p-4 bg-nook-cream rounded-xl flex items-start gap-3">
-                <Info size={18} className="text-nook-olive mt-0.5 shrink-0" />
-                <p className="text-xs text-nook-ink/60 leading-relaxed">
-                  This location is popular during afternoons. We recommend arriving before 2 PM to
-                  secure a good spot.
-                </p>
-              </div>
-            </div>
+          {/* Right Column: Sticky Booking Card */}
+          <div className="lg:col-span-1">
+            <BookingCard />
           </div>
         </div>
       </main>
 
-      {/* Modals */}
-      <AnimatePresence>
-        {showWriteReview && (
-          <WriteReviewModal
-            venueName={venue.name}
-            onClose={() => setShowWriteReview(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showAllReviews && (
-          <AllReviewsModal
-            venueName={venue.name}
-            rating={venue.rating}
-            reviewCount={venue.reviewCount}
-            onClose={() => setShowAllReviews(false)}
-            onWriteReview={() => setShowWriteReview(true)}
-          />
-        )}
-      </AnimatePresence>
+      <Footer />
     </div>
   );
 }
