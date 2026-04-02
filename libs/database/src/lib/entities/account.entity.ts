@@ -6,14 +6,14 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-export enum UserRole {
+export enum AccountType {
+  CUSTOMER = 'customer',
+  BUSINESS = 'business',
   ADMIN = 'admin',
-  OWNER = 'owner',
-  USER = 'user',
 }
 
-@Entity({ schema: 'auth_schema', name: 'users' })
-export class User {
+@Entity({ schema: 'auth_schema', name: 'accounts' })
+export class Account {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -32,8 +32,8 @@ export class User {
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone_number!: string | null;
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
-  role!: UserRole;
+  @Column({ type: 'enum', enum: AccountType, default: AccountType.CUSTOMER })
+  type!: AccountType;
 
   @Column({ type: 'int', default: 100 })
   trust_score!: number;

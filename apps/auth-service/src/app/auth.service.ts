@@ -10,8 +10,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { User } from '@mynook/database';
-import { UserRole } from '@mynook/shared-types';
+import { Account } from '@mynook/database';
+import { AccountType } from '@mynook/shared-types';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RefreshTokenDto } from './dto/refresh-token.dto.js';
@@ -23,8 +23,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto.js';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+    @InjectRepository(Account)
+    private readonly userRepo: Repository<Account>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -44,7 +44,7 @@ export class AuthService {
       password_hash,
       full_name: dto.full_name || null,
       phone_number: dto.phone_number || null,
-      role: dto.role ?? UserRole.USER,
+      type: dto.type ?? AccountType.CUSTOMER,
     });
 
     const saved = await this.userRepo.save(user);
@@ -182,15 +182,15 @@ export class AuthService {
     return this.sanitizeUser(saved);
   }
 
-  private buildResponse(user: User) {
+  private buildResponse(user: Account) {
     return {
       ...this.buildTokens(user),
       user: this.sanitizeUser(user),
     };
   }
 
-  private buildTokens(user: User) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+  private buildTokens(user: Account) {
+    const payload = { sub: user.id, email: user.email, type: user.type };
     return {
       access_token: this.jwtService.sign(payload),
       refresh_token: this.jwtService.sign(payload, {
@@ -201,14 +201,14 @@ export class AuthService {
     };
   }
 
-  private sanitizeUser(user: User) {
+  private sanitizeUser(user: Account) {
     return {
       id: user.id,
       email: user.email,
       full_name: user.full_name,
       avatar_url: user.avatar_url,
       phone_number: user.phone_number,
-      role: user.role,
+      type: user.type,
       trust_score: user.trust_score,
       created_at: user.created_at,
     };

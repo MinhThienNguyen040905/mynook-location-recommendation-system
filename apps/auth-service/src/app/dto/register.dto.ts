@@ -1,6 +1,6 @@
 import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole } from '@mynook/shared-types';
+import { AccountType } from '@mynook/shared-types';
 
 export class RegisterDto {
   @ApiProperty({ example: 'user@example.com' })
@@ -22,8 +22,8 @@ export class RegisterDto {
   @IsOptional()
   phone_number?: string;
 
-  @ApiPropertyOptional({ enum: [UserRole.USER, UserRole.OWNER], example: UserRole.USER })
-  @IsEnum([UserRole.USER, UserRole.OWNER])
+  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.BUSINESS], example: AccountType.CUSTOMER })
+  @IsEnum([AccountType.CUSTOMER, AccountType.BUSINESS])
   @IsOptional()
-  role?: UserRole.USER | UserRole.OWNER;
+  type?: AccountType.CUSTOMER | AccountType.BUSINESS;
 }

@@ -7,15 +7,15 @@ NestJS HTTP microservice chạy ở **port 3001**. Xử lý toàn bộ logic xá
 ## Vai trò trong kiến trúc
 
 - Ký JWT (sign) khi login/register — KHÔNG verify request JWT (chỉ api-gateway mới verify)
-- Lưu trữ users trong PostgreSQL schema `auth_schema`
-- Nhận thông tin user từ `x-user-id` / `x-user-role` headers (forward từ api-gateway) via `@CurrentUser()` decorator
+- Lưu trữ accounts trong PostgreSQL schema `auth_schema`
+- Nhận thông tin account từ `x-user-id` / `x-user-type` headers (forward từ api-gateway) via `@CurrentUser()` decorator
 
 ## Endpoints
 
 | Method | Path | Auth | Mô tả |
 |--------|------|------|-------|
-| POST | `/auth/register` | Public | Đăng ký (user/owner) |
-| POST | `/auth/login` | Public | Đăng nhập → trả tokens + user |
+| POST | `/auth/register` | Public | Đăng ký (customer/business) |
+| POST | `/auth/login` | Public | Đăng nhập → trả tokens + account info |
 | POST | `/auth/refresh` | Public | Làm mới access_token |
 | GET | `/auth/profile` | x-user-id header | Lấy profile |
 | POST | `/auth/forgot-password` | Public | Tạo reset token (dev: trả trong response) |
@@ -27,7 +27,7 @@ NestJS HTTP microservice chạy ở **port 3001**. Xử lý toàn bộ logic xá
 
 | File | Dùng cho |
 |------|----------|
-| `register.dto.ts` | email, password, full_name?, phone_number?, role? (user\|owner) |
+| `register.dto.ts` | email, password, full_name?, phone_number?, type? (customer\|business) |
 | `login.dto.ts` | email, password |
 | `refresh-token.dto.ts` | refresh_token |
 | `forgot-password.dto.ts` | email |
@@ -35,19 +35,19 @@ NestJS HTTP microservice chạy ở **port 3001**. Xử lý toàn bộ logic xá
 | `change-password.dto.ts` | old_password, new_password |
 | `update-profile.dto.ts` | full_name?, phone_number?, avatar_url? |
 
-## User Entity — Database columns
+## Account Entity — Database columns
 
-Schema: `auth_schema`, Table: `users`
+Schema: `auth_schema`, Table: `accounts`
 
 | Column | Type | Ghi chú |
 |--------|------|---------|
 | id | uuid | PK |
 | email | varchar(255) | unique |
-| password_hash | varchar(255) | nullable (OAuth users) |
+| password_hash | varchar(255) | nullable (OAuth accounts) |
 | full_name | varchar(100) | nullable |
 | avatar_url | text | nullable |
 | phone_number | varchar(20) | nullable |
-| role | enum | user/owner/admin, default: user |
+| type | enum | customer/business/admin, default: customer |
 | trust_score | int | default: 100 |
 | is_active | boolean | default: true |
 | password_reset_token | varchar(255) | nullable — SHA-256 hash của raw token |
@@ -55,12 +55,24 @@ Schema: `auth_schema`, Table: `users`
 | created_at | timestamptz | auto |
 | updated_at | timestamptz | auto |
 
-### SQL Migration — thêm các cột password reset
+### SQL Migration — tạo bảng accounts
 
 ```sql
-ALTER TABLE auth_schema.users
-  ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255),
-  ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS auth_schema.accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255),
+  full_name VARCHAR(100),
+  avatar_url TEXT,
+  phone_number VARCHAR(20),
+  type VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (type IN ('customer', 'business', 'admin')),
+  trust_score INT NOT NULL DEFAULT 100,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  password_reset_token VARCHAR(255),
+  password_reset_expires TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
 ## Forgot Password Flow
@@ -95,4 +107,5 @@ AUTH_SERVICE_PORT=3001
 - KHÔNG import `@nestjs/passport` hoặc `passport-jwt`
 - KHÔNG verify JWT — chỉ sign
 - Dùng `@CurrentUser()` (từ `@mynook/shared-types`) để đọc `x-user-id` header
-- `register` chỉ cho phép role `user` hoặc `owner` — không cho đăng ký `admin`
+- `register` chỉ cho phép type `customer` hoặc `business` — không cho đăng ký `admin`
+- JWT payload chứa `{ sub, email, type }` — KHÔNG dùng `role`

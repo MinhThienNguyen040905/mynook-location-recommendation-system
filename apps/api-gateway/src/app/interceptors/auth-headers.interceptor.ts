@@ -9,20 +9,20 @@ import { Observable } from 'rxjs';
 export interface AuthenticatedUser {
   userId: string;
   email: string;
-  role: string;
+  type: string;
 }
 
 /**
- * Builds the x-user-id / x-user-role headers object from an authenticated user.
+ * Builds the x-user-id / x-user-type headers object from an authenticated user.
  * Use this in gateway controllers when forwarding requests to downstream services.
  */
 export function buildUserHeaders(user: AuthenticatedUser): {
   'x-user-id': string;
-  'x-user-role': string;
+  'x-user-type': string;
 } {
   return {
     'x-user-id': user.userId,
-    'x-user-role': user.role,
+    'x-user-type': user.type,
   };
 }
 

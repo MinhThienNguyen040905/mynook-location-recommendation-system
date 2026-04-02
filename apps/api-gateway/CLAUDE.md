@@ -8,14 +8,14 @@ NestJS HTTP REST gateway chạy ở **port 3000**, prefix `/api`. Là **điểm 
 
 - Verify JWT (`JwtStrategy` + `JwtAuthGuard`) — **chỉ nơi duy nhất** trong toàn hệ thống làm điều này
 - Forward request đến microservices qua HTTP (`@nestjs/axios`)
-- Gắn `x-user-id` + `x-user-role` headers vào request forward (qua `AuthHeadersInterceptor`)
+- Gắn `x-user-id` + `x-user-type` headers vào request forward (qua `AuthHeadersInterceptor`)
 - **KHÔNG** chứa business logic — chỉ proxy + auth
 
 ## Auth Endpoints (route: /api/auth/...)
 
 | Method | Path | Guard | Mô tả |
 |--------|------|-------|-------|
-| POST | `/api/auth/register` | Public | Đăng ký (user/owner) |
+| POST | `/api/auth/register` | Public | Đăng ký (customer/business) |
 | POST | `/api/auth/login` | Public | Đăng nhập |
 | POST | `/api/auth/refresh` | Public | Làm mới tokens |
 | GET | `/api/auth/profile` | JwtAuthGuard | Lấy profile |

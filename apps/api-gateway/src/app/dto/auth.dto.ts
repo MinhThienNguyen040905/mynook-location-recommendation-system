@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole } from '@mynook/shared-types';
+import { AccountType } from '@mynook/shared-types';
 
 export class GatewayRegisterDto {
   @ApiProperty({ example: 'user@example.com' })
@@ -14,8 +14,8 @@ export class GatewayRegisterDto {
   @ApiPropertyOptional({ example: '0901234567' })
   phone_number?: string;
 
-  @ApiPropertyOptional({ enum: [UserRole.USER, UserRole.OWNER], example: UserRole.USER })
-  role?: UserRole.USER | UserRole.OWNER;
+  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.BUSINESS], example: AccountType.CUSTOMER })
+  type?: AccountType.CUSTOMER | AccountType.BUSINESS;
 }
 
 export class GatewayLoginDto {
