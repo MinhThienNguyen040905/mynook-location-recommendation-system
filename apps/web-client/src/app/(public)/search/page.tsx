@@ -56,6 +56,7 @@ function SearchContent() {
         <MapView
           isPanelOpen={isFilterPanelOpen}
           onClosePanel={() => setIsFilterPanelOpen(false)}
+          venues={MOCK_VENUES}
         />
       </main>
     </div>
