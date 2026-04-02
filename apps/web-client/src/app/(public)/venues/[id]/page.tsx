@@ -2,6 +2,7 @@ import { Footer } from "@/components/layout/footer";
 import { VenueHeader } from "@/components/venue-detail/venue-header";
 import { VenueGallery } from "@/components/venue-detail/venue-gallery";
 import { VenueAmenities } from "@/components/venue-detail/venue-amenities";
+import { VenueLocationMap } from "@/components/venue-detail/venue-location-map";
 import { BookingCard } from "@/components/venue-detail/booking-card";
 import { BadgeCheck, Star } from "lucide-react";
 
@@ -55,6 +56,14 @@ export default function VenueDetailPage({
             </section>
 
             <VenueAmenities />
+
+            {/* Location Map */}
+            <VenueLocationMap
+              name="The Workshop Coffee"
+              address="123 Coffee Street, District 1, Ho Chi Minh City"
+              lat={10.7769}
+              lng={106.7009}
+            />
 
             {/* Popular Dishes */}
             <section>
