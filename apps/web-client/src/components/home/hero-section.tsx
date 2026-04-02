@@ -1,11 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, ChevronDown, ArrowRight } from "lucide-react";
+import { Search, MapPin, ChevronDown, ArrowRight, Mic, Loader2 } from "lucide-react";
+import { useVoiceSearch } from "@/hooks/use-voice-search";
 
 export function HeroSection() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleVoiceResult = useCallback((text: string) => {
+    setSearchQuery(text);
+  }, []);
+
+  const { state: voiceState, error: voiceError, toggle: toggleVoice } = useVoiceSearch(handleVoiceResult);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,9 +74,34 @@ export function HeroSection() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-12 pr-4 py-3 bg-transparent border-none rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-[#e9590c]/20 focus:bg-slate-50 dark:focus:bg-slate-700/50 transition-all text-base outline-none"
+                className="block w-full pl-12 pr-12 py-3 bg-transparent border-none rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-[#e9590c]/20 focus:bg-slate-50 dark:focus:bg-slate-700/50 transition-all text-base outline-none"
                 placeholder="Try 'Quiet cafe in District 1...'"
               />
+              <button
+                type="button"
+                onClick={toggleVoice}
+                disabled={voiceState === "transcribing"}
+                title={
+                  voiceState === "recording"
+                    ? "Stop recording"
+                    : voiceState === "transcribing"
+                      ? "Transcribing..."
+                      : "Search by voice"
+                }
+                className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${
+                  voiceState === "recording"
+                    ? "text-red-500 animate-pulse"
+                    : voiceState === "transcribing"
+                      ? "text-[#e9590c]"
+                      : "text-slate-400 hover:text-[#e9590c]"
+                }`}
+              >
+                {voiceState === "transcribing" ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : (
+                  <Mic size={20} />
+                )}
+              </button>
             </div>
 
             <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-600" />
@@ -102,6 +134,9 @@ export function HeroSection() {
               <ArrowRight size={18} />
             </button>
           </form>
+          {voiceError && (
+            <p className="mt-2 text-sm text-red-500">{voiceError}</p>
+          )}
         </div>
       </div>
     </section>
