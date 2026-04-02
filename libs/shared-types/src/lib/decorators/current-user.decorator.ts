@@ -2,7 +2,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export interface CurrentUserPayload {
   id: string;
-  role: string;
+  type: string;
 }
 
 /**
@@ -28,7 +28,7 @@ export const CurrentUser = createParamDecorator(
     const request = ctx.switchToHttp().getRequest();
     return {
       id: request.headers['x-user-id'] as string,
-      role: request.headers['x-user-role'] as string,
+      type: request.headers['x-user-type'] as string,
     };
   },
 );

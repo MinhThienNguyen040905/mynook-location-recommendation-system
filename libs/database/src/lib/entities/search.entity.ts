@@ -66,7 +66,7 @@ export class SearchLog {
   id!: string;
 
   @Column({ type: 'uuid', nullable: true })
-  user_id!: string | null;
+  account_id!: string | null;
 
   @Column({ type: 'text', nullable: true })
   search_query!: string | null;

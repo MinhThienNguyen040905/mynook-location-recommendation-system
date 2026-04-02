@@ -1,8 +1,8 @@
 // ---- Enums ----
 
-export enum UserRole {
-  USER = 'user',
-  OWNER = 'owner',
+export enum AccountType {
+  CUSTOMER = 'customer',
+  BUSINESS = 'business',
   ADMIN = 'admin',
 }
 
@@ -23,11 +23,11 @@ export enum BookingStatus {
 
 // ---- Interfaces ----
 
-export interface IUser {
+export interface IAccount {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
+  full_name: string | null;
+  type: AccountType;
 }
 
 export interface IVenue {
@@ -37,13 +37,14 @@ export interface IVenue {
   address: string;
   latitude: number;
   longitude: number;
-  ownerId: string;
+  businessId: string;
+  branchName?: string | null;
 }
 
 export interface IReview {
   id: string;
   venueId: string;
-  userId: string;
+  accountId: string;
   rating: number;
   comment: string;
   createdAt: Date;
@@ -52,10 +53,10 @@ export interface IReview {
 // ---- Service URLs (HTTP) ----
 
 export const AUTH_SERVICE_URL =
-  process.env['AUTH_SERVICE_URL'] || 'http://localhost:3001';
+  process.env['AUTH_SERVICE_URL'] || 'http://localhost:3002';
 export const VENUE_SERVICE_URL =
-  process.env['VENUE_SERVICE_URL'] || 'http://localhost:3002';
+  process.env['VENUE_SERVICE_URL'] || 'http://localhost:3003';
 export const INTERACTION_SERVICE_URL =
-  process.env['INTERACTION_SERVICE_URL'] || 'http://localhost:3003';
+  process.env['INTERACTION_SERVICE_URL'] || 'http://localhost:3004';
 export const SEARCH_AI_SERVICE_URL =
-  process.env['SEARCH_AI_SERVICE_URL'] || 'http://localhost:3004';
+  process.env['SEARCH_AI_SERVICE_URL'] || 'http://localhost:3005';

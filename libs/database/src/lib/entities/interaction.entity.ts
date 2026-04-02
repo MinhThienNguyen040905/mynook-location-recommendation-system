@@ -19,7 +19,7 @@ export class Review {
   id!: string;
 
   @Column({ type: 'uuid' })
-  user_id!: string;
+  account_id!: string;
 
   @Column({ type: 'uuid' })
   venue_id!: string;
@@ -46,7 +46,7 @@ export class Review {
 @Entity({ schema: 'interaction_schema', name: 'user_favorites' })
 export class UserFavorite {
   @PrimaryColumn({ type: 'uuid' })
-  user_id!: string;
+  account_id!: string;
 
   @PrimaryColumn({ type: 'uuid' })
   venue_id!: string;
@@ -61,7 +61,7 @@ export class UserInteraction {
   id!: string;
 
   @Column({ type: 'uuid' })
-  user_id!: string;
+  account_id!: string;
 
   @Column({ type: 'uuid' })
   venue_id!: string;
@@ -82,7 +82,7 @@ export class Notification {
   id!: string;
 
   @Column({ type: 'uuid' })
-  user_id!: string;
+  account_id!: string;
 
   @Column({ type: 'varchar', length: 255 })
   title!: string;

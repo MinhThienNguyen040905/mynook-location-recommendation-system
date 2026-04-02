@@ -15,7 +15,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  const port = Number(process.env.PORT) || 3002;
+  const port = Number(process.env.PORT) || 3003;
   await app.listen(port);
 
   Logger.log(`Venue Service is running on: http://localhost:${port}`);
