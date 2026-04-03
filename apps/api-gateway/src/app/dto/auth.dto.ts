@@ -14,8 +14,8 @@ export class GatewayRegisterDto {
   @ApiPropertyOptional({ example: '0901234567' })
   phone_number?: string;
 
-  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.BUSINESS], example: AccountType.CUSTOMER })
-  type?: AccountType.CUSTOMER | AccountType.BUSINESS;
+  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.OWNER], example: AccountType.CUSTOMER })
+  type?: AccountType.CUSTOMER | AccountType.OWNER;
 }
 
 export class GatewayLoginDto {

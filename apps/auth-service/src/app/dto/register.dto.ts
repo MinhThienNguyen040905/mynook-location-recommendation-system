@@ -22,8 +22,8 @@ export class RegisterDto {
   @IsOptional()
   phone_number?: string;
 
-  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.BUSINESS], example: AccountType.CUSTOMER })
-  @IsEnum([AccountType.CUSTOMER, AccountType.BUSINESS])
+  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.OWNER], example: AccountType.CUSTOMER })
+  @IsEnum([AccountType.CUSTOMER, AccountType.OWNER])
   @IsOptional()
-  type?: AccountType.CUSTOMER | AccountType.BUSINESS;
+  type?: AccountType.CUSTOMER | AccountType.OWNER;
 }

@@ -20,7 +20,7 @@ export class Venue {
   id!: string;
 
   @Column({ type: 'uuid' })
-  business_id!: string;
+  owner_id!: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   branch_name!: string | null;

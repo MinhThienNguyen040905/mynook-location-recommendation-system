@@ -2,7 +2,7 @@
 
 export enum AccountType {
   CUSTOMER = 'customer',
-  BUSINESS = 'business',
+  OWNER = 'owner',
   ADMIN = 'admin',
 }
 
@@ -37,7 +37,7 @@ export interface IVenue {
   address: string;
   latitude: number;
   longitude: number;
-  businessId: string;
+  ownerId: string;
   branchName?: string | null;
 }
 

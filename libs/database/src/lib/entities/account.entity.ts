@@ -8,7 +8,7 @@ import {
 
 export enum AccountType {
   CUSTOMER = 'customer',
-  BUSINESS = 'business',
+  OWNER = 'owner',
   ADMIN = 'admin',
 }
 
