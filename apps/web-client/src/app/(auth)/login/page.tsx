@@ -1,13 +1,55 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, MapPin, Coffee } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, Lock, Eye, EyeOff, MapPin, Coffee, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { login } from "@/lib/api/auth";
+import { useAuthStore } from "@/stores/auth-store";
+import { loginSchema, type LoginFormData } from "@/lib/validators/auth";
+import { ROUTES } from "@/config/routes";
+import { isAxiosError } from "axios";
 
 export default function LoginPage() {
   const [role, setRole] = useState<"guest" | "owner">("guest");
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const setUser = useAuthStore((s) => s.setUser);
+
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  async function onSubmit(data: LoginFormData) {
+    try {
+      const res = await login(data);
+      setUser(res.user);
+      toast.success("Đăng nhập thành công!");
+
+      // Redirect dựa trên account type
+      if (res.user.type === "owner") {
+        router.push(ROUTES.DASHBOARD);
+      } else if (res.user.type === "admin") {
+        router.push(ROUTES.ADMIN);
+      } else {
+        router.push(ROUTES.HOME);
+      }
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 401) {
+        toast.error("Email hoặc mật khẩu không đúng");
+      } else {
+        toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      }
+    }
+  }
 
   return (
     <div className="flex h-screen w-full bg-[#FAFAF9] dark:bg-[#221610] font-sans overflow-hidden">
@@ -41,7 +83,7 @@ export default function LoginPage() {
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
               )}
             >
-              I'm a Guest
+              I&apos;m a Guest
             </button>
             <button
               onClick={() => setRole("owner")}
@@ -52,7 +94,7 @@ export default function LoginPage() {
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
               )}
             >
-              I'm a Venue Owner
+              I&apos;m a Venue Owner
             </button>
           </div>
 
@@ -108,7 +150,7 @@ export default function LoginPage() {
           </div>
 
           {/* Main Form */}
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
@@ -124,10 +166,18 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="hello@example.com"
-                  required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150"
+                  {...registerField("email")}
+                  className={cn(
+                    "block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                    errors.email
+                      ? "border-red-400 dark:border-red-500"
+                      : "border-gray-300 dark:border-gray-600",
+                  )}
                 />
               </div>
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
@@ -145,8 +195,13 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  required
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150"
+                  {...registerField("password")}
+                  className={cn(
+                    "block w-full pl-10 pr-10 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                    errors.password
+                      ? "border-red-400 dark:border-red-500"
+                      : "border-gray-300 dark:border-gray-600",
+                  )}
                 />
                 <button
                   type="button"
@@ -156,6 +211,9 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+              )}
             </div>
 
             {/* Remember & Forgot */}
@@ -186,14 +244,19 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:to-orange-600 hover:shadow-orange-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e9590c] transition-all duration-200 transform active:scale-[0.99]"
+              disabled={isSubmitting}
+              className="w-full flex justify-center py-3 px-4 rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:to-orange-600 hover:shadow-orange-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e9590c] transition-all duration-200 transform active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Sign In
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                "Sign In"
+              )}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/register"
               className="font-semibold text-[#e9590c] hover:text-[#c2410b] transition-colors"
@@ -204,7 +267,7 @@ export default function LoginPage() {
         </div>
 
         <div className="absolute bottom-6 text-xs text-gray-400 text-center w-full">
-          © 2026 MyNook Inc. All rights reserved.
+          &copy; 2026 MyNook Inc. All rights reserved.
         </div>
       </div>
 
@@ -226,8 +289,8 @@ export default function LoginPage() {
               </h3>
             </div>
             <blockquote className="text-xl font-light italic mb-4 opacity-90 border-l-4 border-[#e9590c] pl-4 leading-relaxed">
-              "Find your perfect spot to savor the moment and focus on what
-              matters most."
+              &ldquo;Find your perfect spot to savor the moment and focus on what
+              matters most.&rdquo;
             </blockquote>
             <div className="flex items-center space-x-2 text-sm font-medium text-orange-200">
               <MapPin size={18} />

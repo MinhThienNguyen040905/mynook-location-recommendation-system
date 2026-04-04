@@ -2,7 +2,7 @@
 
 ## Overview
 
-NestJS HTTP REST gateway chạy ở **port 3000**, prefix `/api`. Là **điểm vào duy nhất** từ frontend/internet đến hệ thống microservices.
+NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm vào duy nhất** từ frontend/internet đến hệ thống microservices.
 
 ## Vai trò trong kiến trúc
 
@@ -71,19 +71,19 @@ async handler(
 
 | Constant | Env Var | Default |
 |----------|---------|---------|
-| `AUTH_SERVICE_URL` | `AUTH_SERVICE_URL` | `http://localhost:3001` |
-| `VENUE_SERVICE_URL` | `VENUE_SERVICE_URL` | `http://localhost:3002` |
-| `INTERACTION_SERVICE_URL` | `INTERACTION_SERVICE_URL` | `http://localhost:3003` |
-| `SEARCH_AI_SERVICE_URL` | `SEARCH_AI_SERVICE_URL` | `http://localhost:3004` |
+| `AUTH_SERVICE_URL` | `AUTH_SERVICE_URL` | `http://localhost:3002` |
+| `VENUE_SERVICE_URL` | `VENUE_SERVICE_URL` | `http://localhost:3003` |
+| `INTERACTION_SERVICE_URL` | `INTERACTION_SERVICE_URL` | `http://localhost:3004` |
+| `SEARCH_AI_SERVICE_URL` | `SEARCH_AI_SERVICE_URL` | `http://localhost:3005` |
 
 ## Environment Variables
 
 ```env
 JWT_SECRET=mynook-dev-secret
-AUTH_SERVICE_URL=http://localhost:3001
-VENUE_SERVICE_URL=http://localhost:3002
-INTERACTION_SERVICE_URL=http://localhost:3003
-SEARCH_AI_SERVICE_URL=http://localhost:3004
+AUTH_SERVICE_URL=http://localhost:3002
+VENUE_SERVICE_URL=http://localhost:3003
+INTERACTION_SERVICE_URL=http://localhost:3004
+SEARCH_AI_SERVICE_URL=http://localhost:3005
 ```
 
 ## Conventions

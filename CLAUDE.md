@@ -8,9 +8,9 @@ MyNook is a location review & discovery system built with **Nx monorepo** + **Ne
 
 ## Architecture
 
-- **api-gateway** (port 3000): the ONLY public HTTP entry point, prefixed `/api`. Forwards requests to microservices via HTTP (`@nestjs/axios`).
-- **4 microservices** (auth:3001, venue:3002, interaction:3003, search-ai:3004): NestJS HTTP apps, internal only (not exposed publicly in production).
-- **web-client**: Next.js 16 App Router frontend.
+- **web-client** (port 3000): Next.js 16 App Router frontend.
+- **api-gateway** (port 3001): the ONLY public HTTP entry point, prefixed `/api`. Forwards requests to microservices via HTTP (`@nestjs/axios`).
+- **4 microservices** (auth:3002, venue:3003, interaction:3004, search-ai:3005): NestJS HTTP apps, internal only (not exposed publicly in production).
 - Inter-service async events use RabbitMQ via `@mynook/rmq-messaging` (production).
 
 ## Commands
@@ -68,14 +68,12 @@ npx shadcn@latest add <component> --cwd apps/web-client  # shadcn UI
 
 | Service | Port | Transport |
 |---------|------|-----------|
-| web-client | 3000 (dev) | HTTP |
-| api-gateway | 3000 | HTTP REST |
-| auth-service | 3001 | HTTP |
-| venue-service | 3002 | HTTP |
-| interaction-service | 3003 | HTTP |
-| search-ai-service | 3004 | HTTP |
-
-Note: web-client and api-gateway share port 3000 by default. When running together, Next.js auto-selects the next available port.
+| web-client | 3000 | HTTP |
+| api-gateway | 3001 | HTTP REST |
+| auth-service | 3002 | HTTP |
+| venue-service | 3003 | HTTP |
+| interaction-service | 3004 | HTTP |
+| search-ai-service | 3005 | HTTP |
 
 ## Quy chuẩn Xác thực & Giao tiếp (Authentication & Communication Guidelines)
 

@@ -1,12 +1,24 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle, KeyRound } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { NookLogo } from '@/components/shared/nook-logo';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
+import { forgotPassword, resetPassword } from '@/lib/api/auth';
+import {
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  type ForgotPasswordFormData,
+  type ResetPasswordFormData,
+} from '@/lib/validators/auth';
+import { cn } from '@/lib/utils';
 
-type Step = 'email' | 'otp' | 'reset' | 'done';
+type Step = 'email' | 'reset' | 'done';
 
 const SLIDE = {
   initial: { opacity: 0, x: 30 },
@@ -16,16 +28,33 @@ const SLIDE = {
 };
 
 /* ── Step 1: Enter email ─────────────────────────────────────── */
-function EmailStep({ onNext }: { onNext: (email: string) => void }) {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+function EmailStep({ onNext }: { onNext: (email: string, token: string) => void }) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+  });
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email) return;
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => { setLoading(false); onNext(email); }, 1000);
+  async function onSubmit(data: ForgotPasswordFormData) {
+    try {
+      const res = await forgotPassword({ email: data.email });
+      if (res.dev_reset_token) {
+        // Dev mode: token trả về trong response
+        onNext(data.email, res.dev_reset_token);
+      } else {
+        // Production: chỉ hiện thông báo kiểm tra email
+        toast.success('Vui lòng kiểm tra email để nhận link đặt lại mật khẩu.');
+        onNext(data.email, '');
+      }
+    } catch (error) {
+      if (isAxiosError(error)) {
+        toast.error(error.response?.data?.message || 'Đã có lỗi xảy ra');
+      } else {
+        toast.error('Đã có lỗi xảy ra. Vui lòng thử lại.');
+      }
+    }
   }
 
   return (
@@ -36,33 +65,39 @@ function EmailStep({ onNext }: { onNext: (email: string) => void }) {
         </div>
         <h1 className="text-4xl font-serif font-bold text-nook-ink mb-3">Quên mật khẩu?</h1>
         <p className="text-nook-ink/60 leading-relaxed">
-          Nhập email đã đăng ký. Chúng tôi sẽ gửi mã xác nhận 6 số đến hộp thư của bạn.
+          Nhập email đã đăng ký. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu đến hộp thư của bạn.
         </p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="relative">
-          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
-          <input
-            type="email"
-            placeholder="Email của bạn"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="nook-input pl-12"
-          />
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        <div>
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
+            <input
+              type="email"
+              placeholder="Email của bạn"
+              {...register('email')}
+              className={cn(
+                'nook-input pl-12',
+                errors.email && 'border-red-400 ring-2 ring-red-100',
+              )}
+            />
+          </div>
+          {errors.email && (
+            <p className="text-xs text-red-500 mt-1.5 ml-1">{errors.email.message}</p>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={loading || !email}
+          disabled={isSubmitting}
           className="nook-button-primary w-full py-4 text-lg flex items-center justify-center gap-2 group disabled:opacity-60"
         >
-          {loading ? (
-            <span className="size-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          {isSubmitting ? (
+            <Loader2 className="animate-spin" size={20} />
           ) : (
             <>
-              <span>Gửi mã xác nhận</span>
+              <span>Gửi yêu cầu</span>
               <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
             </>
           )}
@@ -79,129 +114,26 @@ function EmailStep({ onNext }: { onNext: (email: string) => void }) {
   );
 }
 
-/* ── Step 2: OTP verification ────────────────────────────────── */
-function OtpStep({ email, onNext, onBack }: { email: string; onNext: () => void; onBack: () => void }) {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [loading, setLoading] = useState(false);
-  const [resent, setResent] = useState(false);
-  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+/* ── Step 2: New password ────────────────────────────────────── */
+function ResetStep({
+  token,
+  onNext,
+  onBack,
+}: {
+  token: string;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
 
-  function handleChange(index: number, value: string) {
-    if (!/^\d*$/.test(value)) return;
-    const next = [...otp];
-    next[index] = value.slice(-1);
-    setOtp(next);
-    if (value && index < 5) inputs.current[index + 1]?.focus();
-  }
-
-  function handleKeyDown(index: number, e: React.KeyboardEvent) {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputs.current[index - 1]?.focus();
-    }
-  }
-
-  function handlePaste(e: React.ClipboardEvent) {
-    e.preventDefault();
-    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6).split('');
-    const next = [...otp];
-    digits.forEach((d, i) => { next[i] = d; });
-    setOtp(next);
-    inputs.current[Math.min(digits.length, 5)]?.focus();
-  }
-
-  function handleResend() {
-    setResent(true);
-    setTimeout(() => setResent(false), 3000);
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (otp.join('').length < 6) return;
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onNext(); }, 1000);
-  }
-
-  const filled = otp.every(d => d !== '');
-
-  return (
-    <motion.div key="otp" {...SLIDE}>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm text-nook-ink/50 hover:text-nook-olive mb-8 transition-colors"
-      >
-        <ArrowLeft size={16} /> Quay lại
-      </button>
-
-      <div className="mb-8">
-        <div className="w-14 h-14 bg-nook-olive/10 rounded-2xl flex items-center justify-center mb-6">
-          <KeyRound className="text-nook-olive" size={28} />
-        </div>
-        <h1 className="text-4xl font-serif font-bold text-nook-ink mb-3">Nhập mã OTP</h1>
-        <p className="text-nook-ink/60 leading-relaxed">
-          Mã 6 số đã được gửi đến{' '}
-          <span className="font-bold text-nook-ink">{email}</span>
-        </p>
-      </div>
-
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        {/* OTP boxes */}
-        <div className="flex gap-3 justify-between" onPaste={handlePaste}>
-          {otp.map((digit, i) => (
-            <input
-              key={i}
-              ref={el => { inputs.current[i] = el; }}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              onChange={e => handleChange(i, e.target.value)}
-              onKeyDown={e => handleKeyDown(i, e)}
-              className={`
-                w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 outline-none
-                transition-all duration-150 bg-white
-                ${digit
-                  ? 'border-nook-olive text-nook-ink ring-2 ring-nook-olive/20'
-                  : 'border-nook-sand text-nook-ink focus:border-nook-olive focus:ring-2 focus:ring-nook-olive/20'
-                }
-              `}
-            />
-          ))}
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading || !filled}
-          className="nook-button-primary w-full py-4 text-lg flex items-center justify-center gap-2 group disabled:opacity-60"
-        >
-          {loading ? (
-            <span className="size-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>
-              <span>Xác nhận</span>
-              <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
-            </>
-          )}
-        </button>
-      </form>
-
-      <p className="mt-6 text-center text-nook-ink/60 text-sm">
-        Không nhận được mã?{' '}
-        <button
-          onClick={handleResend}
-          className="text-nook-olive font-bold hover:underline"
-        >
-          {resent ? '✓ Đã gửi lại!' : 'Gửi lại'}
-        </button>
-      </p>
-    </motion.div>
-  );
-}
-
-/* ── Step 3: New password ────────────────────────────────────── */
-function ResetStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm]   = useState('');
-  const [loading, setLoading]   = useState(false);
+  const password = watch('new_password', '');
 
   const strength = password.length === 0 ? 0
     : password.length < 6 ? 1
@@ -212,13 +144,25 @@ function ResetStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
   const strengthLabel = ['', 'Yếu', 'Trung bình', 'Mạnh', 'Rất mạnh'];
   const strengthColor = ['', 'bg-red-400', 'bg-yellow-400', 'bg-blue-400', 'bg-green-500'];
 
-  const mismatch = confirm.length > 0 && password !== confirm;
+  async function onSubmit(data: ResetPasswordFormData) {
+    if (!token) {
+      toast.error('Không tìm thấy reset token. Vui lòng thử lại từ đầu.');
+      onBack();
+      return;
+    }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!password || password !== confirm) return;
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onNext(); }, 1000);
+    try {
+      await resetPassword({ token, new_password: data.new_password });
+      toast.success('Đặt lại mật khẩu thành công!');
+      onNext();
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 400) {
+        toast.error('Token không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.');
+        onBack();
+      } else {
+        toast.error('Đã có lỗi xảy ra. Vui lòng thử lại.');
+      }
+    }
   }
 
   return (
@@ -238,20 +182,23 @@ function ResetStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
         <p className="text-nook-ink/60">Đặt mật khẩu mới cho tài khoản của bạn.</p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         <div>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
             <input
               type="password"
               placeholder="Mật khẩu mới"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="nook-input pl-12"
+              {...register('new_password')}
+              className={cn(
+                'nook-input pl-12',
+                errors.new_password && 'border-red-400 ring-2 ring-red-100',
+              )}
             />
           </div>
+          {errors.new_password && (
+            <p className="text-xs text-red-500 mt-1.5 ml-1">{errors.new_password.message}</p>
+          )}
           {/* Strength bar */}
           {password.length > 0 && (
             <div className="mt-2 flex gap-1.5 items-center">
@@ -281,24 +228,25 @@ function ResetStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
             <input
               type="password"
               placeholder="Xác nhận mật khẩu"
-              value={confirm}
-              onChange={e => setConfirm(e.target.value)}
-              required
-              className={`nook-input pl-12 ${mismatch ? 'border-red-400 ring-2 ring-red-100' : ''}`}
+              {...register('confirm_password')}
+              className={cn(
+                'nook-input pl-12',
+                errors.confirm_password && 'border-red-400 ring-2 ring-red-100',
+              )}
             />
           </div>
-          {mismatch && (
-            <p className="text-xs text-red-500 mt-1.5 ml-1">Mật khẩu không khớp</p>
+          {errors.confirm_password && (
+            <p className="text-xs text-red-500 mt-1.5 ml-1">{errors.confirm_password.message}</p>
           )}
         </div>
 
         <button
           type="submit"
-          disabled={loading || !password || password !== confirm}
+          disabled={isSubmitting}
           className="nook-button-primary w-full py-4 text-lg flex items-center justify-center gap-2 group disabled:opacity-60"
         >
-          {loading ? (
-            <span className="size-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          {isSubmitting ? (
+            <Loader2 className="animate-spin" size={20} />
           ) : (
             <>
               <span>Xác nhận đổi mật khẩu</span>
@@ -311,7 +259,7 @@ function ResetStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
   );
 }
 
-/* ── Step 4: Success ─────────────────────────────────────────── */
+/* ── Step 3: Success ─────────────────────────────────────────── */
 function DoneStep() {
   return (
     <motion.div key="done" {...SLIDE} className="text-center">
@@ -340,7 +288,7 @@ function DoneStep() {
 function StepDots({ current }: { current: number }) {
   return (
     <div className="flex gap-2 mb-10">
-      {[0, 1, 2].map(i => (
+      {[0, 1].map(i => (
         <div
           key={i}
           className={`h-1.5 rounded-full transition-all duration-300 ${
@@ -354,10 +302,10 @@ function StepDots({ current }: { current: number }) {
 
 /* ── Main page ───────────────────────────────────────────────── */
 export default function ForgotPasswordPage() {
-  const [step, setStep]   = useState<Step>('email');
-  const [email, setEmail] = useState('');
+  const [step, setStep] = useState<Step>('email');
+  const [resetToken, setResetToken] = useState('');
 
-  const stepIndex = { email: 0, otp: 1, reset: 2, done: 3 }[step];
+  const stepIndex = { email: 0, reset: 1, done: 2 }[step];
 
   return (
     <div className="min-h-screen flex items-stretch bg-nook-cream">
@@ -375,20 +323,23 @@ export default function ForgotPasswordPage() {
           <AnimatePresence mode="wait">
             {step === 'email' && (
               <EmailStep
-                onNext={(e) => { setEmail(e); setStep('otp'); }}
-              />
-            )}
-            {step === 'otp' && (
-              <OtpStep
-                email={email}
-                onNext={() => setStep('reset')}
-                onBack={() => setStep('email')}
+                onNext={(_email, token) => {
+                  setResetToken(token);
+                  if (token) {
+                    // Dev mode: có token → chuyển thẳng sang đặt mật khẩu mới
+                    setStep('reset');
+                  } else {
+                    // Production: hiện thông báo kiểm tra email
+                    setStep('done');
+                  }
+                }}
               />
             )}
             {step === 'reset' && (
               <ResetStep
+                token={resetToken}
                 onNext={() => setStep('done')}
-                onBack={() => setStep('otp')}
+                onBack={() => setStep('email')}
               />
             )}
             {step === 'done' && <DoneStep />}

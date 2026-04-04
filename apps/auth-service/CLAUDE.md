@@ -2,7 +2,7 @@
 
 ## Overview
 
-NestJS HTTP microservice chạy ở **port 3001**. Xử lý toàn bộ logic xác thực và quản lý người dùng. **Không bao giờ** bị gọi trực tiếp từ frontend — mọi request đều qua `api-gateway`.
+NestJS HTTP microservice chạy ở **port 3002**. Xử lý toàn bộ logic xác thực và quản lý người dùng. **Không bao giờ** bị gọi trực tiếp từ frontend — mọi request đều qua `api-gateway`.
 
 ## Vai trò trong kiến trúc
 

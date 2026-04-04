@@ -6,8 +6,40 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  name: string;
-  role: 'user' | 'owner';
+  full_name?: string;
+  phone_number?: string;
+  type?: 'customer' | 'owner';
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+}
+
+export interface UpdateProfileRequest {
+  full_name?: string;
+  phone_number?: string;
+  avatar_url?: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone_number: string | null;
+  type: 'customer' | 'owner' | 'admin';
+  trust_score: number;
+  created_at: string;
 }
 
 export interface AuthResponse {
@@ -16,10 +48,7 @@ export interface AuthResponse {
   user: AuthUser;
 }
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: 'user' | 'owner' | 'admin';
-  avatar_url?: string;
+export interface ForgotPasswordResponse {
+  message: string;
+  dev_reset_token?: string;
 }

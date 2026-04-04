@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { Toaster } from 'sonner';
 import './global.css';
 import { QueryProvider } from '@/providers/query-provider';
+import { AuthProvider } from '@/providers/auth-provider';
 
 export const metadata: Metadata = {
   title: 'MyNook — Khám phá địa điểm yêu thích',
@@ -16,7 +18,10 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryProvider>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

@@ -12,6 +12,10 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     REFRESH: '/auth/refresh',
     PROFILE: '/auth/profile',
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
+    CHANGE_PASSWORD: '/auth/change-password',
+    UPDATE_PROFILE: '/auth/profile',
   },
 
   // Venues

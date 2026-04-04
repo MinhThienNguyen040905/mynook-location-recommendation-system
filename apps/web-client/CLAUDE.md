@@ -281,7 +281,7 @@ Root `page.tsx` (Home/Landing) lives at `app/page.tsx` — outside any route gro
 
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000        # Frontend URL
-NEXT_PUBLIC_API_URL=http://localhost:3000/api    # API Gateway URL
+NEXT_PUBLIC_API_URL=http://localhost:3001/api    # API Gateway URL
 NEXT_PUBLIC_GEMINI_API_KEY=                      # Google Gemini — AI Nook Finder feature
 NEXT_PUBLIC_GROQ_API_KEY=                        # Groq — Voice Search (Whisper transcription)
 NEXT_PUBLIC_MAP_TILE_URL=                        # Map tile server (Leaflet)

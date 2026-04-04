@@ -7,8 +7,8 @@ interface SearchVenueCardProps {
 }
 
 export function SearchVenueCard({ venue }: SearchVenueCardProps) {
-  // Mock data for UI presentation based on template
-  const crowdLevel = Math.floor(Math.random() * 100);
+  // Deterministic mock value derived from venue id to avoid hydration mismatch
+  const crowdLevel = venue.id.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 100;
   const crowdStatus =
     crowdLevel > 75 ? "Busy" : crowdLevel > 40 ? "Moderate" : "Quiet";
   const crowdColor =

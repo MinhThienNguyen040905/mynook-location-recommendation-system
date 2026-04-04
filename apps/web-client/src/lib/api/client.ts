@@ -10,6 +10,7 @@ import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/lib/constants';
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 10000, // 10 giây — tránh treo lâu khi gateway chưa chạy
   withCredentials: true, // gửi cookie theo mỗi request
 });
 

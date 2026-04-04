@@ -1,13 +1,61 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock, User, Eye, EyeOff, MapPin, Coffee } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Mail, Lock, User, Eye, EyeOff, MapPin, Coffee, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { register as registerApi } from "@/lib/api/auth";
+import { useAuthStore } from "@/stores/auth-store";
+import { registerSchema, type RegisterFormData } from "@/lib/validators/auth";
+import { ROUTES } from "@/config/routes";
+import { isAxiosError } from "axios";
 
 export default function RegisterPage() {
-  const [role, setRole] = useState<"guest" | "owner">("guest");
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const setUser = useAuthStore((s) => s.setUser);
+
+  const {
+    register: registerField,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { type: "customer" },
+  });
+
+  const selectedType = watch("type");
+
+  async function onSubmit(data: RegisterFormData) {
+    try {
+      const res = await registerApi({
+        email: data.email,
+        password: data.password,
+        full_name: data.full_name,
+        type: data.type,
+      });
+      setUser(res.user);
+      toast.success("Đăng ký thành công!");
+
+      if (res.user.type === "owner") {
+        router.push(ROUTES.DASHBOARD);
+      } else {
+        router.push(ROUTES.HOME);
+      }
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 409) {
+        toast.error("Email đã được sử dụng");
+      } else {
+        toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.");
+      }
+    }
+  }
 
   return (
     <div className="flex h-screen w-full bg-[#FAFAF9] dark:bg-[#221610] font-sans overflow-hidden">
@@ -33,26 +81,28 @@ export default function RegisterPage() {
             role="tablist"
           >
             <button
-              onClick={() => setRole("guest")}
+              type="button"
+              onClick={() => setValue("type", "customer")}
               className={cn(
                 "flex-1 py-2 px-4 rounded text-sm font-medium transition-all duration-200 focus:outline-none",
-                role === "guest"
+                selectedType === "customer"
                   ? "shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
               )}
             >
-              I'm a Guest
+              I&apos;m a Guest
             </button>
             <button
-              onClick={() => setRole("owner")}
+              type="button"
+              onClick={() => setValue("type", "owner")}
               className={cn(
                 "flex-1 py-2 px-4 rounded text-sm font-medium transition-all duration-200 focus:outline-none",
-                role === "owner"
+                selectedType === "owner"
                   ? "shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
               )}
             >
-              I'm a Venue Owner
+              I&apos;m a Venue Owner
             </button>
           </div>
 
@@ -108,7 +158,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Main Form */}
-          <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
@@ -124,10 +174,18 @@ export default function RegisterPage() {
                   id="name"
                   type="text"
                   placeholder="John Doe"
-                  required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150"
+                  {...registerField("full_name")}
+                  className={cn(
+                    "block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                    errors.full_name
+                      ? "border-red-400 dark:border-red-500"
+                      : "border-gray-300 dark:border-gray-600",
+                  )}
                 />
               </div>
+              {errors.full_name && (
+                <p className="mt-1 text-xs text-red-500">{errors.full_name.message}</p>
+              )}
             </div>
 
             <div>
@@ -145,10 +203,18 @@ export default function RegisterPage() {
                   id="email"
                   type="email"
                   placeholder="hello@example.com"
-                  required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150"
+                  {...registerField("email")}
+                  className={cn(
+                    "block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                    errors.email
+                      ? "border-red-400 dark:border-red-500"
+                      : "border-gray-300 dark:border-gray-600",
+                  )}
                 />
               </div>
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
@@ -166,8 +232,13 @@ export default function RegisterPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  required
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150"
+                  {...registerField("password")}
+                  className={cn(
+                    "block w-full pl-10 pr-10 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                    errors.password
+                      ? "border-red-400 dark:border-red-500"
+                      : "border-gray-300 dark:border-gray-600",
+                  )}
                 />
                 <button
                   type="button"
@@ -177,14 +248,22 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:to-orange-600 hover:shadow-orange-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e9590c] transition-all duration-200 transform active:scale-[0.99]"
+              disabled={isSubmitting}
+              className="w-full flex justify-center py-3 px-4 rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:to-orange-600 hover:shadow-orange-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e9590c] transition-all duration-200 transform active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Create Account
+              {isSubmitting ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 
@@ -200,7 +279,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="absolute bottom-6 text-xs text-gray-400 text-center w-full">
-          © 2026 MyNook Inc. All rights reserved.
+          &copy; 2026 MyNook Inc. All rights reserved.
         </div>
       </div>
 
@@ -222,8 +301,8 @@ export default function RegisterPage() {
               </h3>
             </div>
             <blockquote className="text-xl font-light italic mb-4 opacity-90 border-l-4 border-[#e9590c] pl-4 leading-relaxed">
-              "The best work happens in the most unexpected corners. Join our
-              community to find yours."
+              &ldquo;The best work happens in the most unexpected corners. Join our
+              community to find yours.&rdquo;
             </blockquote>
             <div className="flex items-center space-x-2 text-sm font-medium text-orange-200">
               <MapPin size={18} />
