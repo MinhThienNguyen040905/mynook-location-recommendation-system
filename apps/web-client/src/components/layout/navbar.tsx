@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { logout as logoutApi } from '@/lib/api/auth';
 
 /* ── User avatar dropdown ────────────────────────────────────── */
-function UserMenu({ role }: { role: string | null }) {
+function UserMenu({ name, avatar, role }: { name: string | null; avatar: string | null; role: string | null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -37,12 +37,18 @@ function UserMenu({ role }: { role: string | null }) {
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 pl-1 pr-3 py-1.5 rounded-xl hover:bg-nook-sand/60 transition-colors"
       >
-        <img
-          src="https://picsum.photos/seed/user-profile/100/100"
-          alt="Avatar"
-          className="size-8 rounded-full border-2 border-nook-olive/30 object-cover"
-        />
-        <span className="text-sm font-medium text-nook-ink hidden sm:block">Tài khoản</span>
+        {avatar ? (
+          <img
+            src={avatar}
+            alt="Avatar"
+            className="size-8 rounded-full border-2 border-nook-olive/30 object-cover"
+          />
+        ) : (
+          <div className="size-8 rounded-full border-2 border-nook-olive/30 bg-nook-olive/10 flex items-center justify-center">
+            <User size={16} className="text-nook-olive" />
+          </div>
+        )}
+        <span className="text-sm font-medium text-nook-ink hidden sm:block">{name || 'Tài khoản'}</span>
         <ChevronDown size={14} className="text-nook-ink/40" />
       </button>
 
@@ -144,7 +150,7 @@ export function Navbar() {
             </button>
 
             {isLoggedIn ? (
-              <UserMenu role={userRole} />
+              <UserMenu name={user?.full_name ?? null} avatar={user?.avatar_url ?? null} role={userRole} />
             ) : (
               <Link href="/login" className="nook-button-primary flex items-center gap-2">
                 <User size={18} />
