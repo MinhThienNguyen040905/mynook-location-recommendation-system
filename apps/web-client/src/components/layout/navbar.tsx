@@ -7,12 +7,8 @@ import { Search, User, Heart, Menu, X, ChevronDown, LogOut, LayoutDashboard } fr
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
-
-/* ── Đọc cookie client-side ──────────────────────────────────── */
-function getCookie(name: string) {
-  if (typeof document === 'undefined') return null;
-  return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1] ?? null;
-}
+import { useAuthStore } from '@/stores/auth-store';
+import { logout as logoutApi } from '@/lib/api/auth';
 
 /* ── User avatar dropdown ────────────────────────────────────── */
 function UserMenu({ role }: { role: string | null }) {
@@ -28,8 +24,8 @@ function UserMenu({ role }: { role: string | null }) {
   }, []);
 
   function handleLogout() {
-    document.cookie = 'access_token=; Max-Age=0; path=/';
-    document.cookie = 'user_role=; Max-Age=0; path=/';
+    logoutApi();
+    useAuthStore.getState().reset();
     window.location.href = '/';
   }
 
@@ -88,17 +84,12 @@ function UserMenu({ role }: { role: string | null }) {
 /* ── Navbar ──────────────────────────────────────────────────── */
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const user = useAuthStore((s) => s.user);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const pathname = usePathname();
 
-  /* Kiểm tra cookie sau khi mount (client-only) */
-  useEffect(() => {
-    const token = getCookie('access_token');
-    const role  = getCookie('user_role');
-    setIsLoggedIn(!!token);
-    setUserRole(role);
-  }, [pathname]);
+  const isLoggedIn = !isLoading && !!user;
+  const userRole = user?.type ?? null;
 
   /* Nav links — Profile chỉ hiện khi đã đăng nhập */
   const publicLinks = [
@@ -203,8 +194,8 @@ export function Navbar() {
                 {isLoggedIn ? (
                   <button
                     onClick={() => {
-                      document.cookie = 'access_token=; Max-Age=0; path=/';
-                      document.cookie = 'user_role=; Max-Age=0; path=/';
+                      logoutApi();
+                      useAuthStore.getState().reset();
                       window.location.href = '/';
                     }}
                     className="w-full nook-button-secondary text-center flex items-center justify-center gap-2"
