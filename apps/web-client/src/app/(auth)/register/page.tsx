@@ -61,7 +61,7 @@ export default function RegisterPage() {
     <div className="flex h-screen w-full bg-[#FAFAF9] dark:bg-[#221610] font-sans overflow-hidden">
       {/* Left Side: Authentication Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 lg:p-12 xl:p-24 overflow-y-auto relative">
-        <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="w-full max-w-md space-y-8 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="font-serif text-4xl text-[#e9590c] font-bold tracking-tight mb-6">
