@@ -28,7 +28,7 @@ export class DatabaseModule {
             url: config.get<string>('DATABASE_URL'),
             entities: options.entities,
             synchronize: false, // Dùng SQL migration trên Supabase, KHÔNG để TypeORM tự sync
-            ssl: config.get('NODE_ENV') === 'production'
+            ssl: config.get('DATABASE_URL')?.includes('supabase.com')
               ? { rejectUnauthorized: false }
               : false,
           }),
