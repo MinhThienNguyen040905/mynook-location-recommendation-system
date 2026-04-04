@@ -10,7 +10,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { Account } from '@mynook/database';
+import * as nodemailer from 'nodemailer';
+import { Account, RegistrationOtp } from '@mynook/database';
 import { AccountType } from '@mynook/shared-types';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -19,14 +20,29 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto.js';
 import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { SendOtpDto, VerifyOtpDto } from './dto/send-otp.dto.js';
 
 @Injectable()
 export class AuthService {
+  private readonly mailer: nodemailer.Transporter;
+
   constructor(
     @InjectRepository(Account)
     private readonly userRepo: Repository<Account>,
+    @InjectRepository(RegistrationOtp)
+    private readonly otpRepo: Repository<RegistrationOtp>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    this.mailer = nodemailer.createTransport({
+      host: process.env['SMTP_HOST'] || 'smtp.gmail.com',
+      port: Number(process.env['SMTP_PORT'] || 587),
+      secure: false,
+      auth: {
+        user: process.env['SMTP_USER'],
+        pass: process.env['SMTP_PASS'],
+      },
+    });
+  }
 
   async register(dto: RegisterDto) {
     const existing = await this.userRepo.findOne({
@@ -180,6 +196,103 @@ export class AuthService {
 
     const saved = await this.userRepo.save(user);
     return this.sanitizeUser(saved);
+  }
+
+  /**
+   * Step 1: Gửi OTP xác thực email trước khi đăng ký.
+   * Lưu thông tin đăng ký tạm + OTP hash vào bảng registration_otps.
+   */
+  async sendOtp(dto: SendOtpDto) {
+    // Kiểm tra email đã tồn tại chưa
+    const existing = await this.userRepo.findOne({ where: { email: dto.email } });
+    if (existing) {
+      throw new ConflictException('Email đã được sử dụng');
+    }
+
+    // Xoá OTP cũ của email này (nếu có)
+    await this.otpRepo.delete({ email: dto.email });
+
+    // Tạo OTP 6 chữ số
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    // Hash password trước khi lưu tạm
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(dto.password, salt);
+
+    // Lưu vào DB — hết hạn sau 10 phút
+    const record = this.otpRepo.create({
+      email: dto.email,
+      otp_hash: otpHash,
+      full_name: dto.full_name || null,
+      password_hash: passwordHash,
+      account_type: dto.type ?? AccountType.CUSTOMER,
+      expires_at: new Date(Date.now() + 10 * 60 * 1000),
+    });
+    await this.otpRepo.save(record);
+
+    // Gửi email
+    const isDev = (process.env['NODE_ENV'] ?? 'development') !== 'production';
+    try {
+      await this.mailer.sendMail({
+        from: process.env['SMTP_FROM'] || '"MyNook" <noreply@mynook.com>',
+        to: dto.email,
+        subject: 'MyNook — Mã xác thực đăng ký',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+            <h2 style="color:#e9590c">MyNook</h2>
+            <p>Mã xác thực của bạn là:</p>
+            <div style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:16px;background:#f5f5f4;border-radius:8px;margin:16px 0">${otp}</div>
+            <p style="color:#666;font-size:14px">Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu đăng ký, hãy bỏ qua email này.</p>
+          </div>
+        `,
+      });
+    } catch (err) {
+      console.warn('[AUTH] Failed to send OTP email:', (err as Error).message);
+    }
+
+    console.log(`[AUTH] OTP for ${dto.email}: ${otp}`);
+
+    return {
+      message: 'Mã OTP đã được gửi đến email của bạn.',
+      ...(isDev && { dev_otp: otp }),
+    };
+  }
+
+  /**
+   * Step 2: Verify OTP → tạo account thật.
+   */
+  async verifyOtpAndRegister(dto: VerifyOtpDto) {
+    const otpHash = crypto.createHash('sha256').update(dto.otp).digest('hex');
+
+    const record = await this.otpRepo.findOne({
+      where: { email: dto.email, otp_hash: otpHash },
+    });
+
+    if (!record || record.expires_at < new Date()) {
+      throw new BadRequestException('Mã OTP không hợp lệ hoặc đã hết hạn');
+    }
+
+    // Kiểm tra lại email chưa bị đăng ký (race condition)
+    const existing = await this.userRepo.findOne({ where: { email: dto.email } });
+    if (existing) {
+      await this.otpRepo.delete({ email: dto.email });
+      throw new ConflictException('Email đã được sử dụng');
+    }
+
+    // Tạo account
+    const user = this.userRepo.create({
+      email: record.email,
+      password_hash: record.password_hash,
+      full_name: record.full_name,
+      type: record.account_type as AccountType,
+    });
+    const saved = await this.userRepo.save(user);
+
+    // Xoá OTP record
+    await this.otpRepo.delete({ email: dto.email });
+
+    return this.buildResponse(saved);
   }
 
   private buildResponse(user: Account) {

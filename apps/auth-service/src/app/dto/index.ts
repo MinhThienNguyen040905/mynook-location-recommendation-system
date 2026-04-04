@@ -5,3 +5,4 @@ export { ForgotPasswordDto } from './forgot-password.dto.js';
 export { ResetPasswordDto } from './reset-password.dto.js';
 export { ChangePasswordDto } from './change-password.dto.js';
 export { UpdateProfileDto } from './update-profile.dto.js';
+export { SendOtpDto, VerifyOtpDto } from './send-otp.dto.js';

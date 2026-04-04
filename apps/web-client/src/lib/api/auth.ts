@@ -11,6 +11,9 @@ import type {
   ResetPasswordRequest,
   ChangePasswordRequest,
   UpdateProfileRequest,
+  SendOtpRequest,
+  SendOtpResponse,
+  VerifyOtpRequest,
 } from '@/types/auth';
 
 /** Đăng nhập — lưu token vào cookie sau khi thành công */
@@ -25,6 +28,21 @@ export async function login(body: LoginRequest): Promise<AuthResponse> {
 /** Đăng ký — tự động đăng nhập sau khi tạo tài khoản */
 export async function register(body: RegisterRequest): Promise<AuthResponse> {
   const { data } = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, body);
+  setCookie(ACCESS_TOKEN_KEY, data.access_token);
+  setCookie(REFRESH_TOKEN_KEY, data.refresh_token);
+  setCookie('user_type', data.user.type);
+  return data;
+}
+
+/** Gửi OTP xác thực email trước khi đăng ký */
+export async function sendOtp(body: SendOtpRequest): Promise<SendOtpResponse> {
+  const { data } = await apiClient.post<SendOtpResponse>(API_ENDPOINTS.AUTH.SEND_OTP, body);
+  return data;
+}
+
+/** Xác thực OTP và hoàn tất đăng ký */
+export async function verifyOtp(body: VerifyOtpRequest): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.VERIFY_OTP, body);
   setCookie(ACCESS_TOKEN_KEY, data.access_token);
   setCookie(REFRESH_TOKEN_KEY, data.refresh_token);
   setCookie('user_type', data.user.type);

@@ -52,6 +52,28 @@ export class GatewayChangePasswordDto {
   new_password!: string;
 }
 
+export class GatewaySendOtpDto {
+  @ApiProperty({ example: 'user@example.com' })
+  email!: string;
+
+  @ApiProperty({ example: 'password123', minLength: 6 })
+  password!: string;
+
+  @ApiPropertyOptional({ example: 'Nguyễn Văn A' })
+  full_name?: string;
+
+  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.OWNER], example: AccountType.CUSTOMER })
+  type?: AccountType.CUSTOMER | AccountType.OWNER;
+}
+
+export class GatewayVerifyOtpDto {
+  @ApiProperty({ example: 'user@example.com' })
+  email!: string;
+
+  @ApiProperty({ example: '123456', description: 'Mã OTP 6 chữ số' })
+  otp!: string;
+}
+
 export class GatewayUpdateProfileDto {
   @ApiPropertyOptional({ example: 'Nguyễn Văn A' })
   full_name?: string;

@@ -11,6 +11,23 @@ export interface RegisterRequest {
   type?: 'customer' | 'owner';
 }
 
+export interface SendOtpRequest {
+  email: string;
+  password: string;
+  full_name?: string;
+  type?: 'customer' | 'owner';
+}
+
+export interface SendOtpResponse {
+  message: string;
+  dev_otp?: string;
+}
+
+export interface VerifyOtpRequest {
+  email: string;
+  otp: string;
+}
+
 export interface ForgotPasswordRequest {
   email: string;
 }

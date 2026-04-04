@@ -11,6 +11,8 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
   UpdateProfileDto,
+  SendOtpDto,
+  VerifyOtpDto,
 } from './dto/index.js';
 
 @ApiTags('Auth')
@@ -24,6 +26,22 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'Email đã được sử dụng' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
+  }
+
+  @Post('send-otp')
+  @ApiOperation({ summary: 'Gửi OTP xác thực email trước khi đăng ký' })
+  @ApiResponse({ status: 201, description: 'OTP đã gửi đến email' })
+  @ApiResponse({ status: 409, description: 'Email đã được sử dụng' })
+  sendOtp(@Body() dto: SendOtpDto) {
+    return this.authService.sendOtp(dto);
+  }
+
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Xác thực OTP và hoàn tất đăng ký' })
+  @ApiResponse({ status: 201, description: 'Đăng ký thành công, trả về tokens + user info' })
+  @ApiResponse({ status: 400, description: 'OTP không hợp lệ hoặc đã hết hạn' })
+  verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtpAndRegister(dto);
   }
 
   @Post('login')

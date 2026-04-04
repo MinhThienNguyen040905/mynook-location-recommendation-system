@@ -10,6 +10,8 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
+    SEND_OTP: '/auth/send-otp',
+    VERIFY_OTP: '/auth/verify-otp',
     REFRESH: '/auth/refresh',
     PROFILE: '/auth/profile',
     FORGOT_PASSWORD: '/auth/forgot-password',

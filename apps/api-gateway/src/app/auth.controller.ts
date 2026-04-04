@@ -27,6 +27,8 @@ import {
   GatewayResetPasswordDto,
   GatewayChangePasswordDto,
   GatewayUpdateProfileDto,
+  GatewaySendOtpDto,
+  GatewayVerifyOtpDto,
 } from "./dto/auth.dto.js";
 
 @ApiTags("Auth")
@@ -44,6 +46,28 @@ export class AuthController {
   async register(@Body() body: GatewayRegisterDto) {
     const { data } = await firstValueFrom(
       this.http.post(`${AUTH_SERVICE_URL}/auth/register`, body),
+    );
+    return data;
+  }
+
+  @Post("send-otp")
+  @ApiOperation({ summary: "Gửi OTP xác thực email trước khi đăng ký" })
+  @ApiResponse({ status: 201, description: "OTP đã gửi đến email" })
+  @ApiResponse({ status: 409, description: "Email đã được sử dụng" })
+  async sendOtp(@Body() body: GatewaySendOtpDto) {
+    const { data } = await firstValueFrom(
+      this.http.post(`${AUTH_SERVICE_URL}/auth/send-otp`, body),
+    );
+    return data;
+  }
+
+  @Post("verify-otp")
+  @ApiOperation({ summary: "Xác thực OTP và hoàn tất đăng ký" })
+  @ApiResponse({ status: 201, description: "Đăng ký thành công, trả về tokens + user info" })
+  @ApiResponse({ status: 400, description: "OTP không hợp lệ hoặc đã hết hạn" })
+  async verifyOtp(@Body() body: GatewayVerifyOtpDto) {
+    const { data } = await firstValueFrom(
+      this.http.post(`${AUTH_SERVICE_URL}/auth/verify-otp`, body),
     );
     return data;
   }

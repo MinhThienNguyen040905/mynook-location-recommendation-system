@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { DatabaseModule, Account } from '@mynook/database';
+import { DatabaseModule, Account, RegistrationOtp } from '@mynook/database';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 
 @Module({
   imports: [
-    DatabaseModule.forRoot({ entities: [Account] }),
+    DatabaseModule.forRoot({ entities: [Account, RegistrationOtp] }),
     JwtModule.register({
       secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
