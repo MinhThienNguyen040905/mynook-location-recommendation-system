@@ -50,6 +50,27 @@ export interface IReview {
   createdAt: Date;
 }
 
+// ---- RabbitMQ Queues ----
+
+export const RMQ_QUEUES = {
+  INTERACTION: 'interaction_queue',
+} as const;
+
+// ---- RabbitMQ Events ----
+
+export const RMQ_EVENTS = {
+  USER_REGISTERED: 'user.registered',
+} as const;
+
+// ---- RabbitMQ Event Payloads ----
+
+export interface UserRegisteredEvent {
+  accountId: string;
+  email: string;
+  fullName: string | null;
+  type: AccountType;
+}
+
 // ---- Service URLs (HTTP) ----
 
 export const AUTH_SERVICE_URL =

@@ -1,18 +1,21 @@
 import {
   Injectable,
+  Inject,
   ConflictException,
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import { Account, RegistrationOtp } from '@mynook/database';
-import { AccountType } from '@mynook/shared-types';
+import { AccountType, RMQ_EVENTS } from '@mynook/shared-types';
+import type { UserRegisteredEvent } from '@mynook/shared-types';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RefreshTokenDto } from './dto/refresh-token.dto.js';
@@ -32,6 +35,8 @@ export class AuthService {
     @InjectRepository(RegistrationOtp)
     private readonly otpRepo: Repository<RegistrationOtp>,
     private readonly jwtService: JwtService,
+    @Inject('INTERACTION_SERVICE')
+    private readonly interactionClient: ClientProxy,
   ) {
     this.mailer = nodemailer.createTransport({
       host: process.env['SMTP_HOST'] || 'smtp.gmail.com',
@@ -64,6 +69,7 @@ export class AuthService {
     });
 
     const saved = await this.userRepo.save(user);
+    this.emitUserRegistered(saved);
     return this.buildResponse(saved);
   }
 
@@ -292,7 +298,19 @@ export class AuthService {
     // Xoá OTP record
     await this.otpRepo.delete({ email: dto.email });
 
+    this.emitUserRegistered(saved);
     return this.buildResponse(saved);
+  }
+
+  /** Emit event qua RabbitMQ để interaction-service tạo thông báo chào mừng */
+  private emitUserRegistered(user: Account) {
+    const payload: UserRegisteredEvent = {
+      accountId: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      type: user.type as AccountType,
+    };
+    this.interactionClient.emit(RMQ_EVENTS.USER_REGISTERED, payload);
   }
 
   private buildResponse(user: Account) {

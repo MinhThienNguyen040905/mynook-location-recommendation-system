@@ -6,8 +6,8 @@ import {
   UserInteraction,
   Notification,
 } from '@mynook/database';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { NotificationController } from './notification.controller.js';
+import { NotificationService } from './notification.service.js';
 
 @Module({
   imports: [
@@ -15,7 +15,7 @@ import { AppService } from './app.service';
       entities: [Review, UserFavorite, UserInteraction, Notification],
     }),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [NotificationController],
+  providers: [NotificationService],
 })
 export class AppModule {}
