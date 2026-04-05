@@ -1,0 +1,106 @@
+# CLAUDE.md — venue-service
+
+## Overview
+
+NestJS HTTP microservice chạy ở **port 3003**. Xử lý toàn bộ logic quản lý địa điểm (venues), menu, và thông tin liên quan. **Không bao giờ** bị gọi trực tiếp từ frontend — mọi request đều qua `api-gateway`.
+
+## Vai trò trong kiến trúc
+
+- CRUD venues cho owner
+- Quản lý menu (categories + items)
+- Nhận thông tin account từ `x-user-id` / `x-user-type` headers (forward từ api-gateway) via `@CurrentUser()` decorator
+- **KHÔNG** import `@nestjs/passport`, `passport-jwt`, hoặc tự tạo `AuthGuard`/`JwtStrategy`
+
+## Endpoints
+
+| Method | Path | Auth | Mô tả |
+|--------|------|------|-------|
+| GET | `/venues/owner` | x-user-id header | Lấy danh sách venues của owner đang đăng nhập |
+| GET | `/venues/:id` | Public | Lấy chi tiết venue theo ID |
+| POST | `/venues` | x-user-id header | Tạo venue mới (owner) |
+| PATCH | `/venues/:id` | x-user-id header | Cập nhật venue (ch�� owner sở hữu) |
+| DELETE | `/venues/:id` | x-user-id header | Xóa mềm venue (set is_active = false) |
+
+## DTOs
+
+| File | Dùng cho |
+|------|----------|
+| `create-venue.dto.ts` | name, branch_name?, description?, address, city?, district?, latitude, longitude, total_capacity?, max_group_size?, is_group_friendly?, media?, opening_hours?, owner_amenities? |
+| `update-venue.dto.ts` | Tất cả fields optional (partial update) |
+
+## Database Entities
+
+Schema: `venue_schema`
+
+### Table: `venues`
+
+| Column | Type | Ghi chú |
+|--------|------|---------|
+| id | uuid | PK |
+| owner_id | uuid | FK → auth_schema.accounts |
+| branch_name | varchar(100) | nullable |
+| name | varchar(255) | required |
+| description | text | nullable |
+| address | text | required |
+| city | varchar(100) | default: 'Ho Chi Minh' |
+| district | varchar(100) | nullable |
+| latitude | float | required |
+| longitude | float | required |
+| media | jsonb | default: [] |
+| total_capacity | int | default: 50 |
+| max_group_size | int | default: 10 |
+| is_group_friendly | boolean | default: false |
+| current_crowd_level | enum | empty/moderate/crowded/full, default: moderate |
+| is_active | boolean | default: true (soft delete) |
+| opening_hours | jsonb | nullable |
+| owner_amenities | jsonb | nullable |
+| rating_avg | float | default: 0 |
+| review_count | int | default: 0 |
+| created_at | timestamptz | auto |
+| updated_at | timestamptz | auto |
+
+### Table: `menu_categories`
+
+| Column | Type | Ghi chú |
+|--------|------|---------|
+| id | uuid | PK |
+| venue_id | uuid | FK → venues |
+| name | varchar(100) | required |
+| display_order | int | default: 0 |
+
+### Table: `menu_items`
+
+| Column | Type | Ghi chú |
+|--------|------|---------|
+| id | uuid | PK |
+| category_id | uuid | FK → menu_categories |
+| venue_id | uuid | FK → venues |
+| name | varchar(255) | required |
+| price | decimal(10,2) | required |
+| image_url | text | nullable |
+| is_available | boolean | default: true |
+
+## Key Files
+
+| File | Mô tả |
+|------|-------|
+| `src/app/venue.controller.ts` | REST endpoints cho venue CRUD |
+| `src/app/venue.service.ts` | Business logic — findByOwner, findById, create, update, remove |
+| `src/app/dto/create-venue.dto.ts` | DTO tạo venue |
+| `src/app/dto/update-venue.dto.ts` | DTO cập nhật venue |
+| `src/app/app.module.ts` | Module chính — DatabaseModule + VenueController + VenueService |
+
+## Environment Variables
+
+```env
+DATABASE_URL=postgresql://...
+PORT=3003
+```
+
+## Conventions
+
+- KHÔNG import `@nestjs/passport` hoặc `passport-jwt`
+- KHÔNG verify JWT — api-gateway đã verify rồi
+- Dùng `@CurrentUser()` (từ `@mynook/shared-types`) để đọc `x-user-id` / `x-user-type` headers
+- Xóa venue = soft delete (set `is_active = false`)
+- Owner chỉ có thể update/delete venue mình sở hữu (check `owner_id`)

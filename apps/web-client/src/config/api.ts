@@ -52,6 +52,7 @@ export const API_ENDPOINTS = {
 
   // Owner
   OWNER: {
+    MY_VENUES: '/venues/owner/my-venues',
     VENUE: '/owner/venue',
     MENU: '/owner/menu',
     BOOKINGS: '/owner/bookings',

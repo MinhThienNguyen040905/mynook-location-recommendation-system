@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule, Venue, MenuCategory, MenuItem } from '@mynook/database';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { VenueController } from './venue.controller.js';
+import { VenueService } from './venue.service.js';
 
 @Module({
   imports: [
     DatabaseModule.forRoot({ entities: [Venue, MenuCategory, MenuItem] }),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [VenueController],
+  providers: [VenueService],
 })
 export class AppModule {}

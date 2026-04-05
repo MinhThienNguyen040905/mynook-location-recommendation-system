@@ -45,6 +45,31 @@ export async function getTrendingVenues(): Promise<Venue[]> {
   return data;
 }
 
+// ─── Owner venue management ─────────────────────────────────────────────────
+
+/** Lấy danh sách venues của owner đang đăng nhập */
+export async function getMyVenues(): Promise<Venue[]> {
+  const { data } = await apiClient.get<Venue[]>(API_ENDPOINTS.OWNER.MY_VENUES);
+  return data;
+}
+
+/** Tạo venue mới */
+export async function createVenue(body: Partial<Venue>): Promise<Venue> {
+  const { data } = await apiClient.post<Venue>(API_ENDPOINTS.VENUES.LIST, body);
+  return data;
+}
+
+/** Cập nhật venue */
+export async function updateVenue(id: string, body: Partial<Venue>): Promise<Venue> {
+  const { data } = await apiClient.patch<Venue>(API_ENDPOINTS.VENUES.DETAIL(id), body);
+  return data;
+}
+
+/** Xóa venue (soft delete) */
+export async function deleteVenue(id: string): Promise<void> {
+  await apiClient.delete(API_ENDPOINTS.VENUES.DETAIL(id));
+}
+
 // ─── Server-side fetchers (dùng trong Server Component với fetch thuần) ──────
 // Không dùng axios — Next.js fetch() có built-in caching và revalidation.
 

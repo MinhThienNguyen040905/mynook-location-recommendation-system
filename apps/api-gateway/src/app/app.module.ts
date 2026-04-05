@@ -3,6 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller.js';
+import { VenueController } from './venue.controller.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 
 @Module({
@@ -13,7 +14,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
       secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, VenueController],
   providers: [JwtStrategy],
 })
 export class AppModule {}

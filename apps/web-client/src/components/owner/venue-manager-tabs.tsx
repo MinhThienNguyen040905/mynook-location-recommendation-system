@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Info, Menu, Tag, BarChart3 } from 'lucide-react';
 
 const tabs = [
@@ -17,15 +17,18 @@ const tabs = [
  */
 export function VenueManagerTabs() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const venueId = searchParams.get('id');
 
   return (
     <div className="flex border-b border-primary/10 gap-8 overflow-x-auto no-scrollbar mb-8">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
+        const href = venueId ? `${tab.href}?id=${venueId}` : tab.href;
         return (
           <Link
             key={tab.href}
-            href={tab.href}
+            href={href}
             className={`flex items-center gap-2 border-b-2 pb-4 px-2 whitespace-nowrap text-sm font-bold uppercase tracking-wider transition-all ${
               isActive
                 ? 'border-primary text-primary'

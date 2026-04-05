@@ -1,32 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Camera, Star, MapPin, BookOpen, Heart,
+  Camera, Star, MapPin, Heart,
   Mail, Phone, Calendar, Edit3, Check, X,
   MessageSquare, Clock,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-
-/* ── Mock data ───────────────────────────────────────────────── */
-const USER = {
-  name: 'Nguyen Minh Thien',
-  email: 'thien.nguyen@email.com',
-  phone: '+84 091 234 5678',
-  joinDate: 'Tháng 3, 2024',
-  avatar: 'https://picsum.photos/seed/user-profile/200/200',
-  bio: 'Người yêu thích khám phá những góc nhỏ yên tĩnh để làm việc và đọc sách. Luôn tìm kiếm nơi có cà phê ngon và wifi ổn định.',
-  location: 'TP. Hồ Chí Minh',
-  stats: { reviews: 24, visited: 38, bookings: 12, favorites: 17 },
-};
-
-const RECENT_REVIEWS = [
-  { id: '1', venue: 'The Greenery Café', rating: 5, date: '20/03/2026', text: 'Không gian tuyệt vời, rất yên tĩnh để làm việc. Cà phê ngon và nhân viên thân thiện.', image: 'https://picsum.photos/seed/greenery/80/80' },
-  { id: '2', venue: 'Urban Library', rating: 4, date: '15/03/2026', text: 'Thư viện thoáng mát, nhiều ổ điện cắm. Tuy nhiên hơi ồn vào buổi chiều.', image: 'https://picsum.photos/seed/library/80/80' },
-  { id: '3', venue: 'Nook & Corner', rating: 5, date: '08/03/2026', text: 'Địa điểm yêu thích của mình! Ánh sáng tự nhiên, nhạc nền nhẹ nhàng, hoàn hảo.', image: 'https://picsum.photos/seed/nookcorner/80/80' },
-];
+import { useAuthStore } from '@/stores/auth-store';
+import { updateProfile } from '@/lib/api/auth';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /* ── Sub-components ──────────────────────────────────────────── */
 function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value: number; label: string }) {
@@ -41,33 +27,87 @@ function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value
   );
 }
 
-function ReviewCard({ review }: { review: typeof RECENT_REVIEWS[0] }) {
+function ProfileSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-nook-sand p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex gap-4">
-        <img src={review.image} alt={review.venue} className="size-14 rounded-xl object-cover shrink-0 border border-nook-sand" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h4 className="font-bold text-nook-ink text-sm truncate">{review.venue}</h4>
-            <span className="text-xs text-nook-ink/40 shrink-0">{review.date}</span>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+      <div className="bg-white rounded-3xl border border-nook-sand shadow-sm overflow-hidden mb-6">
+        <Skeleton className="h-32 w-full" />
+        <div className="px-6 pb-6">
+          <div className="flex items-end justify-between -mt-12 mb-4">
+            <Skeleton className="size-24 rounded-2xl" />
+            <Skeleton className="h-10 w-32 rounded-xl" />
           </div>
-          <div className="flex gap-0.5 mb-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} size={12} className={cn(i < review.rating ? 'text-nook-olive fill-current' : 'text-nook-sand fill-current')} />
-            ))}
+          <Skeleton className="h-7 w-48 mb-2" />
+          <Skeleton className="h-4 w-full mb-3" />
+          <div className="flex gap-4">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-32" />
           </div>
-          <p className="text-sm text-nook-ink/70 leading-relaxed line-clamp-2">{review.text}</p>
         </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 rounded-2xl" />
+        ))}
       </div>
     </div>
   );
 }
 
+function formatJoinDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return `Tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
+}
+
 /* ── Main Page ───────────────────────────────────────────────── */
 export default function UserProfilePage() {
+  const router = useRouter();
+  const { user, isLoading, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'reviews' | 'bookings' | 'favorites'>('reviews');
-  const [form, setForm] = useState({ name: USER.name, phone: USER.phone, bio: USER.bio, location: USER.location });
+  const [form, setForm] = useState({ full_name: '', phone_number: '' });
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isLoading, user, router]);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        full_name: user.full_name ?? '',
+        phone_number: user.phone_number ?? '',
+      });
+    }
+  }, [user]);
+
+  if (isLoading || !user) return <ProfileSkeleton />;
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const updated = await updateProfile({
+        full_name: form.full_name || undefined,
+        phone_number: form.phone_number || undefined,
+      });
+      setUser(updated);
+      setIsEditing(false);
+    } catch {
+      // TODO: toast error
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setForm({
+      full_name: user.full_name ?? '',
+      phone_number: user.phone_number ?? '',
+    });
+    setIsEditing(false);
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
@@ -89,8 +129,8 @@ export default function UserProfilePage() {
           <div className="flex items-end justify-between -mt-12 mb-4">
             <div className="relative">
               <img
-                src={USER.avatar}
-                alt={USER.name}
+                src={user.avatar_url ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name ?? user.email)}&size=200&background=4a5d23&color=fff`}
+                alt={user.full_name ?? 'Avatar'}
                 className="size-24 rounded-2xl border-4 border-white shadow-lg object-cover"
               />
               <button className="absolute -bottom-1 -right-1 size-7 bg-nook-olive rounded-lg flex items-center justify-center shadow-md hover:bg-nook-olive/90 transition-colors">
@@ -117,30 +157,23 @@ export default function UserProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-nook-ink/50 uppercase tracking-wider">Họ tên</label>
-                  <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="nook-input" />
+                  <input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className="nook-input" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-nook-ink/50 uppercase tracking-wider">Số điện thoại</label>
-                  <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="nook-input" />
+                  <input value={form.phone_number} onChange={e => setForm({ ...form, phone_number: e.target.value })} className="nook-input" />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-nook-ink/50 uppercase tracking-wider">Địa chỉ</label>
-                  <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="nook-input" />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-nook-ink/50 uppercase tracking-wider">Giới thiệu</label>
-                <textarea rows={3} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} className="nook-input resize-none" />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setIsEditing(false)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-nook-olive text-white font-bold rounded-xl hover:bg-nook-olive/90 transition-colors text-sm"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-nook-olive text-white font-bold rounded-xl hover:bg-nook-olive/90 transition-colors text-sm disabled:opacity-50"
                 >
-                  <Check size={15} /> Lưu thay đổi
+                  <Check size={15} /> {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
                 <button
-                  onClick={() => setIsEditing(false)}
+                  onClick={handleCancel}
                   className="flex items-center gap-2 px-5 py-2.5 bg-nook-sand text-nook-ink font-medium rounded-xl text-sm"
                 >
                   <X size={15} /> Hủy
@@ -149,13 +182,13 @@ export default function UserProfilePage() {
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-nook-ink mb-1">{form.name}</h1>
-              <p className="text-nook-ink/60 text-sm mb-3 leading-relaxed">{form.bio}</p>
-              <div className="flex flex-wrap gap-4 text-sm text-nook-ink/50">
-                <span className="flex items-center gap-1.5"><Mail size={14} className="text-nook-olive" />{USER.email}</span>
-                <span className="flex items-center gap-1.5"><Phone size={14} className="text-nook-olive" />{form.phone}</span>
-                <span className="flex items-center gap-1.5"><MapPin size={14} className="text-nook-olive" />{form.location}</span>
-                <span className="flex items-center gap-1.5"><Calendar size={14} className="text-nook-olive" />Tham gia {USER.joinDate}</span>
+              <h1 className="text-2xl font-bold text-nook-ink mb-1">{user.full_name ?? 'Chưa cập nhật tên'}</h1>
+              <div className="flex flex-wrap gap-4 text-sm text-nook-ink/50 mt-3">
+                <span className="flex items-center gap-1.5"><Mail size={14} className="text-nook-olive" />{user.email}</span>
+                {user.phone_number && (
+                  <span className="flex items-center gap-1.5"><Phone size={14} className="text-nook-olive" />{user.phone_number}</span>
+                )}
+                <span className="flex items-center gap-1.5"><Calendar size={14} className="text-nook-olive" />Tham gia {formatJoinDate(user.created_at)}</span>
               </div>
             </>
           )}
@@ -164,10 +197,10 @@ export default function UserProfilePage() {
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={MessageSquare} value={USER.stats.reviews}   label="Đánh giá" />
-        <StatCard icon={MapPin}        value={USER.stats.visited}   label="Đã ghé thăm" />
-        <StatCard icon={Clock}         value={USER.stats.bookings}  label="Đặt chỗ" />
-        <StatCard icon={Heart}         value={USER.stats.favorites} label="Yêu thích" />
+        <StatCard icon={MessageSquare} value={0} label="Đánh giá" />
+        <StatCard icon={MapPin}        value={0} label="Đã ghé thăm" />
+        <StatCard icon={Clock}         value={0} label="Đặt chỗ" />
+        <StatCard icon={Heart}         value={0} label="Yêu thích" />
       </div>
 
       {/* ── Tabs ── */}
@@ -196,8 +229,12 @@ export default function UserProfilePage() {
 
         <div className="p-6">
           {activeTab === 'reviews' && (
-            <div className="space-y-4">
-              {RECENT_REVIEWS.map(r => <ReviewCard key={r.id} review={r} />)}
+            <div className="py-12 text-center text-nook-ink/40">
+              <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Chưa có đánh giá nào</p>
+              <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
+                Tìm venue để đánh giá →
+              </Link>
             </div>
           )}
           {activeTab === 'bookings' && (
