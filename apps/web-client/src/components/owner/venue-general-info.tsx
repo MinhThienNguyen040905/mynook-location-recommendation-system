@@ -32,7 +32,7 @@ export function VenueGeneralInfo() {
     name: '',
     address: '',
     description: '',
-    amenities: [] as string[],
+    owner_amenities: [] as string[],
     opening_hours: {} as Record<string, { open: string; close: string }>,
   });
 
@@ -48,7 +48,7 @@ export function VenueGeneralInfo() {
           name: v.name ?? '',
           address: v.address ?? '',
           description: v.description ?? '',
-          amenities: v.amenities ?? [],
+          owner_amenities: v.owner_amenities ?? [],
           opening_hours: v.opening_hours ?? {},
         });
       })
@@ -81,9 +81,9 @@ export function VenueGeneralInfo() {
   function toggleAmenity(name: string) {
     setForm(prev => ({
       ...prev,
-      amenities: prev.amenities.includes(name)
-        ? prev.amenities.filter(a => a !== name)
-        : [...prev.amenities, name],
+      owner_amenities: prev.owner_amenities.includes(name)
+        ? prev.owner_amenities.filter(a => a !== name)
+        : [...prev.owner_amenities, name],
     }));
   }
 
@@ -95,7 +95,7 @@ export function VenueGeneralInfo() {
         name: form.name,
         address: form.address,
         description: form.description,
-        amenities: form.amenities,
+        owner_amenities: form.owner_amenities,
         opening_hours: form.opening_hours,
       });
       setVenue(updated);
@@ -112,7 +112,7 @@ export function VenueGeneralInfo() {
       name: venue.name ?? '',
       address: venue.address ?? '',
       description: venue.description ?? '',
-      amenities: venue.amenities ?? [],
+      owner_amenities: venue.owner_amenities ?? [],
       opening_hours: venue.opening_hours ?? {},
     });
   }
@@ -138,9 +138,9 @@ export function VenueGeneralInfo() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">Category</label>
-            <div className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-500 capitalize">
-              {venue.category || '—'}
+            <label className="text-sm font-bold text-slate-700">Chi nhánh</label>
+            <div className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-500">
+              {venue.branch_name || '—'}
             </div>
           </div>
           <div className="md:col-span-2 space-y-2">
@@ -218,7 +218,7 @@ export function VenueGeneralInfo() {
               >
                 <input
                   type="checkbox"
-                  checked={form.amenities.includes(amenity.name)}
+                  checked={form.owner_amenities.includes(amenity.name)}
                   onChange={() => toggleAmenity(amenity.name)}
                   className="size-5 rounded border-slate-300 text-primary focus:ring-primary"
                 />

@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import { API_BASE_URL, API_ENDPOINTS } from '@/config/api';
-import type { Venue, VenueSearchParams } from '@/types/venue';
+import type { Venue, VenueSearchParams, CreateVenueRequest } from '@/types/venue';
 import type { PaginatedResponse } from '@/types/api';
 
 // ─── Client-side fetchers (dùng trong 'use client' component + React Query) ──
@@ -54,7 +54,7 @@ export async function getMyVenues(): Promise<Venue[]> {
 }
 
 /** Tạo venue mới */
-export async function createVenue(body: Partial<Venue>): Promise<Venue> {
+export async function createVenue(body: CreateVenueRequest): Promise<Venue> {
   const { data } = await apiClient.post<Venue>(API_ENDPOINTS.VENUES.LIST, body);
   return data;
 }

@@ -1,23 +1,46 @@
+export type CrowdLevel = 'empty' | 'moderate' | 'crowded' | 'full';
+
 export interface Venue {
   id: string;
+  owner_id: string;
+  branch_name: string | null;
   name: string;
-  description: string;
+  description: string | null;
   address: string;
+  city: string;
+  district: string | null;
   latitude: number;
   longitude: number;
-  category: string;
+  media: string[];
+  total_capacity: number;
+  max_group_size: number;
+  is_group_friendly: boolean;
+  current_crowd_level: CrowdLevel;
+  is_active: boolean;
+  opening_hours: Record<string, { open: string; close: string }> | null;
+  owner_amenities: string[] | null;
   rating_avg: number;
   review_count: number;
-  media: string[];
-  opening_hours: Record<string, { open: string; close: string }>;
-  amenities: string[];
-  current_crowd_level: CrowdLevel;
-  is_verified: boolean;
-  owner_id: string;
   created_at: string;
+  updated_at: string;
 }
 
-export type CrowdLevel = 'low' | 'medium' | 'high' | 'full';
+export interface CreateVenueRequest {
+  name: string;
+  branch_name?: string;
+  description?: string;
+  address: string;
+  city?: string;
+  district?: string;
+  latitude: number;
+  longitude: number;
+  total_capacity?: number;
+  max_group_size?: number;
+  is_group_friendly?: boolean;
+  media?: string[];
+  opening_hours?: Record<string, { open: string; close: string }>;
+  owner_amenities?: string[];
+}
 
 export interface VenueSearchParams {
   query?: string;

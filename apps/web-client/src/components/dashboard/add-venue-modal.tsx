@@ -2,45 +2,48 @@
 
 import { useState } from 'react';
 import {
-  X, Store, MapPin, Clock, DollarSign, Image,
-  Phone, ChevronRight, ChevronLeft, Check, SendHorizonal,
+  X, Store, MapPin, Clock, Users, Image,
+  ChevronRight, ChevronLeft, Check, SendHorizonal, Building2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { createVenue } from '@/lib/api/venues';
+import type { CreateVenueRequest } from '@/types/venue';
 
 /* ── Types ───────────────────────────────────────────────────── */
 interface FormData {
   name: string;
-  categories: string[];
+  branch_name: string;
   address: string;
+  city: string;
+  district: string;
   description: string;
+  latitude: string;
+  longitude: string;
+  total_capacity: string;
+  max_group_size: string;
+  is_group_friendly: boolean;
   openTime: string;
   closeTime: string;
-  priceLevel: number;
-  features: string[];
-  phone: string;
+  owner_amenities: string[];
   imageUrl: string;
-  note: string;
 }
 
 const EMPTY_FORM: FormData = {
-  name: '', categories: [], address: '', description: '',
-  openTime: '08:00', closeTime: '22:00', priceLevel: 2,
-  features: [], phone: '', imageUrl: '', note: '',
+  name: '', branch_name: '', address: '', city: 'Ho Chi Minh', district: '',
+  description: '', latitude: '', longitude: '',
+  total_capacity: '50', max_group_size: '10', is_group_friendly: false,
+  openTime: '08:00', closeTime: '22:00',
+  owner_amenities: [], imageUrl: '',
 };
 
-const CATEGORIES = [
-  'Cafe', 'Coworking', 'Library', 'Tea House',
-  'Garden', 'Creative Space', 'Study Space', 'Late Night',
+const AMENITIES = [
+  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
+  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
+  'Phòng họp', 'Bãi đỗ xe',
 ];
 
-const FEATURES = [
-  'Quiet', 'Fast Wi-Fi', 'Power Outlets', 'Great Coffee',
-  'Outdoor Seating', 'Pet Friendly', 'Private Pods',
-  'Meeting Rooms', 'Natural Light', 'Air Conditioned',
-];
-
-const STEPS = ['Thông tin cơ bản', 'Chi tiết', 'Hình ảnh', 'Xác nhận'];
+const STEPS = ['Thông tin cơ bản', 'Vị trí & Sức chứa', 'Giờ mở cửa & Tiện ích', 'Xác nhận'];
 
 /* ── Step indicator ──────────────────────────────────────────── */
 function StepBar({ current }: { current: number }) {
@@ -73,83 +76,128 @@ function StepBar({ current }: { current: number }) {
 
 /* ── Step 1: Thông tin cơ bản ────────────────────────────────── */
 function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
-  function toggleCategory(cat: string) {
-    const next = form.categories.includes(cat)
-      ? form.categories.filter(c => c !== cat)
-      : [...form.categories, cat];
-    set({ categories: next });
-  }
-
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tên quán *</label>
         <div className="relative">
           <Store size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input
-            value={form.name}
-            onChange={e => set({ name: e.target.value })}
-            placeholder="VD: The Quiet Corner"
-            className="nook-input pl-10"
-          />
+          <input value={form.name} onChange={e => set({ name: e.target.value })}
+            placeholder="VD: The Quiet Corner" className="nook-input pl-10" />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ *</label>
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tên chi nhánh</label>
         <div className="relative">
-          <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input
-            value={form.address}
-            onChange={e => set({ address: e.target.value })}
-            placeholder="Số nhà, đường, quận, thành phố"
-            className="nook-input pl-10"
-          />
+          <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+          <input value={form.branch_name} onChange={e => set({ branch_name: e.target.value })}
+            placeholder="VD: Chi nhánh Quận 1 (bỏ trống nếu chỉ có 1 cơ sở)" className="nook-input pl-10" />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mô tả quán *</label>
-        <textarea
-          rows={3}
-          value={form.description}
-          onChange={e => set({ description: e.target.value })}
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Mô tả *</label>
+        <textarea rows={3} value={form.description} onChange={e => set({ description: e.target.value })}
           placeholder="Mô tả không gian, phong cách, điểm nổi bật..."
-          className="nook-input resize-none"
-        />
+          className="nook-input resize-none" />
       </div>
 
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Loại hình *</label>
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => toggleCategory(cat)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
-                form.categories.includes(cat)
-                  ? 'bg-nook-olive text-white border-nook-olive'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-nook-olive/50'
-              )}
-            >
-              {cat}
-            </button>
-          ))}
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">URL ảnh đại diện</label>
+        <div className="relative">
+          <Image size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+          <input value={form.imageUrl} onChange={e => set({ imageUrl: e.target.value })}
+            placeholder="https://..." className="nook-input pl-10" />
         </div>
+        {form.imageUrl && (
+          <div className="rounded-xl overflow-hidden border border-gray-100 h-32 mt-2">
+            <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ── Step 2: Chi tiết ────────────────────────────────────────── */
+/* ── Step 2: Vị trí & Sức chứa ──────────────────────────────── */
 function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
-  function toggleFeature(f: string) {
-    const next = form.features.includes(f)
-      ? form.features.filter(x => x !== f)
-      : [...form.features, f];
-    set({ features: next });
+  return (
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ *</label>
+        <div className="relative">
+          <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+          <input value={form.address} onChange={e => set({ address: e.target.value })}
+            placeholder="Số nhà, tên đường" className="nook-input pl-10" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quận/Huyện</label>
+          <input value={form.district} onChange={e => set({ district: e.target.value })}
+            placeholder="VD: Quận 1" className="nook-input" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Thành phố</label>
+          <input value={form.city} onChange={e => set({ city: e.target.value })}
+            placeholder="Ho Chi Minh" className="nook-input" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vĩ độ (Latitude) *</label>
+          <input type="number" step="any" value={form.latitude}
+            onChange={e => set({ latitude: e.target.value })}
+            placeholder="VD: 10.7769" className="nook-input" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Kinh độ (Longitude) *</label>
+          <input type="number" step="any" value={form.longitude}
+            onChange={e => set({ longitude: e.target.value })}
+            placeholder="VD: 106.7009" className="nook-input" />
+        </div>
+      </div>
+      <p className="text-xs text-gray-400">Mẹo: Nhấp chuột phải vào Google Maps để copy tọa độ.</p>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Sức chứa tổng</label>
+          <div className="relative">
+            <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+            <input type="number" value={form.total_capacity}
+              onChange={e => set({ total_capacity: e.target.value })}
+              placeholder="50" className="nook-input pl-10" />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nhóm tối đa</label>
+          <input type="number" value={form.max_group_size}
+            onChange={e => set({ max_group_size: e.target.value })}
+            placeholder="10" className="nook-input" />
+        </div>
+      </div>
+
+      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-nook-olive/20 cursor-pointer transition-all">
+        <input type="checkbox" checked={form.is_group_friendly}
+          onChange={e => set({ is_group_friendly: e.target.checked })}
+          className="size-5 rounded border-gray-300 text-nook-olive focus:ring-nook-olive" />
+        <span className="text-sm font-medium text-gray-700">Phù hợp cho nhóm đông</span>
+      </label>
+    </div>
+  );
+}
+
+/* ── Step 3: Giờ mở cửa & Tiện ích ──────────────────────────── */
+function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
+  function toggleAmenity(a: string) {
+    const next = form.owner_amenities.includes(a)
+      ? form.owner_amenities.filter(x => x !== a)
+      : [...form.owner_amenities, a];
+    set({ owner_amenities: next });
   }
 
   return (
@@ -174,87 +222,23 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
           </div>
         </div>
       </div>
+      <p className="text-xs text-gray-400">Áp dụng cho tất cả các ngày. Bạn có thể chỉnh sửa chi tiết sau.</p>
 
       <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-          Mức giá <span className="normal-case font-normal text-gray-400">(1 = rẻ, 4 = cao cấp)</span>
-        </label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4].map(p => (
-            <button key={p} type="button" onClick={() => set({ priceLevel: p })}
-              className={cn(
-                'flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all',
-                form.priceLevel === p
-                  ? 'bg-nook-olive text-white border-nook-olive'
-                  : 'bg-white text-gray-400 border-gray-200 hover:border-nook-olive/40'
-              )}>
-              {'$'.repeat(p)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tiện ích</label>
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tiện ích của quán</label>
         <div className="flex flex-wrap gap-2">
-          {FEATURES.map(f => (
-            <button key={f} type="button" onClick={() => toggleFeature(f)}
+          {AMENITIES.map(a => (
+            <button key={a} type="button" onClick={() => toggleAmenity(a)}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                form.features.includes(f)
+                form.owner_amenities.includes(a)
                   ? 'bg-nook-olive text-white border-nook-olive'
                   : 'bg-white text-gray-500 border-gray-200 hover:border-nook-olive/50'
               )}>
-              {f}
+              {a}
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Số điện thoại liên hệ</label>
-        <div className="relative">
-          <Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.phone} onChange={e => set({ phone: e.target.value })}
-            placeholder="+84 0xx xxx xxxx" className="nook-input pl-10" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Step 3: Hình ảnh ────────────────────────────────────────── */
-function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
-  return (
-    <div className="space-y-5">
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">URL ảnh đại diện</label>
-        <div className="relative">
-          <Image size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.imageUrl} onChange={e => set({ imageUrl: e.target.value })}
-            placeholder="https://..." className="nook-input pl-10" />
-        </div>
-      </div>
-
-      {form.imageUrl && (
-        <div className="rounded-xl overflow-hidden border border-gray-100 aspect-video">
-          <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover"
-            onError={e => { (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/placeholder/800/450'; }} />
-        </div>
-      )}
-
-      {!form.imageUrl && (
-        <div className="rounded-xl border-2 border-dashed border-gray-200 aspect-video flex flex-col items-center justify-center gap-3 text-gray-300">
-          <Image size={40} />
-          <p className="text-sm">Nhập URL ảnh để xem trước</p>
-        </div>
-      )}
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ghi chú cho admin</label>
-        <textarea rows={3} value={form.note} onChange={e => set({ note: e.target.value })}
-          placeholder="Thông tin bổ sung bạn muốn admin biết khi duyệt..."
-          className="nook-input resize-none" />
       </div>
     </div>
   );
@@ -263,22 +247,18 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 /* ── Step 4: Xác nhận ────────────────────────────────────────── */
 function Step4({ form }: { form: FormData }) {
   const rows: [string, string][] = [
-    ['Tên quán',    form.name],
-    ['Địa chỉ',     form.address],
-    ['Loại hình',   form.categories.join(', ') || '—'],
-    ['Giờ mở cửa',  `${form.openTime} – ${form.closeTime}`],
-    ['Mức giá',     '$'.repeat(form.priceLevel)],
-    ['Tiện ích',    form.features.join(', ') || '—'],
-    ['Điện thoại',  form.phone || '—'],
+    ['Tên quán',       form.name],
+    ['Chi nhánh',      form.branch_name || '—'],
+    ['Địa chỉ',       [form.address, form.district, form.city].filter(Boolean).join(', ')],
+    ['Tọa độ',        form.latitude && form.longitude ? `${form.latitude}, ${form.longitude}` : '—'],
+    ['Giờ mở cửa',    `${form.openTime} – ${form.closeTime}`],
+    ['Sức chứa',      `${form.total_capacity} người (nhóm tối đa ${form.max_group_size})` ],
+    ['Nhóm đông',     form.is_group_friendly ? 'Có' : 'Không'],
+    ['Tiện ích',      form.owner_amenities.join(', ') || '—'],
   ];
 
   return (
     <div className="space-y-5">
-      <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-sm text-nook-olive font-medium">
-        Sau khi gửi, yêu cầu sẽ được chuyển đến admin để xét duyệt.
-        Bạn sẽ nhận thông báo khi quán được phê duyệt.
-      </div>
-
       {form.imageUrl && (
         <div className="rounded-xl overflow-hidden border border-gray-100 h-36">
           <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -315,11 +295,10 @@ function SuccessScreen({ name, onClose }: { name: string; onClose: () => void })
       <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
         <Check size={36} className="text-green-500" />
       </div>
-      <h3 className="text-xl font-bold text-gray-900 mb-2">Đã gửi thành công!</h3>
-      <p className="text-gray-500 text-sm max-w-xs mx-auto mb-1">
-        Yêu cầu thêm quán <span className="font-bold text-gray-700">"{name}"</span> đã được gửi đến admin.
+      <h3 className="text-xl font-bold text-gray-900 mb-2">Tạo venue thành công!</h3>
+      <p className="text-gray-500 text-sm max-w-xs mx-auto mb-8">
+        Quán <span className="font-bold text-gray-700">"{name}"</span> đã được tạo. Bạn có thể quản lý chi tiết tại trang Dashboard.
       </p>
-      <p className="text-gray-400 text-xs mb-8">Thời gian duyệt thường từ 1–2 ngày làm việc.</p>
       <button onClick={onClose}
         className="nook-button-primary px-8 py-3 font-bold">
         Đóng
@@ -330,7 +309,8 @@ function SuccessScreen({ name, onClose }: { name: string; onClose: () => void })
 
 /* ── Validate each step ──────────────────────────────────────── */
 function isStepValid(step: number, form: FormData) {
-  if (step === 0) return form.name.trim() !== '' && form.address.trim() !== '' && form.description.trim() !== '' && form.categories.length > 0;
+  if (step === 0) return form.name.trim() !== '' && form.description.trim() !== '';
+  if (step === 1) return form.address.trim() !== '' && form.latitude.trim() !== '' && form.longitude.trim() !== '';
   return true;
 }
 
@@ -340,14 +320,49 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
   const [form, setFormState]  = useState<FormData>(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
 
   function set(partial: Partial<FormData>) {
     setFormState(prev => ({ ...prev, ...partial }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSubmitted(true); }, 1200);
+    setError(null);
+
+    // Build opening_hours — cùng giờ cho tất cả ngày trong tuần
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const opening_hours: Record<string, { open: string; close: string }> = {};
+    for (const day of days) {
+      opening_hours[day] = { open: form.openTime, close: form.closeTime };
+    }
+
+    const body: CreateVenueRequest = {
+      name: form.name.trim(),
+      address: form.address.trim(),
+      latitude: parseFloat(form.latitude),
+      longitude: parseFloat(form.longitude),
+      description: form.description.trim() || undefined,
+      branch_name: form.branch_name.trim() || undefined,
+      city: form.city.trim() || undefined,
+      district: form.district.trim() || undefined,
+      total_capacity: form.total_capacity ? parseInt(form.total_capacity) : undefined,
+      max_group_size: form.max_group_size ? parseInt(form.max_group_size) : undefined,
+      is_group_friendly: form.is_group_friendly,
+      media: form.imageUrl.trim() ? [form.imageUrl.trim()] : undefined,
+      opening_hours,
+      owner_amenities: form.owner_amenities.length > 0 ? form.owner_amenities : undefined,
+    };
+
+    try {
+      await createVenue(body);
+      setSubmitted(true);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? 'Có lỗi xảy ra. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const isLast  = step === STEPS.length - 1;
@@ -373,7 +388,7 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="font-bold text-gray-900 text-lg">Thêm Venue mới</h2>
-            {!submitted && <p className="text-xs text-gray-400 mt-0.5">Gửi yêu cầu đến admin để duyệt</p>}
+            {!submitted && <p className="text-xs text-gray-400 mt-0.5">Điền thông tin quán của bạn</p>}
           </div>
           <button onClick={onClose}
             className="size-8 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
@@ -408,35 +423,40 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
 
         {/* Footer */}
         {!submitted && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 shrink-0">
-            <button
-              onClick={() => setStep(s => s - 1)}
-              disabled={step === 0}
-              className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 disabled:opacity-30 transition-colors"
-            >
-              <ChevronLeft size={16} /> Quay lại
-            </button>
-
-            {isLast ? (
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-2.5 bg-nook-olive text-white font-bold rounded-xl hover:bg-nook-olive/90 transition-colors disabled:opacity-60 text-sm"
-              >
-                {loading
-                  ? <span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  : <SendHorizonal size={15} />}
-                Gửi yêu cầu duyệt
-              </button>
-            ) : (
-              <button
-                onClick={() => setStep(s => s + 1)}
-                disabled={!canNext}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-nook-olive text-white font-bold rounded-xl hover:bg-nook-olive/90 transition-colors disabled:opacity-40 text-sm"
-              >
-                Tiếp theo <ChevronRight size={16} />
-              </button>
+          <div className="px-6 py-4 border-t border-gray-100 shrink-0 space-y-3">
+            {error && (
+              <p className="text-sm text-red-500 font-medium text-center">{error}</p>
             )}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setStep(s => s - 1)}
+                disabled={step === 0}
+                className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 disabled:opacity-30 transition-colors"
+              >
+                <ChevronLeft size={16} /> Quay lại
+              </button>
+
+              {isLast ? (
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-nook-olive text-white font-bold rounded-xl hover:bg-nook-olive/90 transition-colors disabled:opacity-60 text-sm"
+                >
+                  {loading
+                    ? <span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    : <SendHorizonal size={15} />}
+                  Tạo Venue
+                </button>
+              ) : (
+                <button
+                  onClick={() => setStep(s => s + 1)}
+                  disabled={!canNext}
+                  className="flex items-center gap-1.5 px-5 py-2.5 bg-nook-olive text-white font-bold rounded-xl hover:bg-nook-olive/90 transition-colors disabled:opacity-40 text-sm"
+                >
+                  Tiếp theo <ChevronRight size={16} />
+                </button>
+              )}
+            </div>
           </div>
         )}
       </motion.div>
