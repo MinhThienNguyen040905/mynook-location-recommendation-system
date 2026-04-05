@@ -51,15 +51,35 @@ export interface IReview {
 }
 
 // ---- RabbitMQ Queues ----
+// Mỗi consumer service có queue riêng, bind vào exchange bằng routing keys.
 
 export const RMQ_QUEUES = {
   INTERACTION: 'interaction_queue',
+  SEARCH_AI: 'search_ai_queue',
 } as const;
 
-// ---- RabbitMQ Events ----
+// ---- RabbitMQ Routing Keys (Topic Exchange) ----
+//
+//  Pattern syntax:
+//    'user.registered'  → exact match
+//    'user.*'           → mọi event bắt đầu bằng 'user.'
+//    'venue.#'          → mọi event bắt đầu bằng 'venue.' (multi-level)
+//    '#'                → nhận tất cả
+//
+//  Ví dụ: interaction-service subscribe ['user.*', 'venue.reviewed']
+//         search-ai-service subscribe ['user.registered', 'venue.*']
 
 export const RMQ_EVENTS = {
+  // User domain
   USER_REGISTERED: 'user.registered',
+  USER_UPDATED: 'user.updated',
+
+  // Venue domain
+  VENUE_CREATED: 'venue.created',
+  VENUE_UPDATED: 'venue.updated',
+
+  // Interaction domain
+  VENUE_REVIEWED: 'venue.reviewed',
 } as const;
 
 // ---- RabbitMQ Event Payloads ----

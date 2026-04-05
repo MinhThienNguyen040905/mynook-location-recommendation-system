@@ -1,6 +1,8 @@
 import {
   Injectable,
   Inject,
+  Logger,
+  OnModuleInit,
   ConflictException,
   UnauthorizedException,
   BadRequestException,
@@ -26,8 +28,10 @@ import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { SendOtpDto, VerifyOtpDto } from './dto/send-otp.dto.js';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  private readonly logger = new Logger(AuthService.name);
   private readonly mailer: nodemailer.Transporter;
+  private rmqConnected = false;
 
   constructor(
     @InjectRepository(Account)
@@ -35,8 +39,8 @@ export class AuthService {
     @InjectRepository(RegistrationOtp)
     private readonly otpRepo: Repository<RegistrationOtp>,
     private readonly jwtService: JwtService,
-    @Inject('INTERACTION_SERVICE')
-    private readonly interactionClient: ClientProxy,
+    @Inject('EVENTS_SERVICE')
+    private readonly eventsClient: ClientProxy,
   ) {
     this.mailer = nodemailer.createTransport({
       host: process.env['SMTP_HOST'] || 'smtp.gmail.com',
@@ -302,15 +306,34 @@ export class AuthService {
     return this.buildResponse(saved);
   }
 
+  async onModuleInit() {
+    try {
+      await this.eventsClient.connect();
+      this.rmqConnected = true;
+      this.logger.log('Connected to RabbitMQ (EVENTS_SERVICE)');
+    } catch (err) {
+      this.logger.warn(`RabbitMQ not available: ${(err as Error).message}. Events will be skipped.`);
+    }
+  }
+
   /** Emit event qua RabbitMQ để interaction-service tạo thông báo chào mừng */
   private emitUserRegistered(user: Account) {
-    const payload: UserRegisteredEvent = {
-      accountId: user.id,
-      email: user.email,
-      fullName: user.full_name,
-      type: user.type as AccountType,
-    };
-    this.interactionClient.emit(RMQ_EVENTS.USER_REGISTERED, payload);
+    if (!this.rmqConnected) {
+      this.logger.warn(`Skipping user.registered event for ${user.email} — RMQ not connected`);
+      return;
+    }
+    try {
+      const payload: UserRegisteredEvent = {
+        accountId: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        type: user.type as AccountType,
+      };
+      this.eventsClient.emit(RMQ_EVENTS.USER_REGISTERED, payload);
+      this.logger.log(`Emitted user.registered for ${user.email}`);
+    } catch (err) {
+      this.logger.warn(`Failed to emit user.registered: ${(err as Error).message}`);
+    }
   }
 
   private buildResponse(user: Account) {
