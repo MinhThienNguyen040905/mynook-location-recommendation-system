@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { getRmqUrl } from '@mynook/rmq-messaging';
 import { RMQ_QUEUES } from '@mynook/shared-types';
 import { AppModule } from './app/app.module';
 
@@ -9,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Connect RabbitMQ microservice transport (hybrid app: HTTP + RMQ)
-  const rmqUrl = process.env['RMQ_URL'] || 'amqp://localhost:5672';
+  const rmqUrl = getRmqUrl();
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.RMQ,
     options: {

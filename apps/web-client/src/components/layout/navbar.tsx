@@ -7,6 +7,7 @@ import { Search, User, Heart, Menu, X, ChevronDown, LogOut, LayoutDashboard } fr
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
+import { NotificationDropdown } from '@/components/shared/notification-dropdown';
 import { useAuthStore } from '@/stores/auth-store';
 import { logout as logoutApi } from '@/lib/api/auth';
 
@@ -149,6 +150,7 @@ export function Navbar() {
               <Search size={20} />
             </button>
 
+            {isLoggedIn && <NotificationDropdown />}
             {isLoggedIn ? (
               <UserMenu name={user?.full_name ?? null} avatar={user?.avatar_url ?? null} role={userRole} />
             ) : (
