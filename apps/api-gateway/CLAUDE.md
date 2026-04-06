@@ -28,11 +28,16 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 
 | File | Mô tả |
 |------|-------|
-| `src/app/strategies/jwt.strategy.ts` | Passport JWT strategy — verify token, extract payload |
-| `src/app/guards/jwt-auth.guard.ts` | Guard bảo vệ route cần auth |
-| `src/app/interceptors/auth-headers.interceptor.ts` | Gắn x-user-id + x-user-role vào req.authHeaders |
-| `src/app/auth.controller.ts` | Proxy tất cả /auth/* routes đến auth-service |
-| `src/app/dto/auth.dto.ts` | Gateway-level DTOs (Swagger docs) |
+| `src/app/common/strategies/jwt.strategy.ts` | Passport JWT strategy — verify token, extract payload |
+| `src/app/common/guards/jwt-auth.guard.ts` | Guard bảo vệ route cần auth |
+| `src/app/common/interceptors/auth-headers.interceptor.ts` | Gắn x-user-id + x-user-type vào req.authHeaders |
+| `src/app/modules/auth/auth.controller.ts` | Proxy tất cả /auth/* routes đến auth-service |
+| `src/app/modules/auth/dto/auth.dto.ts` | Gateway-level Auth DTOs (Swagger docs) |
+| `src/app/modules/venue/venue.controller.ts` | Proxy /venues/* routes đến venue-service |
+| `src/app/modules/venue/menu.controller.ts` | Proxy /venues/:id/menu/* routes đến venue-service |
+| `src/app/modules/venue/upload.controller.ts` | Proxy /upload routes đến venue-service |
+| `src/app/modules/venue/dto/venue.dto.ts` | Gateway-level Venue DTOs (Swagger docs) |
+| `src/app/modules/interaction/notification.controller.ts` | Proxy /notifications/* routes đến interaction-service |
 
 ## Pattern chuẩn — Route cần auth
 
@@ -88,7 +93,7 @@ SEARCH_AI_SERVICE_URL=http://localhost:3005
 
 ## Conventions
 
-- Mỗi microservice có một controller riêng trong `src/app/` (auth.controller.ts, venue.controller.ts, ...)
+- Controllers được nhóm theo downstream service trong `src/app/modules/` (auth/, venue/, interaction/)
 - Gateway KHÔNG chứa `@InjectRepository`, TypeORM, hay bất kỳ DB logic nào
 - Gateway KHÔNG forward `Authorization` header xuống downstream services
 - Chỉ Gateway có `JwtStrategy` và `JwtAuthGuard`

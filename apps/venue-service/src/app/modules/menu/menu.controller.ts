@@ -16,7 +16,7 @@ import {
   UpdateCategoryDto,
   CreateMenuItemDto,
   UpdateMenuItemDto,
-} from './dto/index.js';
+} from './dto/menu.dto.js';
 
 @ApiTags('Menu')
 @Controller('venues/:venueId/menu')

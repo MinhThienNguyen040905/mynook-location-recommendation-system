@@ -84,11 +84,17 @@ Schema: `venue_schema`
 
 | File | Mô tả |
 |------|-------|
-| `src/app/venue.controller.ts` | REST endpoints cho venue CRUD |
-| `src/app/venue.service.ts` | Business logic — findByOwner, findById, create, update, remove |
-| `src/app/dto/create-venue.dto.ts` | DTO tạo venue |
-| `src/app/dto/update-venue.dto.ts` | DTO cập nhật venue |
-| `src/app/app.module.ts` | Module chính — DatabaseModule + VenueController + VenueService |
+| `src/app/app.module.ts` | Root module — import VenueModule, MenuModule, UploadModule |
+| `src/app/modules/venue/venue.module.ts` | Venue feature module |
+| `src/app/modules/venue/venue.controller.ts` | REST endpoints cho venue CRUD |
+| `src/app/modules/venue/venue.service.ts` | Business logic — findByOwner, findById, create, update, remove |
+| `src/app/modules/venue/dto/` | DTOs: create-venue.dto.ts, update-venue.dto.ts |
+| `src/app/modules/menu/menu.module.ts` | Menu feature module |
+| `src/app/modules/menu/menu.controller.ts` | REST endpoints cho menu categories + items |
+| `src/app/modules/menu/menu.service.ts` | Business logic menu CRUD |
+| `src/app/modules/menu/dto/menu.dto.ts` | DTOs: CreateCategoryDto, CreateMenuItemDto, etc. |
+| `src/app/modules/upload/upload.module.ts` | Upload feature module |
+| `src/app/modules/upload/upload.controller.ts` | Upload images/videos to Cloudinary |
 
 ## Environment Variables
 

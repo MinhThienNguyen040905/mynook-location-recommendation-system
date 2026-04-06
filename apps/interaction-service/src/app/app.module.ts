@@ -6,16 +6,14 @@ import {
   UserInteraction,
   Notification,
 } from '@mynook/database';
-import { NotificationController } from './notification.controller.js';
-import { NotificationService } from './notification.service.js';
+import { NotificationModule } from './modules/notification/notification.module.js';
 
 @Module({
   imports: [
     DatabaseModule.forRoot({
       entities: [Review, UserFavorite, UserInteraction, Notification],
     }),
+    NotificationModule,
   ],
-  controllers: [NotificationController],
-  providers: [NotificationService],
 })
 export class AppModule {}

@@ -17,8 +17,8 @@ import {
 import { HttpService } from "@nestjs/axios";
 import { firstValueFrom } from "rxjs";
 import { AUTH_SERVICE_URL } from "@mynook/shared-types";
-import { JwtAuthGuard } from "./guards/jwt-auth.guard.js";
-import { AuthHeadersInterceptor } from "./interceptors/auth-headers.interceptor.js";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard.js";
+import { AuthHeadersInterceptor } from "../../common/interceptors/auth-headers.interceptor.js";
 import {
   GatewayRegisterDto,
   GatewayLoginDto,

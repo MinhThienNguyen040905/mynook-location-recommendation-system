@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class AppService {
+export class SearchService {
   getData(): { message: string } {
-    return ({ message: 'Hello API' });
+    return { message: 'Hello API' };
   }
 }

@@ -11,7 +11,7 @@ import {
   UpdateCategoryDto,
   CreateMenuItemDto,
   UpdateMenuItemDto,
-} from './dto/index.js';
+} from './dto/menu.dto.js';
 
 @Injectable()
 export class MenuService {

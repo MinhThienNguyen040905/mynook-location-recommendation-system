@@ -11,7 +11,8 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from '@mynook/shared-types';
 import type { CurrentUserPayload } from '@mynook/shared-types';
 import { VenueService } from './venue.service.js';
-import { CreateVenueDto, UpdateVenueDto } from './dto/index.js';
+import { CreateVenueDto } from './dto/create-venue.dto.js';
+import { UpdateVenueDto } from './dto/update-venue.dto.js';
 
 @ApiTags('Venues')
 @Controller('venues')
