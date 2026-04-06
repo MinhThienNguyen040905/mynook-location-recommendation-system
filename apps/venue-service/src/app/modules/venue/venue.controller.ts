@@ -19,6 +19,13 @@ import { UpdateVenueDto } from './dto/update-venue.dto.js';
 export class VenueController {
   constructor(private readonly venueService: VenueService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Lấy tất cả venues đang active' })
+  @ApiResponse({ status: 200, description: 'Danh sách tất cả venues' })
+  getAllVenues() {
+    return this.venueService.findAll();
+  }
+
   @Get('owner')
   @ApiOperation({ summary: 'Lấy danh sách venues của owner đang đăng nhập' })
   @ApiResponse({ status: 200, description: 'Danh sách venues' })

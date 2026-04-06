@@ -31,6 +31,17 @@ import {
 export class VenueController {
   constructor(private readonly http: HttpService) {}
 
+  /** Lấy tất cả venues đang active */
+  @Get()
+  @ApiOperation({ summary: 'Lấy tất cả venues' })
+  @ApiResponse({ status: 200, description: 'Danh sách tất cả venues' })
+  async getAllVenues() {
+    const { data } = await firstValueFrom(
+      this.http.get(`${VENUE_SERVICE_URL}/venues`),
+    );
+    return data;
+  }
+
   /** Lấy danh sách venues của owner đang đăng nhập */
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(AuthHeadersInterceptor)

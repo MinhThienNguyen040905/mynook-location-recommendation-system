@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/footer";
 import { HeroSection } from "@/components/home/hero-section";
 import { CategoryPills } from "@/components/home/category-pills";
 import { TrendingSection } from "@/components/home/trending-section";
+import { AllVenuesSection } from "@/components/home/all-venues-section";
 import { MarketingBanner } from "@/components/home/marketing-banner";
 
 export default function HomePage() {
@@ -12,6 +13,7 @@ export default function HomePage() {
       <HeroSection />
       <CategoryPills />
       <TrendingSection />
+      <AllVenuesSection />
       <MarketingBanner />
       <Footer />
     </div>

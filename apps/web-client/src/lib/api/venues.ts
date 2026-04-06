@@ -86,6 +86,19 @@ export async function getVenueByIdServer(id: string): Promise<Venue | null> {
   }
 }
 
+/** Lấy tất cả venues trên Server Component (cache 60s) */
+export async function getAllVenuesServer(): Promise<Venue[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.VENUES.LIST}`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
 /** Lấy trending venues trên Server Component (cache 5 phút) */
 export async function getTrendingVenuesServer(): Promise<Venue[]> {
   try {

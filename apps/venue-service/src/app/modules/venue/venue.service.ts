@@ -16,6 +16,14 @@ export class VenueService {
     private readonly venueRepo: Repository<Venue>,
   ) {}
 
+  /** Lấy tất cả venues đang active */
+  async findAll(): Promise<Venue[]> {
+    return this.venueRepo.find({
+      where: { is_active: true },
+      order: { created_at: 'DESC' },
+    });
+  }
+
   /** Lấy tất cả venues của một owner */
   async findByOwner(ownerId: string): Promise<Venue[]> {
     return this.venueRepo.find({
