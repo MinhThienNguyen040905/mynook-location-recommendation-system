@@ -1,8 +1,18 @@
-"use client";
 import Link from "next/link";
 import { MapPin, Star } from "lucide-react";
+import type { Venue } from "@/types/venue";
 
-export function VenueHeader() {
+const CROWD_CONFIG: Record<string, { label: string; percent: number; color: string }> = {
+  empty: { label: "Empty - Plenty of space", percent: 10, color: "bg-emerald-500" },
+  moderate: { label: "Moderate - Good for groups", percent: 40, color: "bg-yellow-500" },
+  crowded: { label: "Crowded - Limited seats", percent: 75, color: "bg-orange-500" },
+  full: { label: "Full - No seats available", percent: 100, color: "bg-red-500" },
+};
+
+export function VenueHeader({ venue }: { venue: Venue }) {
+  const crowd = CROWD_CONFIG[venue.current_crowd_level] ?? CROWD_CONFIG.moderate;
+  const fullAddress = `${venue.address}${venue.district ? `, ${venue.district}` : ""}, ${venue.city}`;
+
   return (
     <div className="mb-8">
       {/* Breadcrumbs */}
@@ -16,7 +26,7 @@ export function VenueHeader() {
         </Link>
         <span className="mx-2">/</span>
         <span className="text-slate-900 dark:text-white font-medium">
-          The Workshop Coffee
+          {venue.name}
         </span>
       </nav>
 
@@ -24,26 +34,27 @@ export function VenueHeader() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
-            The Workshop Coffee
+            {venue.name}
           </h1>
+          {venue.branch_name && (
+            <p className="text-sm text-slate-400 dark:text-slate-500 mb-2">
+              {venue.branch_name}
+            </p>
+          )}
           <div className="flex items-center text-slate-600 dark:text-slate-300 gap-4 flex-wrap">
             <div className="flex items-center gap-1.5">
               <MapPin className="text-[#e9590c]" size={16} />
-              <span>123 Brew Lane, Coffee District</span>
+              <span>{fullAddress}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
-              <span className="font-medium text-green-600 dark:text-green-400">
-                Open
-              </span>
-              <span className="text-slate-400">•</span>
-              <span>Closes 10 PM</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[#e9590c]">
-              <Star size={16} className="fill-current" />
-              <span className="font-bold">4.8</span>
-              <span className="underline cursor-pointer">(128 reviews)</span>
-            </div>
+            {venue.rating_avg > 0 && (
+              <div className="flex items-center gap-1.5 text-[#e9590c]">
+                <Star size={16} className="fill-current" />
+                <span className="font-bold">{venue.rating_avg.toFixed(1)}</span>
+                {venue.review_count > 0 && (
+                  <span className="text-slate-500">({venue.review_count} reviews)</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -59,16 +70,16 @@ export function VenueHeader() {
                 Live Crowd
               </span>
             </div>
-            <span className="text-[#e9590c] font-bold">40% Full</span>
+            <span className="text-[#e9590c] font-bold capitalize">{venue.current_crowd_level}</span>
           </div>
           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 mb-2 overflow-hidden">
             <div
-              className="bg-[#e9590c] h-2.5 rounded-full"
-              style={{ width: "40%" }}
+              className={`${crowd.color} h-2.5 rounded-full transition-all`}
+              style={{ width: `${crowd.percent}%` }}
             ></div>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Moderate - Good for groups
+            {crowd.label}
           </p>
         </div>
       </div>

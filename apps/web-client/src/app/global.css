@@ -150,6 +150,11 @@
 .leaflet-container .leaflet-pane {
   z-index: auto;
 }
+/* Contain Leaflet controls so they don't overlap modals (z-50) */
+.leaflet-container {
+  z-index: 0;
+  isolation: isolate;
+}
 
 /* ── Utility: ẩn scrollbar (dùng trong tab nav ngang) ─────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }

@@ -7,6 +7,7 @@ import {
   Notification,
 } from '@mynook/database';
 import { NotificationModule } from './modules/notification/notification.module.js';
+import { ReviewModule } from './modules/review/review.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { NotificationModule } from './modules/notification/notification.module.j
       entities: [Review, UserFavorite, UserInteraction, Notification],
     }),
     NotificationModule,
+    ReviewModule,
   ],
 })
 export class AppModule {}
