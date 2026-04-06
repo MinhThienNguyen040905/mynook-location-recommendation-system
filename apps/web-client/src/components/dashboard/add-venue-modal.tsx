@@ -1,16 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import {
-  X, Store, MapPin, Clock, Users, Image,
+  X, Store, MapPin, Clock, Users, Upload, Trash2,
   ChevronRight, ChevronLeft, Check, SendHorizonal, Building2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { createVenue } from '@/lib/api/venues';
+import { uploadMedia } from '@/lib/api/upload';
+import type { UploadResult } from '@/lib/api/upload';
 import type { CreateVenueRequest } from '@/types/venue';
 
+// Lazy-load Leaflet map (no SSR)
+const LocationPickerMap = dynamic(
+  () => import('./location-picker-map').then((m) => m.LocationPickerMap),
+  { ssr: false, loading: () => <div className="h-[280px] rounded-xl bg-gray-100 animate-pulse" /> },
+);
+
 /* ── Types ───────────────────────────────────────────────────── */
+interface MediaItem {
+  file?: File;
+  url: string;
+  preview: string;
+  uploading?: boolean;
+}
+
 interface FormData {
   name: string;
   branch_name: string;
@@ -18,23 +34,23 @@ interface FormData {
   city: string;
   district: string;
   description: string;
-  latitude: string;
-  longitude: string;
+  latitude: number;
+  longitude: number;
   total_capacity: string;
   max_group_size: string;
   is_group_friendly: boolean;
   openTime: string;
   closeTime: string;
   owner_amenities: string[];
-  imageUrl: string;
+  mediaItems: MediaItem[];
 }
 
 const EMPTY_FORM: FormData = {
   name: '', branch_name: '', address: '', city: 'Ho Chi Minh', district: '',
-  description: '', latitude: '', longitude: '',
+  description: '', latitude: 0, longitude: 0,
   total_capacity: '50', max_group_size: '10', is_group_friendly: false,
   openTime: '08:00', closeTime: '22:00',
-  owner_amenities: [], imageUrl: '',
+  owner_amenities: [], mediaItems: [],
 };
 
 const AMENITIES = [
@@ -44,6 +60,7 @@ const AMENITIES = [
 ];
 
 const STEPS = ['Thông tin cơ bản', 'Vị trí & Sức chứa', 'Giờ mở cửa & Tiện ích', 'Xác nhận'];
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
 
 /* ── Step indicator ──────────────────────────────────────────── */
 function StepBar({ current }: { current: number }) {
@@ -76,6 +93,32 @@ function StepBar({ current }: { current: number }) {
 
 /* ── Step 1: Thông tin cơ bản ────────────────────────────────── */
 function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newItems: MediaItem[] = Array.from(files).map((file) => ({
+      file,
+      url: '',
+      preview: URL.createObjectURL(file),
+    }));
+
+    set({ mediaItems: [...form.mediaItems, ...newItems] });
+
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  }
+
+  function removeMedia(index: number) {
+    const item = form.mediaItems[index];
+    if (item.preview.startsWith('blob:')) {
+      URL.revokeObjectURL(item.preview);
+    }
+    set({ mediaItems: form.mediaItems.filter((_, i) => i !== index) });
+  }
+
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
@@ -103,19 +146,54 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
           className="nook-input resize-none" />
       </div>
 
+      {/* Media upload */}
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">URL ảnh đại diện</label>
-        <div className="relative">
-          <Image size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.imageUrl} onChange={e => set({ imageUrl: e.target.value })}
-            placeholder="https://..." className="nook-input pl-10" />
-        </div>
-        {form.imageUrl && (
-          <div className="rounded-xl overflow-hidden border border-gray-100 h-32 mt-2">
-            <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover"
-              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ảnh / Video</label>
+
+        {/* Preview grid */}
+        {form.mediaItems.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            {form.mediaItems.map((item, i) => (
+              <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-100 aspect-square bg-gray-50">
+                {item.file?.type.startsWith('video/') ? (
+                  <video src={item.preview} className="w-full h-full object-cover" muted />
+                ) : (
+                  <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                )}
+                {item.uploading && (
+                  <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                    <span className="size-5 border-2 border-nook-olive/40 border-t-nook-olive rounded-full animate-spin" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeMedia(i)}
+                  className="absolute top-1 right-1 size-6 bg-black/50 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-nook-olive/50 hover:text-nook-olive transition-colors"
+        >
+          <Upload size={16} />
+          Chọn ảnh hoặc video từ máy
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ACCEPTED_TYPES}
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <p className="text-xs text-gray-400">JPG, PNG, WebP, MP4. Tối đa 10 file.</p>
       </div>
     </div>
   );
@@ -123,6 +201,11 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 
 /* ── Step 2: Vị trí & Sức chứa ──────────────────────────────── */
 function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
+  const handleLocationChange = useCallback(
+    (lat: number, lng: number) => set({ latitude: lat, longitude: lng }),
+    [set],
+  );
+
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
@@ -147,21 +230,17 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Vĩ độ (Latitude) *</label>
-          <input type="number" step="any" value={form.latitude}
-            onChange={e => set({ latitude: e.target.value })}
-            placeholder="VD: 10.7769" className="nook-input" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Kinh độ (Longitude) *</label>
-          <input type="number" step="any" value={form.longitude}
-            onChange={e => set({ longitude: e.target.value })}
-            placeholder="VD: 106.7009" className="nook-input" />
-        </div>
+      {/* Map location picker */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+          <MapPin size={14} /> Vị trí trên bản đồ *
+        </label>
+        <LocationPickerMap
+          latitude={form.latitude}
+          longitude={form.longitude}
+          onChange={handleLocationChange}
+        />
       </div>
-      <p className="text-xs text-gray-400">Mẹo: Nhấp chuột phải vào Google Maps để copy tọa độ.</p>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
@@ -250,18 +329,28 @@ function Step4({ form }: { form: FormData }) {
     ['Tên quán',       form.name],
     ['Chi nhánh',      form.branch_name || '—'],
     ['Địa chỉ',       [form.address, form.district, form.city].filter(Boolean).join(', ')],
-    ['Tọa độ',        form.latitude && form.longitude ? `${form.latitude}, ${form.longitude}` : '—'],
+    ['Tọa độ',        form.latitude && form.longitude ? `${form.latitude.toFixed(6)}, ${form.longitude.toFixed(6)}` : '—'],
     ['Giờ mở cửa',    `${form.openTime} – ${form.closeTime}`],
     ['Sức chứa',      `${form.total_capacity} người (nhóm tối đa ${form.max_group_size})` ],
     ['Nhóm đông',     form.is_group_friendly ? 'Có' : 'Không'],
     ['Tiện ích',      form.owner_amenities.join(', ') || '—'],
+    ['Media',         form.mediaItems.length > 0 ? `${form.mediaItems.length} file` : '—'],
   ];
 
   return (
     <div className="space-y-5">
-      {form.imageUrl && (
-        <div className="rounded-xl overflow-hidden border border-gray-100 h-36">
-          <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+      {/* Media preview thumbnails */}
+      {form.mediaItems.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {form.mediaItems.map((item, i) => (
+            <div key={i} className="shrink-0 w-24 h-20 rounded-lg overflow-hidden border border-gray-100">
+              {item.file?.type.startsWith('video/') ? (
+                <video src={item.preview} className="w-full h-full object-cover" muted />
+              ) : (
+                <img src={item.preview} alt="" className="w-full h-full object-cover" />
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -310,7 +399,7 @@ function SuccessScreen({ name, onClose }: { name: string; onClose: () => void })
 /* ── Validate each step ──────────────────────────────────────── */
 function isStepValid(step: number, form: FormData) {
   if (step === 0) return form.name.trim() !== '' && form.description.trim() !== '';
-  if (step === 1) return form.address.trim() !== '' && form.latitude.trim() !== '' && form.longitude.trim() !== '';
+  if (step === 1) return form.address.trim() !== '' && form.latitude !== 0 && form.longitude !== 0;
   return true;
 }
 
@@ -330,31 +419,50 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError(null);
 
-    // Build opening_hours — cùng giờ cho tất cả ngày trong tuần
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const opening_hours: Record<string, { open: string; close: string }> = {};
-    for (const day of days) {
-      opening_hours[day] = { open: form.openTime, close: form.closeTime };
-    }
-
-    const body: CreateVenueRequest = {
-      name: form.name.trim(),
-      address: form.address.trim(),
-      latitude: parseFloat(form.latitude),
-      longitude: parseFloat(form.longitude),
-      description: form.description.trim() || undefined,
-      branch_name: form.branch_name.trim() || undefined,
-      city: form.city.trim() || undefined,
-      district: form.district.trim() || undefined,
-      total_capacity: form.total_capacity ? parseInt(form.total_capacity) : undefined,
-      max_group_size: form.max_group_size ? parseInt(form.max_group_size) : undefined,
-      is_group_friendly: form.is_group_friendly,
-      media: form.imageUrl.trim() ? [form.imageUrl.trim()] : undefined,
-      opening_hours,
-      owner_amenities: form.owner_amenities.length > 0 ? form.owner_amenities : undefined,
-    };
-
     try {
+      // Step 1: Upload media files to Cloudinary
+      let mediaUrls: string[] = [];
+      const filesToUpload = form.mediaItems.filter((item) => item.file);
+
+      if (filesToUpload.length > 0) {
+        // Mark items as uploading
+        set({
+          mediaItems: form.mediaItems.map((item) =>
+            item.file ? { ...item, uploading: true } : item,
+          ),
+        });
+
+        const results: UploadResult[] = await uploadMedia(
+          filesToUpload.map((item) => item.file!),
+        );
+        mediaUrls = results.map((r) => r.url);
+      }
+
+      // Step 2: Build opening_hours
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const opening_hours: Record<string, { open: string; close: string }> = {};
+      for (const day of days) {
+        opening_hours[day] = { open: form.openTime, close: form.closeTime };
+      }
+
+      // Step 3: Create venue
+      const body: CreateVenueRequest = {
+        name: form.name.trim(),
+        address: form.address.trim(),
+        latitude: form.latitude,
+        longitude: form.longitude,
+        description: form.description.trim() || undefined,
+        branch_name: form.branch_name.trim() || undefined,
+        city: form.city.trim() || undefined,
+        district: form.district.trim() || undefined,
+        total_capacity: form.total_capacity ? parseInt(form.total_capacity) : undefined,
+        max_group_size: form.max_group_size ? parseInt(form.max_group_size) : undefined,
+        is_group_friendly: form.is_group_friendly,
+        media: mediaUrls.length > 0 ? mediaUrls : undefined,
+        opening_hours,
+        owner_amenities: form.owner_amenities.length > 0 ? form.owner_amenities : undefined,
+      };
+
       await createVenue(body);
       setSubmitted(true);
     } catch (err: unknown) {
@@ -445,7 +553,7 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
                   {loading
                     ? <span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                     : <SendHorizonal size={15} />}
-                  Tạo Venue
+                  {loading ? 'Đang tải...' : 'Tạo Venue'}
                 </button>
               ) : (
                 <button

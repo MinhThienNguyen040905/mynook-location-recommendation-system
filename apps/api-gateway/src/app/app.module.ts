@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller.js';
 import { VenueController } from './venue.controller.js';
 import { NotificationController } from './notification.controller.js';
+import { UploadController } from './upload.controller.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 
 @Module({
@@ -15,7 +16,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
       secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
     }),
   ],
-  controllers: [AuthController, VenueController, NotificationController],
+  controllers: [AuthController, VenueController, NotificationController, UploadController],
   providers: [JwtStrategy],
 })
 export class AppModule {}
