@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Info, Image as ImageIcon, CheckCircle, Trash2,
-  Wifi, Tag, BookOpen, MapPin, Coffee, Utensils, Clock, Plus, Check,
+  MapPin, Clock, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVenueById, updateVenue } from '@/lib/api/venues';
@@ -13,12 +13,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { Venue } from '@/types/venue';
 
 const ALL_AMENITIES = [
-  { name: 'High-speed Wi-Fi', icon: Wifi },
-  { name: 'Power Outlets',    icon: Tag },
-  { name: 'Quiet Zone',       icon: BookOpen },
-  { name: 'Outdoor Seating',  icon: MapPin },
-  { name: 'Pet Friendly',     icon: Coffee },
-  { name: 'Vegan Options',    icon: Utensils },
+  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
+  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
+  'Phòng họp', 'Bãi đỗ xe',
 ];
 
 export function VenueGeneralInfo() {
@@ -266,23 +263,21 @@ export function VenueGeneralInfo() {
           <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
             <CheckCircle className="text-primary size-5" /> Amenities
           </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {ALL_AMENITIES.map((amenity) => (
-              <label
-                key={amenity.name}
-                className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-primary/20 cursor-pointer transition-all"
+          <div className="flex flex-wrap gap-2">
+            {ALL_AMENITIES.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => toggleAmenity(name)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                  form.owner_amenities.includes(name)
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-primary/50'
+                )}
               >
-                <input
-                  type="checkbox"
-                  checked={form.owner_amenities.includes(amenity.name)}
-                  onChange={() => toggleAmenity(amenity.name)}
-                  className="size-5 rounded border-slate-300 text-primary focus:ring-primary"
-                />
-                <div className="flex items-center gap-2">
-                  <amenity.icon className="size-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-700">{amenity.name}</span>
-                </div>
-              </label>
+                {name}
+              </button>
             ))}
           </div>
         </div>
@@ -308,9 +303,6 @@ export function VenueGeneralInfo() {
                 Chưa thiết lập giờ mở cửa
               </div>
             )}
-            <button className="w-full py-3 mt-2 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm font-bold hover:border-primary hover:text-primary hover:bg-primary/5 transition-all">
-              Edit Full Schedule
-            </button>
           </div>
         </div>
       </div>

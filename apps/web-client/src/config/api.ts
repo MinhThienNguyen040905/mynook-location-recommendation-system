@@ -53,10 +53,16 @@ export const API_ENDPOINTS = {
   // Owner
   OWNER: {
     MY_VENUES: '/venues/owner/my-venues',
-    VENUE: '/owner/venue',
-    MENU: '/owner/menu',
     BOOKINGS: '/owner/bookings',
     CROWD: '/owner/crowd-level',
+  },
+
+  // Menu (per venue)
+  MENU: {
+    CATEGORIES: (venueId: string) => `/venues/${venueId}/menu/categories`,
+    CATEGORY: (venueId: string, catId: string) => `/venues/${venueId}/menu/categories/${catId}`,
+    ITEMS: (venueId: string) => `/venues/${venueId}/menu/items`,
+    ITEM: (venueId: string, itemId: string) => `/venues/${venueId}/menu/items/${itemId}`,
   },
 
   // Admin

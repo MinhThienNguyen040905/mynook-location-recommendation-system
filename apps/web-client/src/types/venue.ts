@@ -56,13 +56,20 @@ export interface VenueSearchParams {
   limit?: number;
 }
 
-export interface MenuItem {
+export interface MenuCategory {
   id: string;
   venue_id: string;
   name: string;
-  description?: string;
+  display_order: number;
+  items?: MenuItem[];
+}
+
+export interface MenuItem {
+  id: string;
+  venue_id: string;
+  category_id: string;
+  name: string;
   price: number;
-  category: string;
-  image_url?: string;
+  image_url: string | null;
   is_available: boolean;
 }
