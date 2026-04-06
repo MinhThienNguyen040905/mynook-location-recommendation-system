@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -12,6 +12,7 @@ import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { updateProfile } from '@/lib/api/auth';
+import { uploadMedia } from '@/lib/api/upload';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /* ── Sub-components ──────────────────────────────────────────── */
@@ -65,6 +66,8 @@ export default function UserProfilePage() {
   const { user, isLoading, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'reviews' | 'bookings' | 'favorites'>('reviews');
   const [form, setForm] = useState({ full_name: '', phone_number: '' });
 
@@ -109,6 +112,22 @@ export default function UserProfilePage() {
     setIsEditing(false);
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setAvatarUploading(true);
+    try {
+      const [result] = await uploadMedia([file]);
+      const updated = await updateProfile({ avatar_url: result.url });
+      setUser(updated);
+    } catch {
+      // TODO: toast error
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
 
@@ -133,9 +152,22 @@ export default function UserProfilePage() {
                 alt={user.full_name ?? 'Avatar'}
                 className="size-24 rounded-2xl border-4 border-white shadow-lg object-cover"
               />
-              <button className="absolute -bottom-1 -right-1 size-7 bg-nook-olive rounded-lg flex items-center justify-center shadow-md hover:bg-nook-olive/90 transition-colors">
-                <Camera size={13} className="text-white" />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute -bottom-1 -right-1 size-7 bg-nook-olive rounded-lg flex items-center justify-center shadow-md hover:bg-nook-olive/90 transition-colors disabled:opacity-50"
+              >
+                {avatarUploading
+                  ? <span className="size-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  : <Camera size={13} className="text-white" />}
               </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
             </div>
             <button
               onClick={() => setIsEditing(!isEditing)}

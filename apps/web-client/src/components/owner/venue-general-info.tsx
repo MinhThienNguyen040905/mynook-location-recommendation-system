@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Info, Image as ImageIcon, CheckCircle,
+  Info, Image as ImageIcon, CheckCircle, Trash2,
   Wifi, Tag, BookOpen, MapPin, Coffee, Utensils, Clock, Plus, Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVenueById, updateVenue } from '@/lib/api/venues';
+import { uploadMedia } from '@/lib/api/upload';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Venue } from '@/types/venue';
 
@@ -27,6 +28,8 @@ export function VenueGeneralInfo() {
   const [venue, setVenue] = useState<Venue | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -106,6 +109,35 @@ export function VenueGeneralInfo() {
     }
   }
 
+  async function handleMediaUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !venueId || !venue) return;
+    e.target.value = '';
+    setMediaUploading(true);
+    try {
+      const results = await uploadMedia(Array.from(files));
+      const newUrls = results.map((r) => r.url);
+      const updatedMedia = [...(venue.media ?? []), ...newUrls];
+      const updated = await updateVenue(venueId, { media: updatedMedia });
+      setVenue(updated);
+    } catch {
+      // TODO: toast error
+    } finally {
+      setMediaUploading(false);
+    }
+  }
+
+  async function handleMediaRemove(index: number) {
+    if (!venueId || !venue) return;
+    const updatedMedia = (venue.media ?? []).filter((_, i) => i !== index);
+    try {
+      const updated = await updateVenue(venueId, { media: updatedMedia });
+      setVenue(updated);
+    } catch {
+      // TODO: toast error
+    }
+  }
+
   function handleCancel() {
     if (!venue) return;
     setForm({
@@ -173,9 +205,24 @@ export function VenueGeneralInfo() {
           <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900">
             <ImageIcon className="text-primary size-5" /> Photo & Media
           </h3>
-          <button className="text-primary text-sm font-bold hover:underline flex items-center gap-1">
-            <Plus className="size-4" /> Add Media
+          <button
+            onClick={() => mediaInputRef.current?.click()}
+            disabled={mediaUploading}
+            className="text-primary text-sm font-bold hover:underline flex items-center gap-1 disabled:opacity-50"
+          >
+            {mediaUploading
+              ? <span className="size-3.5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+              : <Plus className="size-4" />}
+            {mediaUploading ? 'Đang tải...' : 'Add Media'}
           </button>
+          <input
+            ref={mediaInputRef}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+            onChange={handleMediaUpload}
+            className="hidden"
+          />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {venue.media && venue.media.length > 0 ? (
@@ -188,16 +235,25 @@ export function VenueGeneralInfo() {
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <button className="text-white text-xs font-bold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/30">
-                    Remove
+                  <button
+                    onClick={() => handleMediaRemove(i)}
+                    className="text-white text-xs font-bold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/30 hover:bg-red-500/60 transition-colors flex items-center gap-1"
+                  >
+                    <Trash2 size={12} /> Remove
                   </button>
                 </div>
               </div>
             ))
           ) : null}
-          <button className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all">
-            <Plus className="size-8" />
-            <span className="text-xs font-bold">Upload</span>
+          <button
+            onClick={() => mediaInputRef.current?.click()}
+            disabled={mediaUploading}
+            className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all disabled:opacity-50"
+          >
+            {mediaUploading
+              ? <span className="size-6 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+              : <Plus className="size-8" />}
+            <span className="text-xs font-bold">{mediaUploading ? 'Đang tải...' : 'Upload'}</span>
           </button>
         </div>
       </div>
