@@ -12,6 +12,7 @@ import {
   CreateMenuItemDto,
   UpdateMenuItemDto,
 } from './dto/menu.dto.js';
+import type { BulkSaveMenuDto } from './dto/bulk-save-menu.dto.js';
 
 @Injectable()
 export class MenuService {
@@ -110,5 +111,53 @@ export class MenuService {
     if (!item) throw new NotFoundException('Menu item not found');
     await this.assertOwnership(item.venue_id, ownerId);
     await this.itemRepo.remove(item);
+  }
+
+  /* ── Bulk Save (from AI analysis) ───────────────────── */
+
+  async bulkSave(
+    venueId: string,
+    ownerId: string,
+    dto: BulkSaveMenuDto,
+  ): Promise<MenuCategory[]> {
+    await this.assertOwnership(venueId, ownerId);
+
+    const existingCategories = await this.categoryRepo.find({
+      where: { venue_id: venueId },
+    });
+    const maxOrder = existingCategories.reduce(
+      (max, c) => Math.max(max, c.display_order),
+      -1,
+    );
+
+    const savedCategories: MenuCategory[] = [];
+
+    for (let i = 0; i < dto.categories.length; i++) {
+      const catDto = dto.categories[i];
+
+      // Create category
+      const cat = this.categoryRepo.create({
+        name: catDto.name,
+        venue_id: venueId,
+        display_order: catDto.display_order ?? maxOrder + 1 + i,
+      });
+      const savedCat = await this.categoryRepo.save(cat);
+
+      // Create items for this category
+      const items = catDto.items.map((itemDto) =>
+        this.itemRepo.create({
+          name: itemDto.name,
+          price: itemDto.price,
+          venue_id: venueId,
+          category_id: savedCat.id,
+          is_available: itemDto.is_available ?? true,
+        }),
+      );
+      const savedItems = await this.itemRepo.save(items);
+      savedCat.items = savedItems;
+      savedCategories.push(savedCat);
+    }
+
+    return savedCategories;
   }
 }

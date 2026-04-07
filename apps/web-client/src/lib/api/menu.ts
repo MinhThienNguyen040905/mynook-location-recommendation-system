@@ -2,6 +2,28 @@ import { apiClient } from './client';
 import { API_ENDPOINTS } from '@/config/api';
 import type { MenuCategory, MenuItem } from '@/types/venue';
 
+/* ── Types for AI menu analysis ────────────────────────── */
+
+export interface AnalyzedMenuItem {
+  name: string;
+  price: number;
+}
+
+export interface AnalyzedMenuCategory {
+  name: string;
+  items: AnalyzedMenuItem[];
+}
+
+export interface AnalyzeMenuImageResult {
+  categories: AnalyzedMenuCategory[];
+}
+
+export interface BulkSaveMenuCategory {
+  name: string;
+  display_order?: number;
+  items: { name: string; price: number; is_available?: boolean }[];
+}
+
 /* ── Categories ──────────────────────────────────────── */
 
 export async function getCategories(venueId: string): Promise<MenuCategory[]> {
@@ -71,4 +93,29 @@ export async function deleteMenuItem(
   itemId: string,
 ): Promise<void> {
   await apiClient.delete(API_ENDPOINTS.MENU.ITEM(venueId, itemId));
+}
+
+/* ── AI Menu Analysis ──────────────────────────────────── */
+
+export async function analyzeMenuImage(
+  venueId: string,
+  imageUrl: string,
+): Promise<AnalyzeMenuImageResult> {
+  const { data } = await apiClient.post<AnalyzeMenuImageResult>(
+    API_ENDPOINTS.MENU.ANALYZE_IMAGE(venueId),
+    { image_url: imageUrl },
+    { timeout: 60000 },
+  );
+  return data;
+}
+
+export async function bulkSaveMenu(
+  venueId: string,
+  categories: BulkSaveMenuCategory[],
+): Promise<MenuCategory[]> {
+  const { data } = await apiClient.post<MenuCategory[]>(
+    API_ENDPOINTS.MENU.BULK_SAVE(venueId),
+    { categories },
+  );
+  return data;
 }

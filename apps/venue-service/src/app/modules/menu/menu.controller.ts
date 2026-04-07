@@ -11,17 +11,48 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from '@mynook/shared-types';
 import type { CurrentUserPayload } from '@mynook/shared-types';
 import { MenuService } from './menu.service.js';
+import { MenuAnalyzeService } from './menu-analyze.service.js';
 import {
   CreateCategoryDto,
   UpdateCategoryDto,
   CreateMenuItemDto,
   UpdateMenuItemDto,
 } from './dto/menu.dto.js';
+import { AnalyzeMenuImageDto } from './dto/analyze-menu.dto.js';
+import { BulkSaveMenuDto } from './dto/bulk-save-menu.dto.js';
 
 @ApiTags('Menu')
 @Controller('venues/:venueId/menu')
 export class MenuController {
-  constructor(private readonly menuService: MenuService) {}
+  constructor(
+    private readonly menuService: MenuService,
+    private readonly menuAnalyzeService: MenuAnalyzeService,
+  ) {}
+
+  /* ── Analyze & Bulk Save ─────────────────────────────── */
+
+  @Post('analyze-image')
+  @ApiOperation({ summary: 'Phân tích ảnh menu bằng AI (Groq Vision)' })
+  @ApiResponse({ status: 200 })
+  analyzeMenuImage(
+    @Param('venueId') venueId: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: AnalyzeMenuImageDto,
+  ) {
+    // ownership check is implicit — only owners call this via gateway
+    return this.menuAnalyzeService.analyzeMenuImage(dto.image_url);
+  }
+
+  @Post('bulk-save')
+  @ApiOperation({ summary: 'Lưu hàng loạt menu (categories + items) từ kết quả AI' })
+  @ApiResponse({ status: 201 })
+  bulkSaveMenu(
+    @Param('venueId') venueId: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: BulkSaveMenuDto,
+  ) {
+    return this.menuService.bulkSave(venueId, user.id, dto);
+  }
 
   /* ── Categories ──────────────────────────────────────── */
 

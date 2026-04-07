@@ -19,6 +19,7 @@ export interface Venue {
   is_active: boolean;
   opening_hours: Record<string, { open: string; close: string }> | null;
   owner_amenities: string[] | null;
+  menu_image_url: string | null;
   rating_avg: number;
   review_count: number;
   created_at: string;

@@ -62,6 +62,8 @@ export const API_ENDPOINTS = {
     CATEGORY: (venueId: string, catId: string) => `/venues/${venueId}/menu/categories/${catId}`,
     ITEMS: (venueId: string) => `/venues/${venueId}/menu/items`,
     ITEM: (venueId: string, itemId: string) => `/venues/${venueId}/menu/items/${itemId}`,
+    ANALYZE_IMAGE: (venueId: string) => `/venues/${venueId}/menu/analyze-image`,
+    BULK_SAVE: (venueId: string) => `/venues/${venueId}/menu/bulk-save`,
   },
 
   // Admin

@@ -37,6 +37,9 @@ export class CreateVenueDto {
   @ApiPropertyOptional({ example: [] })
   media?: unknown[];
 
+  @ApiPropertyOptional({ example: 'https://res.cloudinary.com/.../menu.jpg' })
+  menu_image_url?: string;
+
   @ApiPropertyOptional()
   opening_hours?: unknown;
 

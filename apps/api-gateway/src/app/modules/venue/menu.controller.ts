@@ -99,6 +99,45 @@ export class MenuController {
     return data;
   }
 
+  /* ── Analyze & Bulk Save ─────────────────────────────── */
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Post('analyze-image')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Phân tích ảnh menu bằng AI' })
+  async analyzeMenuImage(
+    @Param('venueId') venueId: string,
+    @Request() req: { authHeaders: Record<string, string> },
+    @Body() body: unknown,
+  ) {
+    const { data } = await firstValueFrom(
+      this.http.post(`${this.base(venueId)}/analyze-image`, body, {
+        headers: req.authHeaders,
+        timeout: 60000,
+      }),
+    );
+    return data;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Post('bulk-save')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lưu hàng loạt menu từ kết quả AI' })
+  async bulkSaveMenu(
+    @Param('venueId') venueId: string,
+    @Request() req: { authHeaders: Record<string, string> },
+    @Body() body: unknown,
+  ) {
+    const { data } = await firstValueFrom(
+      this.http.post(`${this.base(venueId)}/bulk-save`, body, {
+        headers: req.authHeaders,
+      }),
+    );
+    return data;
+  }
+
   /* ── Items ───────────────────────────────────────────── */
 
   @Get('items')

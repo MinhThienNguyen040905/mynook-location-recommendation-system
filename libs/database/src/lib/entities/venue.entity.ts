@@ -5,6 +5,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 export enum CrowdLevel {
@@ -74,6 +76,9 @@ export class Venue {
   @Column({ type: 'jsonb', nullable: true })
   owner_amenities!: unknown | null;
 
+  @Column({ type: 'text', nullable: true })
+  menu_image_url!: string | null;
+
   @Column({ type: 'float', default: 0 })
   rating_avg!: number;
 
@@ -104,8 +109,9 @@ export class MenuCategory {
   @Column({ type: 'int', default: 0 })
   display_order!: number;
 
-  @Column({ type: 'uuid', nullable: true })
-  venue!: Venue;
+  @ManyToOne(() => Venue, (v) => v.menu_categories)
+  @JoinColumn({ name: 'venue_id' })
+  venue?: Venue;
 
   @OneToMany(() => MenuItem, (item) => item.category)
   items?: MenuItem[];
@@ -134,5 +140,7 @@ export class MenuItem {
   @Column({ type: 'boolean', default: true })
   is_available!: boolean;
 
+  @ManyToOne(() => MenuCategory, (cat) => cat.items)
+  @JoinColumn({ name: 'category_id' })
   category?: MenuCategory;
 }

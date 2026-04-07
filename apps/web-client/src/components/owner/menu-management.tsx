@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Plus, Edit3, Trash2, FolderPlus, Info,
-  Check, X, Image as ImageIcon,
+  Check, X, Image as ImageIcon, Sparkles, Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -14,7 +14,10 @@ import {
   createMenuItem,
   updateMenuItem,
   deleteMenuItem,
+  analyzeMenuImage,
+  bulkSaveMenu,
 } from '@/lib/api/menu';
+import type { AnalyzedMenuCategory } from '@/lib/api/menu';
 import { uploadMedia } from '@/lib/api/upload';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { MenuCategory, MenuItem } from '@/types/venue';
@@ -161,6 +164,235 @@ function ItemModal({
   );
 }
 
+/* ── Menu Image Analyzer ──────────────────────────────── */
+function MenuImageAnalyzer({
+  venueId,
+  onSaved,
+}: {
+  venueId: string;
+  onSaved: () => void;
+}) {
+  const [imageUrl, setImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [results, setResults] = useState<AnalyzedMenuCategory[] | null>(null);
+  const [error, setError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(true);
+    setError('');
+    setResults(null);
+    try {
+      const [result] = await uploadMedia([file]);
+      setImageUrl(result.url);
+    } catch {
+      setError('Tải ảnh thất bại. Vui lòng thử lại.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleAnalyze() {
+    if (!imageUrl) return;
+    setAnalyzing(true);
+    setError('');
+    try {
+      const result = await analyzeMenuImage(venueId, imageUrl);
+      setResults(result.categories);
+    } catch {
+      setError('Phân tích ảnh thất bại. Vui lòng thử với ảnh rõ hơn.');
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  function updateCategoryName(catIdx: number, name: string) {
+    setResults(prev => prev?.map((c, i) => i === catIdx ? { ...c, name } : c) ?? null);
+  }
+
+  function updateItemField(catIdx: number, itemIdx: number, field: 'name' | 'price', value: string) {
+    setResults(prev => prev?.map((c, ci) =>
+      ci === catIdx
+        ? {
+            ...c,
+            items: c.items.map((item, ii) =>
+              ii === itemIdx
+                ? { ...item, [field]: field === 'price' ? parseFloat(value) || 0 : value }
+                : item,
+            ),
+          }
+        : c,
+    ) ?? null);
+  }
+
+  function removeItem(catIdx: number, itemIdx: number) {
+    setResults(prev => prev?.map((c, ci) =>
+      ci === catIdx ? { ...c, items: c.items.filter((_, ii) => ii !== itemIdx) } : c,
+    ).filter(c => c.items.length > 0) ?? null);
+  }
+
+  function removeCategory(catIdx: number) {
+    setResults(prev => prev?.filter((_, i) => i !== catIdx) ?? null);
+  }
+
+  async function handleConfirmSave() {
+    if (!results || results.length === 0) return;
+    setSaving(true);
+    setError('');
+    try {
+      await bulkSaveMenu(venueId, results);
+      setResults(null);
+      setImageUrl('');
+      onSaved();
+    } catch {
+      setError('Lưu menu thất bại. Vui lòng thử lại.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="p-6 bg-white rounded-2xl border border-primary/10 shadow-sm space-y-5">
+      <div className="flex items-center gap-2">
+        <Sparkles size={20} className="text-primary" />
+        <h3 className="text-lg font-bold text-gray-900">Nhận diện menu từ ảnh (AI)</h3>
+      </div>
+
+      <p className="text-sm text-gray-500">
+        Tải ảnh menu của quán lên, AI sẽ tự động nhận diện các danh mục và món. Bạn có thể chỉnh sửa trước khi lưu.
+      </p>
+
+      {/* Upload area */}
+      <div className="flex items-start gap-4">
+        {imageUrl ? (
+          <div className="w-48 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+            <img src={imageUrl} alt="Menu" className="w-full object-contain max-h-64" />
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || analyzing}
+            className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+          >
+            {uploading
+              ? <Loader2 size={16} className="animate-spin" />
+              : <ImageIcon size={16} />}
+            {uploading ? 'Đang tải ảnh...' : imageUrl ? 'Đổi ảnh khác' : 'Chọn ảnh menu'}
+          </button>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUpload} className="hidden" />
+
+          {imageUrl && !results && (
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-bold rounded-xl text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {analyzing
+                ? <Loader2 size={16} className="animate-spin" />
+                : <Sparkles size={16} />}
+              {analyzing ? 'Đang phân tích...' : 'Phân tích bằng AI'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">{error}</p>
+      )}
+
+      {/* Editable results */}
+      {results && results.length > 0 && (
+        <div className="space-y-4 border-t border-gray-100 pt-5">
+          <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+            Kết quả nhận diện — Chỉnh sửa nếu cần
+          </h4>
+
+          {results.map((cat, catIdx) => (
+            <div key={catIdx} className="border border-gray-200 rounded-xl overflow-hidden">
+              {/* Category header */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-gray-50">
+                <input
+                  value={cat.name}
+                  onChange={e => updateCategoryName(catIdx, e.target.value)}
+                  className="flex-1 bg-transparent font-bold text-gray-900 text-sm outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1"
+                />
+                <button
+                  onClick={() => removeCategory(catIdx)}
+                  className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                  title="Xóa danh mục"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+
+              {/* Items */}
+              <div className="divide-y divide-gray-100">
+                {cat.items.map((item, itemIdx) => (
+                  <div key={itemIdx} className="flex items-center gap-3 px-4 py-2.5">
+                    <input
+                      value={item.name}
+                      onChange={e => updateItemField(catIdx, itemIdx, 'name', e.target.value)}
+                      className="flex-1 text-sm text-gray-800 bg-transparent outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1"
+                      placeholder="Tên món"
+                    />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input
+                        type="number"
+                        value={item.price || ''}
+                        onChange={e => updateItemField(catIdx, itemIdx, 'price', e.target.value)}
+                        className="w-28 text-sm text-right text-primary font-bold bg-transparent outline-none focus:ring-1 focus:ring-primary rounded px-2 py-1"
+                        placeholder="Giá"
+                      />
+                      <span className="text-xs text-gray-400">VNĐ</span>
+                    </div>
+                    <button
+                      onClick={() => removeItem(catIdx, itemIdx)}
+                      className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => { setResults(null); setImageUrl(''); }}
+              className="px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleConfirmSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-xl text-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {saving && <Loader2 size={16} className="animate-spin" />}
+              Xác nhận & Lưu menu
+            </button>
+          </div>
+        </div>
+      )}
+
+      {results && results.length === 0 && (
+        <p className="text-sm text-gray-400 text-center py-4">
+          Không tìm thấy món nào trong ảnh. Vui lòng thử với ảnh menu khác.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Component ────────────────────────────────────── */
 export function MenuManagement() {
   const searchParams = useSearchParams();
@@ -259,6 +491,9 @@ export function MenuManagement() {
 
   return (
     <div className="space-y-8">
+
+      {/* Menu Image Analyzer */}
+      <MenuImageAnalyzer venueId={venueId} onSaved={loadCategories} />
 
       {/* Categories bar */}
       <div className="p-6 bg-white rounded-2xl border border-primary/10 shadow-sm">
