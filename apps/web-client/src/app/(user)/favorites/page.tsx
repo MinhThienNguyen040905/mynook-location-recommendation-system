@@ -205,7 +205,7 @@ export default function FavoritesPage() {
                   placeholder="Tìm trong danh sách yêu thích..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="nook-input pl-10 py-2.5 text-sm"
+                  className="nook-input !pl-10 py-2.5 text-sm"
                 />
                 {search && (
                   <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-nook-ink/30 hover:text-nook-ink">

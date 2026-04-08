@@ -37,8 +37,6 @@ export default function RegisterPage() {
     defaultValues: { type: "customer" },
   });
 
-  const selectedType = watch("type");
-
   // Countdown timer for resend
   useEffect(() => {
     if (countdown <= 0) return;
@@ -169,17 +167,17 @@ export default function RegisterPage() {
   return (
     <div className="flex h-screen w-full bg-[#FAFAF9] dark:bg-[#221610] font-sans overflow-hidden">
       {/* Left Side: Authentication Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 lg:p-12 xl:p-24 overflow-y-auto relative">
-        <div className="w-full max-w-md space-y-8 pb-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-10 overflow-y-auto relative">
+        <div className="w-full max-w-md space-y-5 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
           {step === "form" ? (
             <>
               {/* Header */}
-              <div className="text-center space-y-2">
-                <h1 className="font-serif text-4xl text-[#e9590c] font-bold tracking-tight mb-6">
+              <div className="text-center space-y-1">
+                <h1 className="font-serif text-3xl text-[#e9590c] font-bold tracking-tight mb-1">
                   MyNook
                 </h1>
-                <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                   Create an account
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400">
@@ -187,40 +185,9 @@ export default function RegisterPage() {
                 </p>
               </div>
 
-              {/* Role Tabs */}
-              <div
-                className="bg-gray-100 dark:bg-[#2d1e17] p-1 rounded-lg flex space-x-1"
-                role="tablist"
-              >
-                <button
-                  type="button"
-                  onClick={() => setValue("type", "customer")}
-                  className={cn(
-                    "flex-1 py-2 px-4 rounded text-sm font-medium transition-all duration-200 focus:outline-none",
-                    selectedType === "customer"
-                      ? "shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
-                  )}
-                >
-                  I&apos;m a Guest
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setValue("type", "owner")}
-                  className={cn(
-                    "flex-1 py-2 px-4 rounded text-sm font-medium transition-all duration-200 focus:outline-none",
-                    selectedType === "owner"
-                      ? "shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
-                  )}
-                >
-                  I&apos;m a Venue Owner
-                </button>
-              </div>
-
               {/* Social Login */}
-              <div className="grid grid-cols-2 gap-4">
-                <button className="flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out group">
+              <div className="grid grid-cols-2 gap-3">
+                <button className="flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out group">
                   <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -243,7 +210,7 @@ export default function RegisterPage() {
                     Google
                   </span>
                 </button>
-                <button className="flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out group">
+                <button className="flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition duration-150 ease-in-out group">
                   <svg
                     className="h-5 w-5 mr-2 text-[#1877F2]"
                     fill="currentColor"
@@ -288,7 +255,7 @@ export default function RegisterPage() {
                       placeholder="John Doe"
                       {...registerField("full_name")}
                       className={cn(
-                        "block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                        "block w-full pl-10 pr-3 py-2 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
                         errors.full_name
                           ? "border-red-400 dark:border-red-500"
                           : "border-gray-300 dark:border-gray-600",
@@ -317,7 +284,7 @@ export default function RegisterPage() {
                       placeholder="hello@example.com"
                       {...registerField("email")}
                       className={cn(
-                        "block w-full pl-10 pr-3 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                        "block w-full pl-10 pr-3 py-2 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
                         errors.email
                           ? "border-red-400 dark:border-red-500"
                           : "border-gray-300 dark:border-gray-600",
@@ -346,7 +313,7 @@ export default function RegisterPage() {
                       placeholder="••••••••"
                       {...registerField("password")}
                       className={cn(
-                        "block w-full pl-10 pr-10 py-3 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
+                        "block w-full pl-10 pr-10 py-2 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
                         errors.password
                           ? "border-red-400 dark:border-red-500"
                           : "border-gray-300 dark:border-gray-600",
@@ -369,7 +336,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex justify-center py-3 px-4 rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:to-orange-600 hover:shadow-orange-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e9590c] transition-all duration-200 transform active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full flex justify-center py-2.5 px-4 rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:to-orange-600 hover:shadow-orange-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e9590c] transition-all duration-200 transform active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <Loader2 className="animate-spin" size={20} />

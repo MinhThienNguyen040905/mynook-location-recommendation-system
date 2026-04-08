@@ -4,7 +4,6 @@ import { VenueHeader } from "@/components/venue-detail/venue-header";
 import { VenueGallery } from "@/components/venue-detail/venue-gallery";
 import { VenueAmenities } from "@/components/venue-detail/venue-amenities";
 import { VenueLocationMap } from "@/components/venue-detail/venue-location-map";
-import { BookingCard } from "@/components/venue-detail/booking-card";
 import { VenueReviews } from "@/components/venue-detail/venue-reviews";
 import { getVenueByIdServer } from "@/lib/api/venues";
 import { getVenueReviewsServer } from "@/lib/api/reviews";
@@ -29,9 +28,7 @@ export default async function VenueDetailPage({
         <VenueGallery media={venue.media} name={venue.name} />
 
         {/* Main Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
-          {/* Left Column: Content */}
-          <div className="lg:col-span-2 space-y-10">
+        <div className="space-y-10">
             {/* About Section */}
             {venue.description && (
               <section>
@@ -103,12 +100,6 @@ export default async function VenueDetailPage({
               venueName={venue.name}
               initialReviews={reviews}
             />
-          </div>
-
-          {/* Right Column: Sticky Booking Card */}
-          <div className="lg:col-span-1">
-            <BookingCard />
-          </div>
         </div>
       </main>
 

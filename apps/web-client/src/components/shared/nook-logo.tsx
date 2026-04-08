@@ -33,6 +33,8 @@ interface NookLogoProps {
   iconOnly?: boolean;
   /** Color variant */
   variant?: 'orange' | 'white';
+  /** Extra className for the cube icon only */
+  iconClassName?: string;
 }
 
 const SIZE_MAP = {
@@ -46,13 +48,14 @@ export function NookLogo({
   className,
   iconOnly = false,
   variant = 'orange',
+  iconClassName,
 }: NookLogoProps) {
   const { cube, text } = SIZE_MAP[size];
   const color = variant === 'white' ? 'text-white' : 'text-nook-olive';
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <CubeIcon className={cn(cube, color)} />
+      <CubeIcon className={cn(cube, color, iconClassName)} />
       {!iconOnly && (
         <span
           className={cn(text, 'font-bold tracking-tight', color)}

@@ -78,7 +78,7 @@ function EmailStep({ onNext }: { onNext: (email: string, token: string) => void 
               placeholder="Email của bạn"
               {...register('email')}
               className={cn(
-                'nook-input pl-12',
+                'nook-input !pl-12',
                 errors.email && 'border-red-400 ring-2 ring-red-100',
               )}
             />
@@ -191,7 +191,7 @@ function ResetStep({
               placeholder="Mật khẩu mới"
               {...register('new_password')}
               className={cn(
-                'nook-input pl-12',
+                'nook-input !pl-12',
                 errors.new_password && 'border-red-400 ring-2 ring-red-100',
               )}
             />
@@ -230,7 +230,7 @@ function ResetStep({
               placeholder="Xác nhận mật khẩu"
               {...register('confirm_password')}
               className={cn(
-                'nook-input pl-12',
+                'nook-input !pl-12',
                 errors.confirm_password && 'border-red-400 ring-2 ring-red-100',
               )}
             />
@@ -314,7 +314,7 @@ export default function ForgotPasswordPage() {
         <div className="max-w-md w-full mx-auto">
           {/* Logo */}
           <Link href="/" className="mb-12 inline-block">
-            <NookLogo size="md" />
+            <NookLogo size="md" iconClassName="rotate-180" />
           </Link>
 
           {/* Step dots — hide on done */}

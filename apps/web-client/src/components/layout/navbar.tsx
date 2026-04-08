@@ -119,7 +119,7 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/">
-            <NookLogo size="md" />
+            <NookLogo size="md" iconClassName="rotate-180" />
           </Link>
 
           {/* Desktop Nav */}

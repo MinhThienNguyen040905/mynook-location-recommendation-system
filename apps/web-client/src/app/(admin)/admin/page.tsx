@@ -1,7 +1,9 @@
 'use client';
 
-import { Users, Store, Flag, TrendingUp, CheckCircle, Clock, XCircle, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { Users, Store, Flag, Clock, Eye, Bell, X, Send, Loader2, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const STATS = [
   { label: 'Tổng người dùng', value: '2,481',  delta: '+12%',  icon: Users,        color: 'bg-blue-50 text-blue-600'    },
@@ -49,13 +51,191 @@ const WEEKLY = [
 ];
 const maxUsers = Math.max(...WEEKLY.map(d => d.users));
 
+const AUDIENCE_OPTIONS = [
+  { value: 'all',      label: 'Tất cả người dùng' },
+  { value: 'customer', label: 'Khách hàng (Customer)' },
+  { value: 'owner',    label: 'Chủ venue (Owner)' },
+];
+
+const TYPE_OPTIONS = [
+  { value: 'system',      label: 'Hệ thống' },
+  { value: 'promotion',   label: 'Khuyến mãi' },
+  { value: 'maintenance', label: 'Bảo trì' },
+  { value: 'update',      label: 'Cập nhật' },
+];
+
+/* ── Broadcast Notification Modal ────────────────────────────── */
+function BroadcastModal({ onClose }: { onClose: () => void }) {
+  const [title, setTitle]       = useState('');
+  const [message, setMessage]   = useState('');
+  const [audience, setAudience] = useState('all');
+  const [type, setType]         = useState('system');
+  const [sending, setSending]   = useState(false);
+  const [sent, setSent]         = useState(false);
+
+  async function handleSend() {
+    if (!title.trim() || !message.trim()) return;
+    setSending(true);
+    // TODO: gọi API POST /api/notifications/broadcast
+    await new Promise(r => setTimeout(r, 1200));
+    setSending(false);
+    setSent(true);
+    setTimeout(onClose, 1500);
+  }
+
+  return (
+    /* Backdrop */
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in fade-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-nook-olive/10 rounded-xl flex items-center justify-center">
+              <Bell size={18} className="text-nook-olive" />
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-800">Gửi thông báo tổng</h2>
+              <p className="text-xs text-slate-400">Thông báo sẽ được gửi đến tất cả người dùng được chọn</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4">
+          {/* Audience & Type */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Đối tượng</label>
+              <div className="relative">
+                <select
+                  value={audience}
+                  onChange={e => setAudience(e.target.value)}
+                  className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-nook-olive/30 focus:border-nook-olive pr-8"
+                >
+                  {AUDIENCE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Loại thông báo</label>
+              <div className="relative">
+                <select
+                  value={type}
+                  onChange={e => setType(e.target.value)}
+                  className="w-full appearance-none border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-nook-olive/30 focus:border-nook-olive pr-8"
+                >
+                  {TYPE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Title */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Tiêu đề</label>
+            <input
+              type="text"
+              placeholder="Nhập tiêu đề thông báo..."
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              maxLength={100}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-nook-olive/30 focus:border-nook-olive"
+            />
+            <p className="text-right text-[11px] text-slate-300">{title.length}/100</p>
+          </div>
+
+          {/* Message */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Nội dung</label>
+            <textarea
+              placeholder="Nhập nội dung thông báo..."
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              maxLength={500}
+              rows={4}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-nook-olive/30 focus:border-nook-olive resize-none"
+            />
+            <p className="text-right text-[11px] text-slate-300">{message.length}/500</p>
+          </div>
+
+          {/* Preview chip */}
+          {(title || message) && (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Xem trước</p>
+              <p className="text-sm font-semibold text-slate-800">{title || '—'}</p>
+              <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{message || '—'}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl">
+          <p className="text-xs text-slate-400">
+            Gửi đến: <span className="font-semibold text-slate-600">{AUDIENCE_OPTIONS.find(o => o.value === audience)?.label}</span>
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={sending || sent || !title.trim() || !message.trim()}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-all',
+                sent
+                  ? 'bg-green-500 text-white'
+                  : 'bg-nook-olive text-white hover:bg-nook-olive/90 disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              {sent ? (
+                <>'✓ Đã gửi'</>
+              ) : sending ? (
+                <><Loader2 size={15} className="animate-spin" /> Đang gửi...</>
+              ) : (
+                <><Send size={15} /> Gửi thông báo</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Page ───────────────────────────────────────────────── */
 export default function AdminDashboardPage() {
+  const [showBroadcast, setShowBroadcast] = useState(false);
+
   return (
     <div className="p-6 lg:p-8 space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-serif font-bold text-slate-800">Tổng quan hệ thống</h1>
-        <p className="text-slate-500 mt-1">Chào mừng trở lại, Admin. Đây là tình trạng hôm nay.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-slate-800">Tổng quan hệ thống</h1>
+          <p className="text-slate-500 mt-1">Chào mừng trở lại, Admin. Đây là tình trạng hôm nay.</p>
+        </div>
+        <button
+          onClick={() => setShowBroadcast(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-nook-olive text-white text-sm font-bold rounded-xl hover:bg-nook-olive/90 transition-colors shadow-sm"
+        >
+          <Bell size={16} />
+          Gửi thông báo tổng
+        </button>
       </div>
 
       {/* Stat Cards */}
@@ -137,6 +317,19 @@ export default function AdminDashboardPage() {
               </div>
               <Eye size={16} className="text-blue-400 group-hover:translate-x-0.5 transition-transform" />
             </Link>
+            <button
+              onClick={() => setShowBroadcast(true)}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-nook-olive/10 hover:bg-nook-olive/20 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <Bell size={18} className="text-nook-olive" />
+                <div className="text-left">
+                  <p className="text-sm font-bold text-nook-olive">Gửi thông báo tổng</p>
+                  <p className="text-xs text-nook-olive/60">Thông báo toàn hệ thống</p>
+                </div>
+              </div>
+              <Send size={16} className="text-nook-olive/50 group-hover:translate-x-0.5 transition-transform" />
+            </button>
           </div>
         </div>
       </div>
@@ -195,6 +388,9 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Broadcast Modal */}
+      {showBroadcast && <BroadcastModal onClose={() => setShowBroadcast(false)} />}
     </div>
   );
 }

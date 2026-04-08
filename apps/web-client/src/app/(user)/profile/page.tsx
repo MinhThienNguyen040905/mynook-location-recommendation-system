@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Camera, Star, MapPin, Heart,
   Mail, Phone, Calendar, Edit3, Check, X,
-  MessageSquare, Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -68,7 +68,7 @@ export default function UserProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<'reviews' | 'bookings' | 'favorites'>('reviews');
+  const [activeTab, setActiveTab] = useState<'reviews' | 'favorites'>('reviews');
   const [form, setForm] = useState({ full_name: '', phone_number: '' });
 
   useEffect(() => {
@@ -228,10 +228,9 @@ export default function UserProfilePage() {
       </motion.div>
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard icon={MessageSquare} value={0} label="Đánh giá" />
         <StatCard icon={MapPin}        value={0} label="Đã ghé thăm" />
-        <StatCard icon={Clock}         value={0} label="Đặt chỗ" />
         <StatCard icon={Heart}         value={0} label="Yêu thích" />
       </div>
 
@@ -240,7 +239,6 @@ export default function UserProfilePage() {
         <div className="flex border-b border-nook-sand">
           {([
             { key: 'reviews',   label: 'Đánh giá', icon: Star },
-            { key: 'bookings',  label: 'Đặt chỗ',  icon: Clock },
             { key: 'favorites', label: 'Yêu thích', icon: Heart },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button
@@ -266,15 +264,6 @@ export default function UserProfilePage() {
               <p className="font-medium">Chưa có đánh giá nào</p>
               <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
                 Tìm venue để đánh giá →
-              </Link>
-            </div>
-          )}
-          {activeTab === 'bookings' && (
-            <div className="py-12 text-center text-nook-ink/40">
-              <Clock size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Chưa có đặt chỗ nào</p>
-              <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
-                Tìm venue ngay →
               </Link>
             </div>
           )}
