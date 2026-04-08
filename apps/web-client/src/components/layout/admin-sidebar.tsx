@@ -9,15 +9,17 @@ import {
   Flag,
   LogOut,
   ChevronRight,
+  ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
 
 const NAV = [
-  { label: 'Tổng quan',       path: '/admin',          icon: LayoutDashboard },
-  { label: 'Người dùng',      path: '/admin/users',    icon: Users           },
-  { label: 'Duyệt venue',     path: '/admin/venues',   icon: Store           },
-  { label: 'Báo cáo',         path: '/admin/reports',  icon: Flag            },
+  { label: 'Tổng quan',       path: '/admin',                icon: LayoutDashboard },
+  { label: 'Người dùng',      path: '/admin/users',          icon: Users           },
+  { label: 'Duyệt venue',     path: '/admin/venues',         icon: Store           },
+  { label: 'Danh sách quán',  path: '/admin/venues/list',    icon: ListChecks      },
+  { label: 'Báo cáo',         path: '/admin/reports',        icon: Flag            },
 ];
 
 export function AdminSidebar() {
@@ -44,7 +46,7 @@ export function AdminSidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV.map(({ label, path, icon: Icon }) => {
-          const active = pathname === path || (path !== '/admin' && pathname.startsWith(path));
+          const active = pathname === path || (path !== '/admin' && path !== '/admin/venues' && pathname.startsWith(path)) || (path === '/admin/venues' && pathname === '/admin/venues');
           return (
             <Link
               key={path}
