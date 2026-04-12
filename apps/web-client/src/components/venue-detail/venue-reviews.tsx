@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Star, MessageSquarePlus } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Star, MessageSquarePlus, ThumbsUp, ThumbsDown, Clock, Sparkles, BadgeCheck } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import { cn } from '@/lib/utils';
 import { getVenueReviews } from '@/lib/api/reviews';
 import { WriteReviewModal } from '@/components/review/write-review-modal';
-import type { Review } from '@/types/review';
+import type { Review, ReviewAiAnalysis } from '@/types/review';
 
 interface VenueReviewsProps {
   venueId: string;
@@ -26,6 +25,82 @@ function timeAgo(dateStr: string): string {
   return `${months}mo ago`;
 }
 
+const SENTIMENT_CONFIG: Record<string, { label: string; color: string; icon: typeof ThumbsUp }> = {
+  positive: { label: 'Tích cực', color: 'text-green-600 bg-green-50 border-green-200', icon: ThumbsUp },
+  negative: { label: 'Tiêu cực', color: 'text-red-600 bg-red-50 border-red-200', icon: ThumbsDown },
+  neutral: { label: 'Trung lập', color: 'text-slate-600 bg-slate-50 border-slate-200', icon: Sparkles },
+  mixed: { label: 'Hỗn hợp', color: 'text-amber-600 bg-amber-50 border-amber-200', icon: Sparkles },
+};
+
+const TIME_LABELS: Record<string, string> = {
+  morning: 'Buổi sáng',
+  afternoon: 'Buổi chiều',
+  evening: 'Buổi tối',
+  all_day: 'Cả ngày',
+};
+
+/** Format tag key: "good_coffee" → "Good Coffee" */
+function formatTag(key: string): string {
+  return key.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function AiAnalysisBadge({ analysis }: { analysis: ReviewAiAnalysis }) {
+  const sentiment = SENTIMENT_CONFIG[analysis.sentiment] ?? SENTIMENT_CONFIG.neutral;
+  const SentimentIcon = sentiment.icon;
+
+  return (
+    <div className="mt-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Sparkles size={12} className="text-[#e9590c]" />
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+          AI Phân tích
+        </span>
+      </div>
+
+      {/* Sentiment + Summary */}
+      <div className="flex items-start gap-2 mb-2">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${sentiment.color}`}>
+          <SentimentIcon size={10} />
+          {sentiment.label}
+        </span>
+        <p className="text-xs text-slate-500 dark:text-slate-400 italic flex-1">
+          {analysis.summary}
+        </p>
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1.5">
+        {analysis.positive_tags.map((tag) => (
+          <span
+            key={`pos-${tag}`}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+          >
+            <ThumbsUp size={9} />
+            {formatTag(tag)}
+          </span>
+        ))}
+        {analysis.negative_tags.map((tag) => (
+          <span
+            key={`neg-${tag}`}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+          >
+            <ThumbsDown size={9} />
+            {formatTag(tag)}
+          </span>
+        ))}
+      </div>
+
+      {/* Time context */}
+      {analysis.time_context && (
+        <div className="mt-1.5 flex items-center gap-1 text-xs text-slate-400">
+          <Clock size={10} />
+          {TIME_LABELS[analysis.time_context] ?? analysis.time_context}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReviewCard({ review }: { review: Review }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = (review.content?.length ?? 0) > 150;
@@ -33,14 +108,22 @@ function ReviewCard({ review }: { review: Review }) {
   return (
     <div className="py-5 border-b border-slate-100 dark:border-slate-700 last:border-0">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex gap-0.5">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <Star
-              key={s}
-              size={14}
-              className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-600 fill-slate-200 dark:fill-slate-600'}
-            />
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-0.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                size={14}
+                className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-600 fill-slate-200 dark:fill-slate-600'}
+              />
+            ))}
+          </div>
+          {review.is_verified_visit && (
+            <span className="inline-flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
+              <BadgeCheck size={12} />
+              Đã ghé thăm
+            </span>
+          )}
         </div>
         <span className="text-xs text-slate-400">{timeAgo(review.created_at)}</span>
       </div>
@@ -55,7 +138,7 @@ function ReviewCard({ review }: { review: Review }) {
           onClick={() => setExpanded((v) => !v)}
           className="text-xs font-bold text-[#e9590c] mt-1.5 hover:underline"
         >
-          {expanded ? 'Show less' : 'Read more'}
+          {expanded ? 'Thu gọn' : 'Xem thêm'}
         </button>
       )}
 
@@ -67,6 +150,11 @@ function ReviewCard({ review }: { review: Review }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* AI Analysis */}
+      {review.ai_analysis_json && (
+        <AiAnalysisBadge analysis={review.ai_analysis_json} />
       )}
     </div>
   );
@@ -116,6 +204,9 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : '0';
 
+  // Count reviews with AI analysis
+  const aiAnalyzedCount = reviews.filter((r) => r.ai_analysis_json).length;
+
   return (
     <section>
       <div className="flex items-center justify-between mb-6">
@@ -130,7 +221,7 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
           className="flex items-center gap-2 bg-[#e9590c] hover:bg-[#c2410b] text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-colors"
         >
           <MessageSquarePlus size={16} />
-          Write a Review
+          Viết Review
         </button>
       </div>
 
@@ -150,6 +241,12 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
                 ))}
               </div>
               <p className="text-xs text-slate-400">{reviews.length} reviews</p>
+              {aiAnalyzedCount > 0 && (
+                <p className="text-xs text-[#e9590c] mt-1 flex items-center justify-center gap-1">
+                  <Sparkles size={10} />
+                  {aiAnalyzedCount} AI analyzed
+                </p>
+              )}
             </div>
             <RatingDistribution reviews={reviews} />
           </div>
@@ -163,8 +260,8 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
         </>
       ) : (
         <div className="py-12 text-center bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl">
-          <p className="text-slate-400 mb-2">No reviews yet</p>
-          <p className="text-sm text-slate-400">Be the first to share your experience!</p>
+          <p className="text-slate-400 mb-2">Chưa có review nào</p>
+          <p className="text-sm text-slate-400">Hãy là người đầu tiên chia sẻ trải nghiệm!</p>
         </div>
       )}
 

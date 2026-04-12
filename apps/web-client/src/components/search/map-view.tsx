@@ -4,13 +4,13 @@ import { useMemo } from "react";
 import { DynamicMap } from "@/components/map/dynamic-map";
 import type { MapMarker } from "@/components/map/leaflet-map";
 import { FloatingFilterPanel } from "./floating-filter-panel";
-import type { MockVenue } from "@/data/mockVenues";
+import type { SearchResult } from "@/types/venue";
 import "@/components/map/map-markers.css";
 
 interface MapViewProps {
   isPanelOpen: boolean;
   onClosePanel: () => void;
-  venues?: MockVenue[];
+  searchResults?: SearchResult[];
   selectedVenueId?: string | null;
   onVenueSelect?: (id: string) => void;
 }
@@ -18,35 +18,33 @@ interface MapViewProps {
 // Default center: HCMC
 const DEFAULT_CENTER: [number, number] = [10.7769, 106.7009];
 
-const PRICE_LABELS = ["", "$", "$$", "$$$", "$$$$"];
-
 export function MapView({
   isPanelOpen,
   onClosePanel,
-  venues = [],
+  searchResults = [],
   selectedVenueId,
   onVenueSelect,
 }: MapViewProps) {
   const markers: MapMarker[] = useMemo(
     () =>
-      venues.map((v) => ({
+      searchResults.map((v) => ({
         id: v.id,
-        lat: v.coordinates.lat,
-        lng: v.coordinates.lng,
-        label: PRICE_LABELS[v.priceLevel] || "$",
+        lat: v.latitude,
+        lng: v.longitude,
+        label: v.rating_avg > 0 ? v.rating_avg.toFixed(1) : "•",
         popupContent: `<strong>${v.name}</strong><br/>${v.address}`,
       })),
-    [venues],
+    [searchResults],
   );
 
   const center: [number, number] = useMemo(() => {
-    if (venues.length === 0) return DEFAULT_CENTER;
+    if (searchResults.length === 0) return DEFAULT_CENTER;
     const avgLat =
-      venues.reduce((s, v) => s + v.coordinates.lat, 0) / venues.length;
+      searchResults.reduce((s, v) => s + v.latitude, 0) / searchResults.length;
     const avgLng =
-      venues.reduce((s, v) => s + v.coordinates.lng, 0) / venues.length;
+      searchResults.reduce((s, v) => s + v.longitude, 0) / searchResults.length;
     return [avgLat, avgLng];
-  }, [venues]);
+  }, [searchResults]);
 
   return (
     <div className="hidden lg:block w-[40%] h-full relative sticky top-0 overflow-hidden">

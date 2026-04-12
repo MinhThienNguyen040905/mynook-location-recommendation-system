@@ -57,6 +57,35 @@ export interface VenueSearchParams {
   limit?: number;
 }
 
+/** Result from hybrid search API (search-ai-service) */
+export interface SearchResult {
+  id: string;
+  name: string;
+  branch_name: string | null;
+  description: string | null;
+  address: string;
+  city: string;
+  district: string | null;
+  latitude: number;
+  longitude: number;
+  media: string[];
+  max_group_size: number;
+  is_group_friendly: boolean;
+  current_crowd_level: CrowdLevel;
+  rating_avg: number;
+  review_count: number;
+  opening_hours: Record<string, { open: string; close: string }> | null;
+  relevance_score: number;
+  vector_distance: number | null;
+  matched_tags: string[];
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  total: number;
+  query: string;
+}
+
 export interface MenuCategory {
   id: string;
   venue_id: string;
