@@ -53,9 +53,15 @@ export async function getMyVenues(): Promise<Venue[]> {
   return data;
 }
 
-/** Tạo venue mới */
+/** Tạo venue mới (owner) */
 export async function createVenue(body: CreateVenueRequest): Promise<Venue> {
   const { data } = await apiClient.post<Venue>(API_ENDPOINTS.VENUES.LIST, body);
+  return data;
+}
+
+/** Tạo venue đóng góp từ cộng đồng (customer hoặc owner) */
+export async function createCommunityVenue(body: CreateVenueRequest): Promise<Venue> {
+  const { data } = await apiClient.post<Venue>('/venues/community', body);
   return data;
 }
 

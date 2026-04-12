@@ -22,6 +22,8 @@ export interface Venue {
   menu_image_url: string | null;
   rating_avg: number;
   review_count: number;
+  is_community_contributed: boolean;
+  contributed_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +57,35 @@ export interface VenueSearchParams {
   sort_by?: 'rating' | 'distance' | 'newest';
   page?: number;
   limit?: number;
+}
+
+/** Result from hybrid search API (search-ai-service) */
+export interface SearchResult {
+  id: string;
+  name: string;
+  branch_name: string | null;
+  description: string | null;
+  address: string;
+  city: string;
+  district: string | null;
+  latitude: number;
+  longitude: number;
+  media: string[];
+  max_group_size: number;
+  is_group_friendly: boolean;
+  current_crowd_level: CrowdLevel;
+  rating_avg: number;
+  review_count: number;
+  opening_hours: Record<string, { open: string; close: string }> | null;
+  relevance_score: number;
+  vector_distance: number | null;
+  matched_tags: string[];
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  total: number;
+  query: string;
 }
 
 export interface MenuCategory {

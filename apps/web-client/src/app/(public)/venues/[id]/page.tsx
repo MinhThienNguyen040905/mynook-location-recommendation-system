@@ -5,6 +5,7 @@ import { VenueGallery } from "@/components/venue-detail/venue-gallery";
 import { VenueAmenities } from "@/components/venue-detail/venue-amenities";
 import { VenueLocationMap } from "@/components/venue-detail/venue-location-map";
 import { VenueReviews } from "@/components/venue-detail/venue-reviews";
+import { CommunityEditBanner } from "@/components/venue-detail/community-edit-banner";
 import { getVenueByIdServer } from "@/lib/api/venues";
 import { getVenueReviewsServer } from "@/lib/api/reviews";
 
@@ -25,6 +26,7 @@ export default async function VenueDetailPage({
     <div className="bg-[#f8f6f5] dark:bg-[#221610] min-h-screen flex flex-col font-sans">
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <VenueHeader venue={venue} />
+        <CommunityEditBanner venue={venue} />
         <VenueGallery media={venue.media} name={venue.name} />
 
         {/* Main Content Layout */}

@@ -38,6 +38,35 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 | `src/app/modules/venue/upload.controller.ts` | Proxy /upload routes đến venue-service |
 | `src/app/modules/venue/dto/venue.dto.ts` | Gateway-level Venue DTOs (Swagger docs) |
 | `src/app/modules/interaction/notification.controller.ts` | Proxy /notifications/* routes đến interaction-service |
+| `src/app/modules/interaction/review.controller.ts` | Proxy /reviews/* routes đến interaction-service |
+| `src/app/modules/search/search.controller.ts` | Proxy /search routes đến search-ai-service |
+| `src/app/modules/search/search.module.ts` | Search proxy module |
+
+## Search Endpoints (route: /api/search/...)
+
+| Method | Path | Guard | Mô tả |
+|--------|------|-------|-------|
+| GET | `/api/search?q=...&limit=20` | JwtAuthGuard | Hybrid search (logged-in, search logged) |
+| GET | `/api/search/public?q=...&limit=20` | Public | Hybrid search (anonymous) |
+
+## Venue Endpoints (route: /api/venues/...)
+
+| Method | Path | Guard | Mô tả |
+|--------|------|-------|-------|
+| GET | `/api/venues` | Public | Lấy tất cả venues |
+| GET | `/api/venues/owner/my-venues` | JwtAuthGuard | Lấy venues của owner đang đăng nhập |
+| GET | `/api/venues/:id` | Public | Lấy chi tiết venue |
+| POST | `/api/venues` | JwtAuthGuard | Tạo venue mới (owner) |
+| POST | `/api/venues/community` | JwtAuthGuard | Tạo venue đóng góp từ cộng đồng (customer/owner) |
+| PATCH | `/api/venues/:id` | JwtAuthGuard | Cập nhật venue (owner hoặc community venue) |
+| DELETE | `/api/venues/:id` | JwtAuthGuard | Xóa venue (soft delete) |
+
+## Review Endpoints (route: /api/reviews/...)
+
+| Method | Path | Guard | Mô tả |
+|--------|------|-------|-------|
+| GET | `/api/reviews/venue/:venueId` | Public | Lấy reviews của venue |
+| POST | `/api/reviews` | JwtAuthGuard | Tạo review mới |
 
 ## Pattern chuẩn — Route cần auth
 
@@ -93,7 +122,7 @@ SEARCH_AI_SERVICE_URL=http://localhost:3005
 
 ## Conventions
 
-- Controllers được nhóm theo downstream service trong `src/app/modules/` (auth/, venue/, interaction/)
+- Controllers được nhóm theo downstream service trong `src/app/modules/` (auth/, venue/, interaction/, search/)
 - Gateway KHÔNG chứa `@InjectRepository`, TypeORM, hay bất kỳ DB logic nào
 - Gateway KHÔNG forward `Authorization` header xuống downstream services
 - Chỉ Gateway có `JwtStrategy` và `JwtAuthGuard`

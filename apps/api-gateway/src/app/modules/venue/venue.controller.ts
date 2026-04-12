@@ -90,7 +90,26 @@ export class VenueController {
     return data;
   }
 
-  /** Cập nhật venue (owner sở hữu) */
+  /** Tạo venue đóng góp từ cộng đồng (customer hoặc owner) */
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Post('community')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Tạo venue (đóng góp từ cộng đồng)' })
+  @ApiResponse({ status: 201, description: 'Community venue created' })
+  async createCommunityVenue(
+    @Request() req: { authHeaders: Record<string, string> },
+    @Body() body: GatewayCreateVenueDto,
+  ) {
+    const { data } = await firstValueFrom(
+      this.http.post(`${VENUE_SERVICE_URL}/venues/community`, body, {
+        headers: req.authHeaders,
+      }),
+    );
+    return data;
+  }
+
+  /** Cập nhật venue */
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(AuthHeadersInterceptor)
   @Patch(':id')

@@ -5,6 +5,7 @@ import { JwtStrategy } from './common/strategies/jwt.strategy.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { VenueModule } from './modules/venue/venue.module.js';
 import { InteractionModule } from './modules/interaction/interaction.module.js';
+import { SearchModule } from './modules/search/search.module.js';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { InteractionModule } from './modules/interaction/interaction.module.js';
     AuthModule,
     VenueModule,
     InteractionModule,
+    SearchModule,
   ],
   providers: [JwtStrategy],
 })

@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, User, Heart, Menu, X, ChevronDown, LogOut, LayoutDashboard } from 'lucide-react';
+import { Search, User, Heart, Menu, X, ChevronDown, LogOut, LayoutDashboard, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
 import { NotificationDropdown } from '@/components/shared/notification-dropdown';
+import { ContributeVenueModal } from '@/components/venue/contribute-venue-modal';
 import { useAuthStore } from '@/stores/auth-store';
 import { logout as logoutApi } from '@/lib/api/auth';
 
@@ -91,6 +92,7 @@ function UserMenu({ name, avatar, role }: { name: string | null; avatar: string 
 /* ── Navbar ──────────────────────────────────────────────────── */
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showContribute, setShowContribute] = useState(false);
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
   const pathname = usePathname();
@@ -150,6 +152,16 @@ export function Navbar() {
               <Search size={20} />
             </button>
 
+            {isLoggedIn && (
+              <button
+                onClick={() => setShowContribute(true)}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#e9590c] hover:bg-[#e9590c]/10 rounded-xl transition-colors"
+              >
+                <Plus size={16} />
+                <span>Đóng góp địa điểm</span>
+              </button>
+            )}
+
             {isLoggedIn && <NotificationDropdown />}
             {isLoggedIn ? (
               <UserMenu name={user?.full_name ?? null} avatar={user?.avatar_url ?? null} role={userRole} />
@@ -198,6 +210,14 @@ export function Navbar() {
                   {link.name}
                 </Link>
               ))}
+              {isLoggedIn && (
+                <button
+                  onClick={() => { setIsMenuOpen(false); setShowContribute(true); }}
+                  className="w-full px-3 py-4 text-base font-medium rounded-xl text-[#e9590c] hover:bg-[#e9590c]/5 text-left flex items-center gap-2"
+                >
+                  <Plus size={18} /> Đóng góp địa điểm
+                </button>
+              )}
               <div className="pt-4">
                 {isLoggedIn ? (
                   <button
@@ -222,6 +242,13 @@ export function Navbar() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Contribute Venue Modal */}
+      <AnimatePresence>
+        {showContribute && (
+          <ContributeVenueModal onClose={() => setShowContribute(false)} />
         )}
       </AnimatePresence>
     </nav>
