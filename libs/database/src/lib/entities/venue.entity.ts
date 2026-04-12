@@ -91,6 +91,16 @@ export class Venue {
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at!: Date;
 
+  // --- Community contribution ---
+
+  /** True if this venue was contributed by a regular user (not the owner) */
+  @Column({ type: 'boolean', default: false })
+  is_community_contributed!: boolean;
+
+  /** Account ID of the user who contributed this venue (null if created by owner) */
+  @Column({ type: 'uuid', nullable: true })
+  contributed_by!: string | null;
+
   // --- Hybrid Search columns ---
 
   /** Pre-built text document for full-text / embedding generation */

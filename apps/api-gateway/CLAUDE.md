@@ -49,6 +49,18 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 | GET | `/api/search?q=...&limit=20` | JwtAuthGuard | Hybrid search (logged-in, search logged) |
 | GET | `/api/search/public?q=...&limit=20` | Public | Hybrid search (anonymous) |
 
+## Venue Endpoints (route: /api/venues/...)
+
+| Method | Path | Guard | Mô tả |
+|--------|------|-------|-------|
+| GET | `/api/venues` | Public | Lấy tất cả venues |
+| GET | `/api/venues/owner/my-venues` | JwtAuthGuard | Lấy venues của owner đang đăng nhập |
+| GET | `/api/venues/:id` | Public | Lấy chi tiết venue |
+| POST | `/api/venues` | JwtAuthGuard | Tạo venue mới (owner) |
+| POST | `/api/venues/community` | JwtAuthGuard | Tạo venue đóng góp từ cộng đồng (customer/owner) |
+| PATCH | `/api/venues/:id` | JwtAuthGuard | Cập nhật venue (owner hoặc community venue) |
+| DELETE | `/api/venues/:id` | JwtAuthGuard | Xóa venue (soft delete) |
+
 ## Review Endpoints (route: /api/reviews/...)
 
 | Method | Path | Guard | Mô tả |

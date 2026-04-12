@@ -51,8 +51,19 @@ export class VenueController {
     return this.venueService.create(user.id, dto);
   }
 
+  /** Tạo venue do cộng đồng đóng góp (customer hoặc owner đều dùng được) */
+  @Post('community')
+  @ApiOperation({ summary: 'Tạo venue (đóng góp từ cộng đồng)' })
+  @ApiResponse({ status: 201, description: 'Community venue created' })
+  createCommunityVenue(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: CreateVenueDto,
+  ) {
+    return this.venueService.createCommunity(user.id, dto);
+  }
+
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật venue (owner sở hữu)' })
+  @ApiOperation({ summary: 'Cập nhật venue' })
   @ApiResponse({ status: 200, description: 'Venue updated' })
   updateVenue(
     @Param('id') id: string,

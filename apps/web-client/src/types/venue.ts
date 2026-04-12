@@ -22,6 +22,8 @@ export interface Venue {
   menu_image_url: string | null;
   rating_avg: number;
   review_count: number;
+  is_community_contributed: boolean;
+  contributed_by: string | null;
   created_at: string;
   updated_at: string;
 }
