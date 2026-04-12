@@ -96,6 +96,9 @@ export class RmqModule {
               exchangeType: 'topic',
               exchangeOptions: { durable: true },
               queueOptions: { durable: true },
+              // wildcards: true tells NestJS ClientProxy to publish to the
+              // topic exchange instead of the default exchange
+              wildcards: true,
             },
           },
         ]),
@@ -135,6 +138,8 @@ export class RmqModule {
         routingKeys,
         queueOptions: { durable: true },
         noAck: false, // manual ACK — message chỉ xóa khi xử lý xong
+        // wildcards: true tells NestJS to use topic exchange for routing
+        wildcards: true,
       },
     };
   }
