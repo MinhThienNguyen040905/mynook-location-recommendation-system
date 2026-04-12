@@ -12,6 +12,8 @@ MyNook is a location review & discovery system built with **Nx monorepo** + **Ne
 - **api-gateway** (port 3001): the ONLY public HTTP entry point, prefixed `/api`. Forwards requests to microservices via HTTP (`@nestjs/axios`).
 - **4 microservices** (auth:3002, venue:3003, interaction:3004, search-ai:3005): NestJS HTTP apps, internal only (not exposed publicly in production).
 - Inter-service async events use RabbitMQ via `@mynook/rmq-messaging` (production).
+- **Hybrid Search**: search-ai-service combines pgvector semantic search + tag-based filtering + capacity/time filters.
+- **AI Review Processing**: interaction-service emits `venue.reviewed` → search-ai-service analyzes via Groq AI (Llama 3.3) → upserts VenueTag scores → callbacks AI analysis JSON.
 
 ## Commands
 
@@ -51,7 +53,7 @@ npx shadcn@latest add <component> --cwd apps/web-client  # shadcn UI
 
 | Library | Import path | Purpose |
 |---------|------------|---------|
-| shared-types | `@mynook/shared-types` | Enums (AccountType, VenueCategory, BookingStatus), interfaces (IAccount, IVenue, IReview), service URL constants (AUTH_SERVICE_URL, VENUE_SERVICE_URL, etc.) |
+| shared-types | `@mynook/shared-types` | Enums (AccountType, VenueCategory, BookingStatus), interfaces (IAccount, IVenue, IReview), service URL constants, RMQ_EVENTS, RMQ_QUEUES |
 | database | `@mynook/database` | DB connection config, entity schemas |
 | rmq-messaging | `@mynook/rmq-messaging` | `RmqModule.register()` for RabbitMQ client/server setup |
 | cloudinary | `@mynook/cloudinary` | `CloudinaryModule` + `CloudinaryService` for image/video upload to Cloudinary |

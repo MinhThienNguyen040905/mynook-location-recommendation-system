@@ -91,6 +91,20 @@ export class Venue {
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at!: Date;
 
+  // --- Hybrid Search columns ---
+
+  /** Pre-built text document for full-text / embedding generation */
+  @Column({ type: 'text', nullable: true })
+  search_document!: string | null;
+
+  /**
+   * 384-dimension vector embedding (all-MiniLM-L6-v2).
+   * Stored as pgvector `vector(384)`.
+   * TypeORM maps it as a plain string; pgvector handles casting.
+   */
+  @Column({ type: 'text', nullable: true })
+  embedding!: string | null;
+
   @OneToMany(() => MenuCategory, (cat) => cat.venue)
   menu_categories?: MenuCategory[];
 }
