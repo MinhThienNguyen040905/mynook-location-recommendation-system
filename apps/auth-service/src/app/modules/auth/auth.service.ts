@@ -322,18 +322,16 @@ export class AuthService implements OnModuleInit {
       this.logger.warn(`Skipping user.registered event for ${user.email} — RMQ not connected`);
       return;
     }
-    try {
-      const payload: UserRegisteredEvent = {
-        accountId: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        type: user.type as AccountType,
-      };
-      this.eventsClient.emit(RMQ_EVENTS.USER_REGISTERED, payload);
-      this.logger.log(`Emitted user.registered for ${user.email}`);
-    } catch (err) {
-      this.logger.warn(`Failed to emit user.registered: ${(err as Error).message}`);
-    }
+    const payload: UserRegisteredEvent = {
+      accountId: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      type: user.type as AccountType,
+    };
+    this.eventsClient.emit(RMQ_EVENTS.USER_REGISTERED, payload).subscribe({
+      next: () => this.logger.log(`Emitted user.registered for ${user.email}`),
+      error: (err: Error) => this.logger.warn(`Failed to emit user.registered: ${err.message}`),
+    });
   }
 
   private buildResponse(user: Account) {

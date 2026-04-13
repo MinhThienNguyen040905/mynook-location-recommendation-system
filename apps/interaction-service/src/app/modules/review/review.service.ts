@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
@@ -7,8 +7,9 @@ import { RMQ_EVENTS } from '@mynook/shared-types';
 import { CreateReviewDto } from './dto/create-review.dto.js';
 
 @Injectable()
-export class ReviewService {
+export class ReviewService implements OnModuleInit {
   private readonly logger = new Logger(ReviewService.name);
+  private rmqConnected = false;
 
   constructor(
     @InjectRepository(Review)
@@ -16,6 +17,16 @@ export class ReviewService {
     @Inject('EVENTS_SERVICE')
     private readonly events: ClientProxy,
   ) {}
+
+  async onModuleInit() {
+    try {
+      await this.events.connect();
+      this.rmqConnected = true;
+      this.logger.log('Connected to RabbitMQ (EVENTS_SERVICE)');
+    } catch (err) {
+      this.logger.warn(`RabbitMQ not available: ${(err as Error).message}. Review events will be skipped.`);
+    }
+  }
 
   /** Lấy danh sách reviews của một venue (mới nhất trước) */
   async findByVenue(venueId: string): Promise<Review[]> {
@@ -37,7 +48,7 @@ export class ReviewService {
     const saved = await this.reviewRepo.save(review);
 
     // Emit event for AI processing (non-blocking)
-    try {
+    if (this.rmqConnected) {
       this.events.emit(RMQ_EVENTS.VENUE_REVIEWED, {
         reviewId: saved.id,
         accountId: saved.account_id,
@@ -45,11 +56,12 @@ export class ReviewService {
         content: saved.content,
         rating: saved.rating,
         isVerifiedVisit: saved.is_verified_visit,
+      }).subscribe({
+        next: () => this.logger.log(`Emitted ${RMQ_EVENTS.VENUE_REVIEWED} for review ${saved.id}`),
+        error: (err: Error) => this.logger.warn(`Failed to emit review event: ${err.message}`),
       });
-      this.logger.log(`Emitted ${RMQ_EVENTS.VENUE_REVIEWED} for review ${saved.id}`);
-    } catch (error) {
-      // Don't fail the review creation if event emission fails
-      this.logger.warn(`Failed to emit review event: ${error}`);
+    } else {
+      this.logger.warn(`Skipping venue.reviewed event for review ${saved.id} — RMQ not connected`);
     }
 
     return saved;
