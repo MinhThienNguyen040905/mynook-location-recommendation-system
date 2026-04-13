@@ -77,10 +77,16 @@ export class ReviewProcessingService {
         }
       }
 
+      this.logger.log(`AI analysis: positive_tags=${JSON.stringify(analysis.positive_tags)}, negative_tags=${JSON.stringify(analysis.negative_tags)}, new_tags=${JSON.stringify(analysis.new_tags.map(t => t.key))}`);
+      this.logger.log(`tagKeyToId map: ${JSON.stringify([...tagKeyToId.entries()])}`);
+
       // 3b. Upsert positive tags (increase score)
       for (const tagKey of analysis.positive_tags) {
         const tagId = tagKeyToId.get(tagKey);
-        if (!tagId) continue;
+        if (!tagId) {
+          this.logger.warn(`Tag key "${tagKey}" not found in tagKeyToId — skipping`);
+          continue;
+        }
         await this.upsertVenueTag(
           queryRunner,
           event.venueId,
@@ -94,7 +100,10 @@ export class ReviewProcessingService {
       // 3c. Upsert negative tags (decrease score)
       for (const tagKey of analysis.negative_tags) {
         const tagId = tagKeyToId.get(tagKey);
-        if (!tagId) continue;
+        if (!tagId) {
+          this.logger.warn(`Tag key "${tagKey}" not found in tagKeyToId — skipping`);
+          continue;
+        }
         await this.upsertVenueTag(
           queryRunner,
           event.venueId,
@@ -136,16 +145,29 @@ export class ReviewProcessingService {
     const positiveInc = isPositive ? 1 : 0;
     const negativeInc = isPositive ? 0 : 1;
 
-    await queryRunner.query(
-      `INSERT INTO search_schema.venue_tags (venue_id, tag_id, time_frame, score, positive_count, negative_count)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (venue_id, tag_id, time_frame)
-       DO UPDATE SET
-         score = search_schema.venue_tags.score + $4,
-         positive_count = search_schema.venue_tags.positive_count + $5,
-         negative_count = search_schema.venue_tags.negative_count + $6`,
-      [venueId, tagId, timeFrame, scoreDelta, positiveInc, negativeInc],
+    // Check if row exists
+    const existing = await queryRunner.query(
+      `SELECT id, score, positive_count, negative_count FROM search_schema.venue_tags
+       WHERE venue_id = $1 AND tag_id = $2 AND time_frame = $3`,
+      [venueId, tagId, timeFrame],
     );
+
+    if (existing.length > 0) {
+      await queryRunner.query(
+        `UPDATE search_schema.venue_tags
+         SET score = score + $1, positive_count = positive_count + $2, negative_count = negative_count + $3
+         WHERE venue_id = $4 AND tag_id = $5 AND time_frame = $6`,
+        [scoreDelta, positiveInc, negativeInc, venueId, tagId, timeFrame],
+      );
+    } else {
+      await queryRunner.query(
+        `INSERT INTO search_schema.venue_tags (venue_id, tag_id, time_frame, score, positive_count, negative_count)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [venueId, tagId, timeFrame, scoreDelta, positiveInc, negativeInc],
+      );
+    }
+
+    this.logger.log(`Upserted venue_tag: venue=${venueId}, tag=${tagId}, timeFrame=${timeFrame}, scoreDelta=${scoreDelta}`);
   }
 
   private mapTimeContext(

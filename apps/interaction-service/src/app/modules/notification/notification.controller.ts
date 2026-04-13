@@ -1,5 +1,5 @@
 import { Controller, Get, Patch, Param, Logger } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { EventPattern, Payload, Ctx } from '@nestjs/microservices';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from '@mynook/shared-types';
 import type { CurrentUserPayload, UserRegisteredEvent } from '@mynook/shared-types';
@@ -16,9 +16,23 @@ export class NotificationController {
   /* ── RMQ Event Handlers ── */
 
   @EventPattern(RMQ_EVENTS.USER_REGISTERED)
-  async handleUserRegistered(@Payload() event: UserRegisteredEvent) {
-    this.logger.log(`Received user.registered event for account ${event.accountId}`);
-    await this.notificationService.createWelcomeNotification(event);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async handleUserRegistered(@Payload() event: any, @Ctx() context: any) {
+    const data = event as UserRegisteredEvent;
+    this.logger.log(`Received user.registered event for account ${data.accountId}`);
+    try {
+      await this.notificationService.createWelcomeNotification(data);
+      // ACK — message xử lý xong, xóa khỏi queue
+      const channel = context.getChannelRef();
+      const originalMsg = context.getMessage();
+      channel.ack(originalMsg);
+    } catch (error) {
+      this.logger.error(`Failed to create welcome notification: ${error}`);
+      // NACK — gửi lại queue để retry
+      const channel = context.getChannelRef();
+      const originalMsg = context.getMessage();
+      channel.nack(originalMsg, false, true);
+    }
   }
 
   /* ── HTTP Endpoints (called via api-gateway) ── */
