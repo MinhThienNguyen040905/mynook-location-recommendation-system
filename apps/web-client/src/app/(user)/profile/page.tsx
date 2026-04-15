@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Camera, Star, MapPin, Heart,
+  Camera, Star, MapPin,
   Mail, Phone, Calendar, Edit3, Check, X,
   MessageSquare,
 } from 'lucide-react';
@@ -68,7 +68,6 @@ export default function UserProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<'reviews' | 'favorites'>('reviews');
   const [form, setForm] = useState({ full_name: '', phone_number: '' });
 
   useEffect(() => {
@@ -228,54 +227,28 @@ export default function UserProfilePage() {
       </motion.div>
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <StatCard icon={MessageSquare} value={0} label="Đánh giá" />
         <StatCard icon={MapPin}        value={0} label="Đã ghé thăm" />
-        <StatCard icon={Heart}         value={0} label="Yêu thích" />
       </div>
 
       {/* ── Tabs ── */}
       <div className="bg-white rounded-3xl border border-nook-sand shadow-sm overflow-hidden">
         <div className="flex border-b border-nook-sand">
-          {([
-            { key: 'reviews',   label: 'Đánh giá', icon: Star },
-            { key: 'favorites', label: 'Yêu thích', icon: Heart },
-          ] as const).map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium transition-colors border-b-2 -mb-px',
-                activeTab === key
-                  ? 'border-nook-olive text-nook-olive'
-                  : 'border-transparent text-nook-ink/50 hover:text-nook-ink'
-              )}
-            >
-              <Icon size={15} />
-              {label}
-            </button>
-          ))}
+          <div className="flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium border-b-2 border-nook-olive text-nook-olive">
+            <Star size={15} />
+            Đánh giá
+          </div>
         </div>
 
         <div className="p-6">
-          {activeTab === 'reviews' && (
-            <div className="py-12 text-center text-nook-ink/40">
-              <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Chưa có đánh giá nào</p>
-              <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
-                Tìm venue để đánh giá →
-              </Link>
-            </div>
-          )}
-          {activeTab === 'favorites' && (
-            <div className="py-12 text-center text-nook-ink/40">
-              <Heart size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Chưa có venue yêu thích</p>
-              <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
-                Khám phá venues →
-              </Link>
-            </div>
-          )}
+          <div className="py-12 text-center text-nook-ink/40">
+            <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Chưa có đánh giá nào</p>
+            <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
+              Tìm venue để đánh giá →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

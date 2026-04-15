@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  X, Store, MapPin, Clock, Users, Upload, Trash2,
+  X, MapPin, Upload, Trash2,
   ChevronRight, ChevronLeft, Check, SendHorizonal, Heart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -113,11 +113,8 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
     <div className="space-y-4">
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tên quán *</label>
-        <div className="relative">
-          <Store size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.name} onChange={e => set({ name: e.target.value })}
-            placeholder="VD: The Quiet Corner" className="nook-input pl-10" />
-        </div>
+        <input value={form.name} onChange={e => set({ name: e.target.value })}
+          placeholder="VD: The Quiet Corner" className="nook-input" />
       </div>
 
       <div className="space-y-1.5">
@@ -163,11 +160,8 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
     <div className="space-y-4">
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ *</label>
-        <div className="relative">
-          <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.address} onChange={e => set({ address: e.target.value })}
-            placeholder="Số nhà, tên đường" className="nook-input pl-10" />
-        </div>
+        <input value={form.address} onChange={e => set({ address: e.target.value })}
+          placeholder="Số nhà, tên đường" className="nook-input" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -207,39 +201,35 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Giờ mở cửa</label>
-          <div className="relative">
-            <Clock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input type="time" value={form.openTime} onChange={e => set({ openTime: e.target.value })} className="nook-input pl-10" />
-          </div>
+          <input type="time" value={form.openTime} onChange={e => set({ openTime: e.target.value })} className="nook-input" />
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Giờ đóng cửa</label>
-          <div className="relative">
-            <Clock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input type="time" value={form.closeTime} onChange={e => set({ closeTime: e.target.value })} className="nook-input pl-10" />
-          </div>
+          <input type="time" value={form.closeTime} onChange={e => set({ closeTime: e.target.value })} className="nook-input" />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Sức chứa</label>
-          <div className="relative">
-            <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input type="number" value={form.total_capacity} onChange={e => set({ total_capacity: e.target.value })}
-              placeholder="50" className="nook-input pl-10" />
-          </div>
+          <input type="number" min={1} value={form.total_capacity} onChange={e => set({ total_capacity: e.target.value })}
+            placeholder="50" className="nook-input" />
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nhóm tối đa</label>
-          <input type="number" value={form.max_group_size} onChange={e => set({ max_group_size: e.target.value })}
+          <input type="number" min={1} value={form.max_group_size} onChange={e => set({ max_group_size: e.target.value })}
             placeholder="10" className="nook-input" />
         </div>
       </div>
 
       <label className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 hover:border-[#e9590c]/20 cursor-pointer transition-all">
-        <input type="checkbox" checked={form.is_group_friendly} onChange={e => set({ is_group_friendly: e.target.checked })}
-          className="size-4 rounded border-gray-300 text-[#e9590c] focus:ring-[#e9590c]" />
+        <div className={cn(
+          'size-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0',
+          form.is_group_friendly ? 'bg-[#e9590c] border-[#e9590c]' : 'border-gray-300',
+        )}>
+          {form.is_group_friendly && <Check size={11} className="text-white" strokeWidth={3} />}
+        </div>
+        <input type="checkbox" checked={form.is_group_friendly} onChange={e => set({ is_group_friendly: e.target.checked })} className="sr-only" />
         <span className="text-sm font-medium text-gray-700">Phù hợp cho nhóm đông</span>
       </label>
 

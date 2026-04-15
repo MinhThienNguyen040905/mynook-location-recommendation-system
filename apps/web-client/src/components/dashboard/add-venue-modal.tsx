@@ -3,8 +3,8 @@
 import { useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  X, Store, MapPin, Clock, Users, Upload, Trash2,
-  ChevronRight, ChevronLeft, Check, SendHorizonal, Building2,
+  X, MapPin, Upload, Trash2,
+  ChevronRight, ChevronLeft, Check, SendHorizonal,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -123,20 +123,14 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
     <div className="space-y-5">
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tên quán *</label>
-        <div className="relative">
-          <Store size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.name} onChange={e => set({ name: e.target.value })}
-            placeholder="VD: The Quiet Corner" className="nook-input pl-10" />
-        </div>
+        <input value={form.name} onChange={e => set({ name: e.target.value })}
+          placeholder="VD: The Quiet Corner" className="nook-input" />
       </div>
 
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tên chi nhánh</label>
-        <div className="relative">
-          <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.branch_name} onChange={e => set({ branch_name: e.target.value })}
-            placeholder="VD: Chi nhánh Quận 1 (bỏ trống nếu chỉ có 1 cơ sở)" className="nook-input pl-10" />
-        </div>
+        <input value={form.branch_name} onChange={e => set({ branch_name: e.target.value })}
+          placeholder="VD: Chi nhánh Quận 1 (bỏ trống nếu chỉ có 1 cơ sở)" className="nook-input" />
       </div>
 
       <div className="space-y-1.5">
@@ -210,11 +204,8 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
     <div className="space-y-5">
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ *</label>
-        <div className="relative">
-          <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-          <input value={form.address} onChange={e => set({ address: e.target.value })}
-            placeholder="Số nhà, tên đường" className="nook-input pl-10" />
-        </div>
+        <input value={form.address} onChange={e => set({ address: e.target.value })}
+          placeholder="Số nhà, tên đường" className="nook-input" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -245,12 +236,9 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Sức chứa tổng</label>
-          <div className="relative">
-            <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input type="number" value={form.total_capacity}
-              onChange={e => set({ total_capacity: e.target.value })}
-              placeholder="50" className="nook-input pl-10" />
-          </div>
+          <input type="number" value={form.total_capacity}
+            onChange={e => set({ total_capacity: e.target.value })}
+            placeholder="50" className="nook-input" />
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Nhóm tối đa</label>
@@ -284,21 +272,15 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Giờ mở cửa</label>
-          <div className="relative">
-            <Clock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input type="time" value={form.openTime}
-              onChange={e => set({ openTime: e.target.value })}
-              className="nook-input pl-10" />
-          </div>
+          <input type="time" value={form.openTime}
+            onChange={e => set({ openTime: e.target.value })}
+            className="nook-input" />
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Giờ đóng cửa</label>
-          <div className="relative">
-            <Clock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
-            <input type="time" value={form.closeTime}
-              onChange={e => set({ closeTime: e.target.value })}
-              className="nook-input pl-10" />
-          </div>
+          <input type="time" value={form.closeTime}
+            onChange={e => set({ closeTime: e.target.value })}
+            className="nook-input" />
         </div>
       </div>
       <p className="text-xs text-gray-400">Áp dụng cho tất cả các ngày. Bạn có thể chỉnh sửa chi tiết sau.</p>

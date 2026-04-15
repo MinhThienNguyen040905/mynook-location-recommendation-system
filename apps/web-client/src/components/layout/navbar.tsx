@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, User, Heart, Menu, X, ChevronDown, LogOut, LayoutDashboard, Plus } from 'lucide-react';
+import { User, Heart, Menu, X, ChevronDown, LogOut, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
@@ -71,12 +71,6 @@ function UserMenu({ name, avatar, role }: { name: string | null; avatar: string 
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
               <Heart size={15} className="text-nook-olive" /> Yêu thích
             </Link>
-            {isOwner && (
-              <Link href="/dashboard"
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
-                <LayoutDashboard size={15} className="text-nook-olive" /> Quản lý quán
-              </Link>
-            )}
             <hr className="my-1 border-nook-sand" />
             <button onClick={handleLogout}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
@@ -149,10 +143,6 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="hidden md:flex items-center gap-3">
-            <button className="p-2 text-nook-ink/60 hover:text-nook-olive transition-colors">
-              <Search size={20} />
-            </button>
-
             {isLoggedIn && (
               <button
                 onClick={() => setShowContribute(true)}

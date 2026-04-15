@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ChevronDown, Search, Loader2 } from "lucide-react";
-import { FilterBar } from "@/components/search/filter-bar";
 import { SearchVenueCard } from "@/components/search/search-venue-card";
 import { MapView } from "@/components/search/map-view";
 import { hybridSearchPublic } from "@/lib/api/search";
@@ -12,8 +11,6 @@ import type { SearchResult } from "@/types/venue";
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-
   const initialQuery = searchParams.get("q") || "";
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -98,11 +95,6 @@ function SearchContent() {
         </form>
       </div>
 
-      {/* Filter Bar */}
-      <FilterBar
-        onTogglePanel={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
-      />
-
       {/* Split Main Content */}
       <main className="flex flex-1 overflow-hidden relative">
         {/* Left Side: Venue List (60%) */}
@@ -184,8 +176,8 @@ function SearchContent() {
 
         {/* Right Side: Map (40%) */}
         <MapView
-          isPanelOpen={isFilterPanelOpen}
-          onClosePanel={() => setIsFilterPanelOpen(false)}
+          isPanelOpen={false}
+          onClosePanel={() => {}}
           searchResults={results}
         />
       </main>

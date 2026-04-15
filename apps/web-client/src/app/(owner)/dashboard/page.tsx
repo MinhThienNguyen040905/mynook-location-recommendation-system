@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Camera, Star, Verified, Edit3, Check, X,
   User, Link as LinkIcon, MapPin,
-  BookOpen, TrendingUp, Store, Plus,
+  TrendingUp, Store, Plus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -254,9 +254,8 @@ export default function OwnerDashboardPage() {
       </motion.div>
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard icon={Store}      value={venues.length}  label="Venues quản lý" />
-        <StatCard icon={BookOpen}   value={0}              label="Đặt chỗ hôm nay" />
         <StatCard icon={TrendingUp} value={totalReviews}   label="Tổng đánh giá" />
         <StatCard icon={Star}       value={avgRating}      label="Rating trung bình" />
       </div>

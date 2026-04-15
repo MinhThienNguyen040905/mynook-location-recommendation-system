@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 /* ── Isometric 3D cube SVG ───────────────────────────────────── */
-function CubeIcon({ className }: { className?: string }) {
+function CubeIcon({ className, strokeColor = 'white' }: { className?: string; strokeColor?: string }) {
   return (
     <svg
       viewBox="0 0 100 100"
@@ -15,10 +15,10 @@ function CubeIcon({ className }: { className?: string }) {
       <polygon points="14,29 50,50 50,92 14,71" fill="currentColor" />
       {/* Front-right face */}
       <polygon points="86,29 86,71 50,92 50,50" fill="currentColor" />
-      {/* White Y lines separating the 3 faces */}
-      <line x1="50" y1="50" x2="50"  y2="8"  stroke="white" strokeWidth="5" strokeLinecap="round" />
-      <line x1="50" y1="50" x2="14"  y2="71" stroke="white" strokeWidth="5" strokeLinecap="round" />
-      <line x1="50" y1="50" x2="86"  y2="71" stroke="white" strokeWidth="5" strokeLinecap="round" />
+      {/* Y lines separating the 3 faces */}
+      <line x1="50" y1="50" x2="50"  y2="8"  stroke={strokeColor} strokeWidth="5" strokeLinecap="round" />
+      <line x1="50" y1="50" x2="14"  y2="71" stroke={strokeColor} strokeWidth="5" strokeLinecap="round" />
+      <line x1="50" y1="50" x2="86"  y2="71" stroke={strokeColor} strokeWidth="5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -32,9 +32,11 @@ interface NookLogoProps {
   /** Show only the cube without text */
   iconOnly?: boolean;
   /** Color variant */
-  variant?: 'orange' | 'white';
+  variant?: 'orange' | 'white' | 'blue';
   /** Extra className for the cube icon only */
   iconClassName?: string;
+  /** Stroke color for the cube separator lines */
+  strokeColor?: string;
 }
 
 const SIZE_MAP = {
@@ -49,13 +51,14 @@ export function NookLogo({
   iconOnly = false,
   variant = 'orange',
   iconClassName,
+  strokeColor,
 }: NookLogoProps) {
   const { cube, text } = SIZE_MAP[size];
-  const color = variant === 'white' ? 'text-white' : 'text-nook-olive';
+  const color = variant === 'white' ? 'text-white' : variant === 'blue' ? 'text-[#137FEC]' : 'text-nook-olive';
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <CubeIcon className={cn(cube, color, iconClassName)} />
+      <CubeIcon className={cn(cube, color, 'rotate-180', iconClassName)} strokeColor={strokeColor} />
       {!iconOnly && (
         <span
           className={cn(text, 'font-bold tracking-tight', color)}

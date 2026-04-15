@@ -36,7 +36,7 @@ export function AdminSidebar() {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-slate-800">
         <Link href="/admin">
-          <NookLogo size="md" variant="white" />
+          <NookLogo size="md" variant="blue" strokeColor="#0f172a" />
         </Link>
         <span className="mt-2 block text-xs font-bold text-slate-500 uppercase tracking-widest">
           Admin Panel

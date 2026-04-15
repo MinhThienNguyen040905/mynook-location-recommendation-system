@@ -146,8 +146,10 @@ function EmptyState({ hasFilter }: { hasFilter: boolean }) {
 }
 
 /* ── All categories from favorites ──────────────────────────── */
+const EXCLUDED_CATEGORIES = new Set(['Library', 'Tea House', 'Garden', 'Creative Space']);
+
 function getCategories(venues: MockVenue[]) {
-  const all = venues.flatMap(v => v.categories);
+  const all = venues.flatMap(v => v.categories).filter(c => !EXCLUDED_CATEGORIES.has(c));
   return ['Tất cả', ...Array.from(new Set(all))];
 }
 
