@@ -27,10 +27,13 @@ export class MenuService {
 
   /* ── Helpers ─────────────────────────────────────────── */
 
-  private async assertOwnership(venueId: string, ownerId: string): Promise<void> {
+  private async assertCanEditMenu(venueId: string, userId: string): Promise<void> {
     const venue = await this.venueRepo.findOne({ where: { id: venueId } });
     if (!venue) throw new NotFoundException('Venue not found');
-    if (venue.owner_id !== ownerId) {
+    // Community venues: any logged-in user can edit menu
+    if (venue.is_community_contributed) return;
+    // Owner venues: only the owner can edit menu
+    if (venue.owner_id !== userId) {
       throw new ForbiddenException('You do not own this venue');
     }
   }
@@ -50,7 +53,7 @@ export class MenuService {
     ownerId: string,
     dto: CreateCategoryDto,
   ): Promise<MenuCategory> {
-    await this.assertOwnership(venueId, ownerId);
+    await this.assertCanEditMenu(venueId, ownerId);
     const cat = this.categoryRepo.create({ ...dto, venue_id: venueId });
     return this.categoryRepo.save(cat);
   }
@@ -62,7 +65,7 @@ export class MenuService {
   ): Promise<MenuCategory> {
     const cat = await this.categoryRepo.findOne({ where: { id: categoryId } });
     if (!cat) throw new NotFoundException('Category not found');
-    await this.assertOwnership(cat.venue_id, ownerId);
+    await this.assertCanEditMenu(cat.venue_id, ownerId);
     Object.assign(cat, dto);
     return this.categoryRepo.save(cat);
   }
@@ -70,7 +73,7 @@ export class MenuService {
   async deleteCategory(categoryId: string, ownerId: string): Promise<void> {
     const cat = await this.categoryRepo.findOne({ where: { id: categoryId } });
     if (!cat) throw new NotFoundException('Category not found');
-    await this.assertOwnership(cat.venue_id, ownerId);
+    await this.assertCanEditMenu(cat.venue_id, ownerId);
     await this.itemRepo.delete({ category_id: categoryId });
     await this.categoryRepo.remove(cat);
   }
@@ -89,7 +92,7 @@ export class MenuService {
     ownerId: string,
     dto: CreateMenuItemDto,
   ): Promise<MenuItem> {
-    await this.assertOwnership(venueId, ownerId);
+    await this.assertCanEditMenu(venueId, ownerId);
     const item = this.itemRepo.create({ ...dto, venue_id: venueId });
     return this.itemRepo.save(item);
   }
@@ -101,7 +104,7 @@ export class MenuService {
   ): Promise<MenuItem> {
     const item = await this.itemRepo.findOne({ where: { id: itemId } });
     if (!item) throw new NotFoundException('Menu item not found');
-    await this.assertOwnership(item.venue_id, ownerId);
+    await this.assertCanEditMenu(item.venue_id, ownerId);
     Object.assign(item, dto);
     return this.itemRepo.save(item);
   }
@@ -109,7 +112,7 @@ export class MenuService {
   async deleteItem(itemId: string, ownerId: string): Promise<void> {
     const item = await this.itemRepo.findOne({ where: { id: itemId } });
     if (!item) throw new NotFoundException('Menu item not found');
-    await this.assertOwnership(item.venue_id, ownerId);
+    await this.assertCanEditMenu(item.venue_id, ownerId);
     await this.itemRepo.remove(item);
   }
 
@@ -120,7 +123,12 @@ export class MenuService {
     ownerId: string,
     dto: BulkSaveMenuDto,
   ): Promise<MenuCategory[]> {
-    await this.assertOwnership(venueId, ownerId);
+    await this.assertCanEditMenu(venueId, ownerId);
+
+    // Save menu image URL on the venue if provided
+    if (dto.menu_image_url) {
+      await this.venueRepo.update(venueId, { menu_image_url: dto.menu_image_url });
+    }
 
     const existingCategories = await this.categoryRepo.find({
       where: { venue_id: venueId },

@@ -6,6 +6,7 @@ import { VenueAmenities } from "@/components/venue-detail/venue-amenities";
 import { VenueLocationMap } from "@/components/venue-detail/venue-location-map";
 import { VenueReviews } from "@/components/venue-detail/venue-reviews";
 import { CommunityEditBanner } from "@/components/venue-detail/community-edit-banner";
+import { VenueMenuSection } from "@/components/venue-detail/venue-menu-section";
 import { getVenueByIdServer } from "@/lib/api/venues";
 import { getVenueReviewsServer } from "@/lib/api/reviews";
 
@@ -68,6 +69,13 @@ export default async function VenueDetailPage({
             {venue.owner_amenities && venue.owner_amenities.length > 0 && (
               <VenueAmenities amenities={venue.owner_amenities} />
             )}
+
+            {/* Menu */}
+            <VenueMenuSection
+              venueId={venue.id}
+              isCommunityContributed={venue.is_community_contributed}
+              menuImageUrl={venue.menu_image_url}
+            />
 
             {/* Opening Hours */}
             {venue.opening_hours && Object.keys(venue.opening_hours).length > 0 && (

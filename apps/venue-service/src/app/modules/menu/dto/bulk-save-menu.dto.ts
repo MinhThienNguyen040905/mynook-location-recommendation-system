@@ -25,4 +25,7 @@ export class BulkSaveMenuCategoryDto {
 export class BulkSaveMenuDto {
   @ApiProperty({ type: [BulkSaveMenuCategoryDto] })
   categories!: BulkSaveMenuCategoryDto[];
+
+  @ApiPropertyOptional({ example: 'https://res.cloudinary.com/...' })
+  menu_image_url?: string;
 }

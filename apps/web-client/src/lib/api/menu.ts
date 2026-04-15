@@ -112,10 +112,11 @@ export async function analyzeMenuImage(
 export async function bulkSaveMenu(
   venueId: string,
   categories: BulkSaveMenuCategory[],
+  menuImageUrl?: string,
 ): Promise<MenuCategory[]> {
   const { data } = await apiClient.post<MenuCategory[]>(
     API_ENDPOINTS.MENU.BULK_SAVE(venueId),
-    { categories },
+    { categories, menu_image_url: menuImageUrl },
   );
   return data;
 }

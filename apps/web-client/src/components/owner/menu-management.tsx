@@ -245,7 +245,7 @@ function MenuImageAnalyzer({
     setSaving(true);
     setError('');
     try {
-      await bulkSaveMenu(venueId, results);
+      await bulkSaveMenu(venueId, results, imageUrl);
       setResults(null);
       setImageUrl('');
       onSaved();
@@ -394,9 +394,9 @@ function MenuImageAnalyzer({
 }
 
 /* ── Main Component ────────────────────────────────────── */
-export function MenuManagement() {
+export function MenuManagement({ venueId: venueIdProp }: { venueId?: string } = {}) {
   const searchParams = useSearchParams();
-  const venueId = searchParams.get('id');
+  const venueId = venueIdProp ?? searchParams.get('id');
 
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
