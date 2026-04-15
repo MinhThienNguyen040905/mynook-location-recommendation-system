@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
     SEARCH: '/venues/search',
     NEARBY: '/venues/nearby',
     TRENDING: '/venues/trending',
+    MY_CONTRIBUTIONS: '/venues/my-contributions',
   },
 
   // Bookings

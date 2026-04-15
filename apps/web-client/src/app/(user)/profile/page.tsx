@@ -6,14 +6,16 @@ import Link from 'next/link';
 import {
   Camera, Star, MapPin,
   Mail, Phone, Calendar, Edit3, Check, X,
-  MessageSquare,
+  MessageSquare, HandHeart,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { updateProfile } from '@/lib/api/auth';
 import { uploadMedia } from '@/lib/api/upload';
+import { getMyContributions } from '@/lib/api/venues';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Venue } from '@/types/venue';
 
 /* ── Sub-components ──────────────────────────────────────────── */
 function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value: number; label: string }) {
@@ -69,6 +71,9 @@ export default function UserProfilePage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ full_name: '', phone_number: '' });
+  const [activeTab, setActiveTab] = useState<'reviews' | 'contributions'>('reviews');
+  const [contributions, setContributions] = useState<Venue[]>([]);
+  const [contributionsLoading, setContributionsLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -84,6 +89,17 @@ export default function UserProfilePage() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab !== 'contributions' || !user) return;
+    let cancelled = false;
+    setContributionsLoading(true);
+    getMyContributions()
+      .then((data) => { if (!cancelled) setContributions(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setContributionsLoading(false); });
+    return () => { cancelled = true; };
+  }, [activeTab, user]);
 
   if (isLoading || !user) return <ProfileSkeleton />;
 
@@ -235,20 +251,96 @@ export default function UserProfilePage() {
       {/* ── Tabs ── */}
       <div className="bg-white rounded-3xl border border-nook-sand shadow-sm overflow-hidden">
         <div className="flex border-b border-nook-sand">
-          <div className="flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium border-b-2 border-nook-olive text-nook-olive">
+          <button
+            onClick={() => setActiveTab('reviews')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'reviews'
+                ? 'border-nook-olive text-nook-olive'
+                : 'border-transparent text-nook-ink/40 hover:text-nook-ink/60',
+            )}
+          >
             <Star size={15} />
             Đánh giá
-          </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('contributions')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'contributions'
+                ? 'border-nook-olive text-nook-olive'
+                : 'border-transparent text-nook-ink/40 hover:text-nook-ink/60',
+            )}
+          >
+            <HandHeart size={15} />
+            Đã đóng góp
+          </button>
         </div>
 
         <div className="p-6">
-          <div className="py-12 text-center text-nook-ink/40">
-            <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="font-medium">Chưa có đánh giá nào</p>
-            <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
-              Tìm venue để đánh giá →
-            </Link>
-          </div>
+          {activeTab === 'reviews' && (
+            <div className="py-12 text-center text-nook-ink/40">
+              <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="font-medium">Chưa có đánh giá nào</p>
+              <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
+                Tìm venue để đánh giá →
+              </Link>
+            </div>
+          )}
+
+          {activeTab === 'contributions' && (
+            contributionsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 rounded-2xl" />
+                ))}
+              </div>
+            ) : contributions.length === 0 ? (
+              <div className="py-12 text-center text-nook-ink/40">
+                <HandHeart size={40} className="mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Chưa đóng góp địa điểm nào</p>
+                <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
+                  Đóng góp địa điểm mới →
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {contributions.map((venue) => (
+                  <Link
+                    key={venue.id}
+                    href={`/venues/${venue.id}`}
+                    className="flex gap-4 p-4 rounded-2xl border border-nook-sand hover:border-nook-olive/30 hover:shadow-sm transition-all group"
+                  >
+                    <div className="size-20 rounded-xl overflow-hidden shrink-0 bg-nook-sand">
+                      {venue.media?.[0] ? (
+                        <img src={venue.media[0]} alt={venue.name} className="size-full object-cover" />
+                      ) : (
+                        <div className="size-full flex items-center justify-center">
+                          <MapPin size={24} className="text-nook-ink/20" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-nook-ink group-hover:text-nook-olive transition-colors truncate">
+                        {venue.name}
+                      </h4>
+                      <p className="text-sm text-nook-ink/50 truncate mt-0.5">
+                        <MapPin size={12} className="inline mr-1" />
+                        {venue.address}
+                      </p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-nook-ink/40">
+                        <span className="flex items-center gap-1">
+                          <Star size={12} className="text-nook-olive" fill="currentColor" />
+                          {venue.rating_avg.toFixed(1)}
+                        </span>
+                        <span>{venue.review_count} đánh giá</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )
+          )}
         </div>
       </div>
     </div>

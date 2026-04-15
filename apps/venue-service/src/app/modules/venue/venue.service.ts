@@ -32,6 +32,18 @@ export class VenueService {
     });
   }
 
+  /** Lấy tất cả venues mà user đã đóng góp (community) */
+  async findByContributor(contributorId: string): Promise<Venue[]> {
+    return this.venueRepo.find({
+      where: {
+        contributed_by: contributorId,
+        is_community_contributed: true,
+        is_active: true,
+      },
+      order: { created_at: 'DESC' },
+    });
+  }
+
   /** Lấy chi tiết venue theo ID */
   async findById(id: string): Promise<Venue> {
     const venue = await this.venueRepo.findOne({ where: { id } });

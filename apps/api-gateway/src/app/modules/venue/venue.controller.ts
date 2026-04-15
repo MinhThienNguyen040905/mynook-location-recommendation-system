@@ -60,6 +60,24 @@ export class VenueController {
     return data;
   }
 
+  /** Lấy danh sách venues mà user đã đóng góp (community) */
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Get('my-contributions')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lấy danh sách venues mà user đã đóng góp' })
+  @ApiResponse({ status: 200, description: 'Danh sách venues đã đóng góp' })
+  async getMyContributions(
+    @Request() req: { authHeaders: Record<string, string> },
+  ) {
+    const { data } = await firstValueFrom(
+      this.http.get(`${VENUE_SERVICE_URL}/venues/my-contributions`, {
+        headers: req.authHeaders,
+      }),
+    );
+    return data;
+  }
+
   /** Lấy chi tiết venue theo ID */
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết venue theo ID' })
