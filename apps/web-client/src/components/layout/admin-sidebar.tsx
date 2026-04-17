@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
-  Store,
   Flag,
   LogOut,
   ChevronRight,
@@ -17,7 +16,6 @@ import { NookLogo } from '@/components/shared/nook-logo';
 const NAV = [
   { label: 'Tổng quan',       path: '/admin',                icon: LayoutDashboard },
   { label: 'Người dùng',      path: '/admin/users',          icon: Users           },
-  { label: 'Duyệt venue',     path: '/admin/venues',         icon: Store           },
   { label: 'Danh sách quán',  path: '/admin/venues/list',    icon: ListChecks      },
   { label: 'Báo cáo',         path: '/admin/reports',        icon: Flag            },
 ];

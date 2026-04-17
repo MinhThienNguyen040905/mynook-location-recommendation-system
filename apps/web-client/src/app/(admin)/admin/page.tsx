@@ -1,23 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, Store, Flag, Clock, Eye, Bell, X, Send, Loader2, ChevronDown } from 'lucide-react';
+import { Users, Store, Flag, Eye, Bell, X, Send, Loader2, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 const STATS = [
-  { label: 'Tổng người dùng', value: '2,481',  delta: '+12%',  icon: Users,        color: 'bg-blue-50 text-blue-600'    },
-  { label: 'Venue đang hoạt động', value: '134', delta: '+5%', icon: Store,        color: 'bg-nook-olive/10 text-nook-olive' },
-  { label: 'Chờ duyệt',       value: '8',       delta: 'mới',  icon: Clock,        color: 'bg-amber-50 text-amber-600'  },
-  { label: 'Báo cáo mở',      value: '3',       delta: 'cần xử lý', icon: Flag,   color: 'bg-red-50 text-red-500'      },
-];
-
-const RECENT_VENUES = [
-  { id: 1, name: 'The Quiet Corner',    owner: 'Minh Tuấn',   category: 'Café',       status: 'pending',  date: '2 giờ trước'   },
-  { id: 2, name: 'StudyHive Co-working',owner: 'Thu Hương',   category: 'Workspace',  status: 'pending',  date: '5 giờ trước'   },
-  { id: 3, name: 'Bình Yên Garden',     owner: 'Phúc Lê',     category: 'Outdoor',    status: 'approved', date: 'Hôm qua'       },
-  { id: 4, name: 'Mộc Library Café',    owner: 'Lan Nguyễn',  category: 'Library',    status: 'rejected', date: 'Hôm qua'       },
-  { id: 5, name: 'The Loft Saigon',     owner: 'Khải Hoàn',   category: 'Workspace',  status: 'approved', date: '2 ngày trước'  },
+  { label: 'Tổng người dùng',      value: '2,481', delta: '+12%',      icon: Users, color: 'bg-blue-50 text-blue-600'        },
+  { label: 'Venue đang hoạt động', value: '134',   delta: '+5%',       icon: Store, color: 'bg-nook-olive/10 text-nook-olive' },
+  { label: 'Báo cáo mở',          value: '3',     delta: 'cần xử lý', icon: Flag,  color: 'bg-red-50 text-red-500'           },
 ];
 
 const RECENT_USERS = [
@@ -28,14 +19,10 @@ const RECENT_USERS = [
 ];
 
 const STATUS_BADGE: Record<string, string> = {
-  pending:  'bg-amber-100 text-amber-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-600',
-  active:   'bg-green-100 text-green-700',
-  banned:   'bg-red-100 text-red-600',
+  active: 'bg-green-100 text-green-700',
+  banned: 'bg-red-100 text-red-600',
 };
 const STATUS_LABEL: Record<string, string> = {
-  pending: 'Chờ duyệt', approved: 'Đã duyệt', rejected: 'Từ chối',
   active: 'Hoạt động', banned: 'Bị khoá',
 };
 
@@ -239,7 +226,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {STATS.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${s.color}`}>
@@ -287,16 +274,6 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <h2 className="font-bold text-slate-800 mb-5">Thao tác nhanh</h2>
           <div className="space-y-3">
-            <Link href="/admin/venues" className="flex items-center justify-between p-3 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors group">
-              <div className="flex items-center gap-3">
-                <Clock size={18} className="text-amber-600" />
-                <div>
-                  <p className="text-sm font-bold text-amber-800">8 venue chờ duyệt</p>
-                  <p className="text-xs text-amber-600">Xem danh sách</p>
-                </div>
-              </div>
-              <Eye size={16} className="text-amber-500 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
             <Link href="/admin/reports" className="flex items-center justify-between p-3 rounded-xl bg-red-50 hover:bg-red-100 transition-colors group">
               <div className="flex items-center gap-3">
                 <Flag size={18} className="text-red-500" />
@@ -334,28 +311,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent venues */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h2 className="font-bold text-slate-800">Venue gần đây</h2>
-            <Link href="/admin/venues" className="text-xs font-bold text-nook-olive hover:underline">Xem tất cả</Link>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {RECENT_VENUES.map((v) => (
-              <div key={v.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50 transition-colors">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{v.name}</p>
-                  <p className="text-xs text-slate-400">{v.owner} · {v.category} · {v.date}</p>
-                </div>
-                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${STATUS_BADGE[v.status]}`}>
-                  {STATUS_LABEL[v.status]}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 gap-6">
         {/* Recent users */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
