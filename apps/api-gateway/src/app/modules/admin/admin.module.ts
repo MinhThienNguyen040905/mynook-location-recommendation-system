@@ -3,6 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { AdminUserController } from './admin-user.controller.js';
 import { AdminVenueController } from './admin-venue.controller.js';
 import { AdminReviewController } from './admin-review.controller.js';
+import { AdminVenueReportController } from './admin-venue-report.controller.js';
 import { AdminNotificationController } from './admin-notification.controller.js';
 import { AdminDashboardController } from './admin-dashboard.controller.js';
 
@@ -12,6 +13,7 @@ import { AdminDashboardController } from './admin-dashboard.controller.js';
     AdminUserController,
     AdminVenueController,
     AdminReviewController,
+    AdminVenueReportController,
     AdminNotificationController,
     AdminDashboardController,
   ],

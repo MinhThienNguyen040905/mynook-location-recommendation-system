@@ -17,4 +17,6 @@ export {
   NotificationType,
   ReviewReport,
   ReportStatus,
+  VenueReport,
+  VenueReportStatus,
 } from './interaction.entity.js';

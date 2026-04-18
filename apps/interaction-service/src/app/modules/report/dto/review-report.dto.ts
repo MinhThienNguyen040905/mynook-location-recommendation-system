@@ -7,7 +7,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateReportDto {
+export class CreateReviewReportDto {
   @ApiProperty({ description: 'ID của review bị report' })
   @IsUUID()
   review_id!: string;
@@ -28,7 +28,7 @@ export class CreateReportDto {
   description?: string;
 }
 
-export class ResolveReportDto {
+export class ResolveReviewReportDto {
   @ApiProperty({
     description: 'Hành động: delete = xóa review, dismiss = bỏ qua',
     enum: ['delete', 'dismiss'],

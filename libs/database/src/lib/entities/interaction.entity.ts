@@ -116,6 +116,46 @@ export class ReviewReport {
   created_at!: Date;
 }
 
+export enum VenueReportStatus {
+  PENDING = 'pending',
+  RESOLVED_DEACTIVATED = 'resolved_deactivated',
+  DISMISSED = 'dismissed',
+}
+
+@Entity({ schema: 'interaction_schema', name: 'venue_reports' })
+export class VenueReport {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  venue_id!: string;
+
+  @Column({ type: 'uuid' })
+  reporter_account_id!: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  reason!: string;
+
+  @Column({ type: 'text', nullable: true })
+  description!: string | null;
+
+  @Column({
+    type: 'enum',
+    enum: VenueReportStatus,
+    default: VenueReportStatus.PENDING,
+  })
+  status!: VenueReportStatus;
+
+  @Column({ type: 'uuid', nullable: true })
+  resolved_by!: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  resolved_at!: Date | null;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  created_at!: Date;
+}
+
 @Entity({ schema: 'interaction_schema', name: 'notifications' })
 export class Notification {
   @PrimaryGeneratedColumn('uuid')

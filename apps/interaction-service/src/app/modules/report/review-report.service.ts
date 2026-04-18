@@ -6,16 +6,16 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Review, ReviewReport, ReportStatus } from '@mynook/database';
-import { CreateReportDto } from './dto/create-report.dto.js';
+import { CreateReviewReportDto } from './dto/review-report.dto.js';
 
-export interface ListReportsQuery {
+export interface ListReviewReportsQuery {
   status?: ReportStatus;
   page?: number;
   limit?: number;
 }
 
 @Injectable()
-export class ReportService {
+export class ReviewReportService {
   constructor(
     @InjectRepository(ReviewReport)
     private readonly reportRepo: Repository<ReviewReport>,
@@ -23,19 +23,16 @@ export class ReportService {
     private readonly reviewRepo: Repository<Review>,
   ) {}
 
-  /** User submits a report on a review */
-  async createReport(reporterId: string, dto: CreateReportDto) {
+  async createReport(reporterId: string, dto: CreateReviewReportDto) {
     const review = await this.reviewRepo.findOne({
       where: { id: dto.review_id },
     });
     if (!review) throw new NotFoundException('Review not found');
 
-    // Không cho report chính review của mình
     if (review.account_id === reporterId) {
       throw new BadRequestException('Không thể report review của chính mình');
     }
 
-    // Nếu user đã report review này rồi (status pending) thì không tạo thêm
     const existing = await this.reportRepo.findOne({
       where: {
         review_id: dto.review_id,
@@ -54,8 +51,7 @@ export class ReportService {
     return this.reportRepo.save(report);
   }
 
-  /** Admin list reports + enrich review content */
-  async list(query: ListReportsQuery) {
+  async list(query: ListReviewReportsQuery) {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
 
@@ -69,7 +65,6 @@ export class ReportService {
 
     const [reports, total] = await qb.getManyAndCount();
 
-    // enrich với nội dung review
     const reviewIds = [...new Set(reports.map((r) => r.review_id))];
     const reviews = reviewIds.length
       ? await this.reviewRepo
@@ -99,7 +94,6 @@ export class ReportService {
     return { ...report, review };
   }
 
-  /** Admin resolve report — either delete review hoặc dismiss */
   async resolve(
     reportId: string,
     adminId: string,
@@ -115,7 +109,6 @@ export class ReportService {
     if (action === 'delete') {
       await this.reviewRepo.delete(report.review_id);
 
-      // Đánh dấu tất cả report cho review này là resolved_deleted
       await this.reportRepo
         .createQueryBuilder()
         .update(ReviewReport)

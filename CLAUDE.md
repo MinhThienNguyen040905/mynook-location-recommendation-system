@@ -198,10 +198,15 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`type = admin`).
 | GET    | `/api/admin/reports/stats` | Stats reports |
 | GET    | `/api/admin/reports/:id` | Chi tiết report (kèm review gốc) |
 | PATCH  | `/api/admin/reports/:id/resolve` | Xử lý report (`action: delete \| dismiss`) |
+| GET    | `/api/admin/venue-reports` | List venue reports |
+| GET    | `/api/admin/venue-reports/stats` | Stats venue reports |
+| GET    | `/api/admin/venue-reports/:id` | Chi tiết venue report |
+| PATCH  | `/api/admin/venue-reports/:id/resolve` | Xử lý (`action: deactivate \| dismiss`) — deactivate sẽ soft-delete venue + bulk-resolve tất cả report của venue đó |
 | POST   | `/api/admin/notifications/broadcast` | Gửi thông báo tổng (`target: all \| customer \| owner` hoặc `account_ids[]`) |
 
-## User Report Endpoint
+## User Report Endpoints
 
 | Method | Path | Mô tả |
 |--------|------|-------|
 | POST   | `/api/reports` | User report review vi phạm (`review_id`, `reason`, `description?`) |
+| POST   | `/api/venue-reports` | User report venue giả mạo / sai thông tin / vi phạm (`venue_id`, `reason`, `description?`) |

@@ -37,9 +37,11 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 | `src/app/modules/admin/admin-user.controller.ts` | Proxy `/admin/accounts/*` → auth-service |
 | `src/app/modules/admin/admin-venue.controller.ts` | Proxy `/admin/venues/*` → venue-service |
 | `src/app/modules/admin/admin-review.controller.ts` | Proxy `/admin/reviews/*` + `/admin/reports/*` → interaction-service |
+| `src/app/modules/admin/admin-venue-report.controller.ts` | `/admin/venue-reports/*` — resolve orchestrates venue-service (deactivate) + interaction-service (bulk-resolve) |
 | `src/app/modules/admin/admin-notification.controller.ts` | `/admin/notifications/broadcast` — fan-out auth-service → interaction-service |
 | `src/app/modules/admin/admin-dashboard.controller.ts` | `/admin/dashboard` — gộp stats song song từ 3 services |
 | `src/app/modules/interaction/report.controller.ts` | User-facing POST `/reports` |
+| `src/app/modules/interaction/venue-report.controller.ts` | User-facing POST `/venue-reports` |
 | `src/app/modules/auth/auth.controller.ts` | Proxy tất cả /auth/* routes đến auth-service |
 | `src/app/modules/auth/dto/auth.dto.ts` | Gateway-level Auth DTOs (Swagger docs) |
 | `src/app/modules/venue/venue.controller.ts` | Proxy /venues/* routes đến venue-service |
@@ -77,11 +79,12 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 | GET | `/api/reviews/venue/:venueId` | Public | Lấy reviews của venue |
 | POST | `/api/reviews` | JwtAuthGuard | Tạo review mới |
 
-## Report Endpoints (route: /api/reports)
+## Report Endpoints
 
 | Method | Path | Guard | Mô tả |
 |--------|------|-------|-------|
 | POST | `/api/reports` | JwtAuthGuard | User report một review vi phạm |
+| POST | `/api/venue-reports` | JwtAuthGuard | User report venue giả mạo / vi phạm |
 
 ## Admin Endpoints (route: /api/admin/...)
 
@@ -107,7 +110,11 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`user.type === 'admin'`).
 | GET    | `/api/admin/reports` | List reports (filter: `status`) |
 | GET    | `/api/admin/reports/stats` | Stats reports |
 | GET    | `/api/admin/reports/:id` | Chi tiết report kèm review gốc |
-| PATCH  | `/api/admin/reports/:id/resolve` | Xử lý report (`{ action: 'delete' \| 'dismiss' }`) |
+| PATCH  | `/api/admin/reports/:id/resolve` | Xử lý review report (`{ action: 'delete' \| 'dismiss' }`) |
+| GET    | `/api/admin/venue-reports` | List venue reports |
+| GET    | `/api/admin/venue-reports/stats` | Stats venue reports |
+| GET    | `/api/admin/venue-reports/:id` | Chi tiết venue report |
+| PATCH  | `/api/admin/venue-reports/:id/resolve` | Xử lý venue report (`{ action: 'deactivate' \| 'dismiss' }`) — `deactivate` sẽ orchestrate: soft-delete venue (venue-service) rồi bulk-resolve tất cả report pending của venue |
 | POST   | `/api/admin/notifications/broadcast` | Gửi thông báo tổng (`target: 'all' \| 'customer' \| 'owner'` hoặc `account_ids[]`) |
 
 ## Pattern chuẩn — Route cần auth

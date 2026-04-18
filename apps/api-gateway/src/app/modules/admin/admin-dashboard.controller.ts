@@ -34,21 +34,30 @@ export class AdminDashboardController {
   async overview(@Request() req: { authHeaders: Record<string, string> }) {
     const headers = req.authHeaders;
 
-    const [accounts, venues, interaction, reports] = await Promise.all([
-      this.safeGet(`${AUTH_SERVICE_URL}/admin/accounts/stats`, headers),
-      this.safeGet(`${VENUE_SERVICE_URL}/admin/venues/stats`, headers),
-      this.safeGet(`${INTERACTION_SERVICE_URL}/admin/interaction/stats`, headers),
-      this.safeGet(
-        `${INTERACTION_SERVICE_URL}/reports/admin/stats`,
-        headers,
-      ),
-    ]);
+    const [accounts, venues, interaction, reviewReports, venueReports] =
+      await Promise.all([
+        this.safeGet(`${AUTH_SERVICE_URL}/admin/accounts/stats`, headers),
+        this.safeGet(`${VENUE_SERVICE_URL}/admin/venues/stats`, headers),
+        this.safeGet(
+          `${INTERACTION_SERVICE_URL}/admin/interaction/stats`,
+          headers,
+        ),
+        this.safeGet(
+          `${INTERACTION_SERVICE_URL}/reports/admin/stats`,
+          headers,
+        ),
+        this.safeGet(
+          `${INTERACTION_SERVICE_URL}/venue-reports/admin/stats`,
+          headers,
+        ),
+      ]);
 
     return {
       accounts,
       venues,
       interaction,
-      reports,
+      review_reports: reviewReports,
+      venue_reports: venueReports,
       generated_at: new Date().toISOString(),
     };
   }

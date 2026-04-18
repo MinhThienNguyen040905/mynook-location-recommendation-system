@@ -28,11 +28,14 @@ NestJS HTTP microservice chạy ở **port 3004**. Xử lý logic tương tác n
 | `src/app/modules/review/review.controller.ts` | HTTP endpoints cho reviews |
 | `src/app/modules/review/review.service.ts` | Business logic — findByVenue, create (+ emit event), updateAiAnalysis |
 | `src/app/modules/review/dto/create-review.dto.ts` | DTO for creating reviews |
-| **Report Module** | |
-| `src/app/modules/report/report.module.ts` | Review report module |
-| `src/app/modules/report/report.controller.ts` | User POST `/reports` + admin `/reports/admin/*` |
-| `src/app/modules/report/report.service.ts` | createReport, list, findById, resolve, stats |
-| `src/app/modules/report/dto/create-report.dto.ts` | DTOs: CreateReportDto, ResolveReportDto |
+| **Report Module** (gộp review-report + venue-report trong cùng module) | |
+| `src/app/modules/report/report.module.ts` | Module chung — đăng ký cả 2 controllers/services + TypeORM repos (Review, ReviewReport, VenueReport) |
+| `src/app/modules/report/review-report.controller.ts` | User POST `/reports` + admin `/reports/admin/*` |
+| `src/app/modules/report/review-report.service.ts` | createReport, list, findById, resolve, stats |
+| `src/app/modules/report/venue-report.controller.ts` | User POST `/venue-reports` + admin `/venue-reports/admin/*` |
+| `src/app/modules/report/venue-report.service.ts` | create, list, findById, updateStatus, bulkResolveByVenue, stats |
+| `src/app/modules/report/dto/review-report.dto.ts` | CreateReviewReportDto, ResolveReviewReportDto |
+| `src/app/modules/report/dto/venue-report.dto.ts` | CreateVenueReportDto, UpdateVenueReportStatusDto |
 | **Admin Module** | |
 | `src/app/modules/admin/admin.module.ts` | Admin module (review moderation + broadcast + stats) |
 | `src/app/modules/admin/admin.controller.ts` | `/admin/interaction/*` routes |
@@ -47,6 +50,7 @@ NestJS HTTP microservice chạy ở **port 3004**. Xử lý logic tương tác n
 | POST | `/reviews` | Yes (via headers) | Tạo review mới → emit `venue.reviewed` |
 | PATCH | `/reviews/:reviewId/ai-analysis` | Internal only | Callback từ search-ai-service để lưu AI analysis |
 | POST | `/reports` | Yes (via headers) | User report review vi phạm |
+| POST | `/venue-reports` | Yes (via headers) | User report venue giả mạo / vi phạm |
 
 ## Admin Endpoints (Internal — protected by AdminGuard ở gateway)
 
@@ -60,6 +64,11 @@ NestJS HTTP microservice chạy ở **port 3004**. Xử lý logic tương tác n
 | GET    | `/reports/admin/stats` | Stats: pending, resolved_deleted, dismissed |
 | GET    | `/reports/admin/:id` | Chi tiết report |
 | PATCH  | `/reports/admin/:id/resolve` | `action: 'delete'` → xóa review + đánh dấu report; `'dismiss'` → chỉ dismiss |
+| GET    | `/venue-reports/admin` | List venue reports (filter: `status`, `venue_id`) |
+| GET    | `/venue-reports/admin/stats` | Stats venue reports |
+| GET    | `/venue-reports/admin/:id` | Chi tiết venue report |
+| PATCH  | `/venue-reports/admin/:id/status` | Đổi status (`resolved_deactivated \| dismissed`) — gateway gọi sau khi đã deactivate venue |
+| PATCH  | `/venue-reports/admin/venue/:venueId/bulk-resolve` | Bulk-mark tất cả report pending của venue thành `resolved_deactivated` |
 
 ## RabbitMQ Events
 
@@ -78,7 +87,7 @@ NestJS HTTP microservice chạy ở **port 3004**. Xử lý logic tương tác n
 
 ## Database Entities
 
-- `Notification`, `Review`, `UserFavorite`, `UserInteraction`, `ReviewReport` (từ `@mynook/database`)
+- `Notification`, `Review`, `UserFavorite`, `UserInteraction`, `ReviewReport`, `VenueReport` (từ `@mynook/database`)
 
 ### Table: `interaction_schema.review_reports`
 
