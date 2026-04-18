@@ -15,4 +15,6 @@ export {
   UserInteraction,
   Notification,
   NotificationType,
+  ReviewReport,
+  ReportStatus,
 } from './interaction.entity.js';

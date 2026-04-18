@@ -15,6 +15,7 @@ MyNook is a location review & discovery system built with **Nx monorepo** + **Ne
 - **Hybrid Search**: search-ai-service combines pgvector semantic search + tag-based filtering + capacity/time filters.
 - **AI Review Processing**: interaction-service emits `venue.reviewed` → search-ai-service analyzes via Groq AI (Llama 3.3) → upserts VenueTag scores → callbacks AI analysis JSON.
 - **Community Venue Contribution**: Any logged-in user (customer or owner) can contribute venues via `POST /venues/community`. Community venues (`is_community_contributed = true`) have no owner and can be edited by anyone.
+- **Admin Console**: Mọi endpoint admin đặt dưới `/api/admin/*` ở api-gateway, bảo vệ bằng `JwtAuthGuard + AdminGuard` (yêu cầu `account.type = admin`). Admin quản lý accounts (khóa/mở), venues (CRUD + khôi phục + hard delete), reviews + reports (duyệt, xóa), broadcast notifications cho toàn user/owner/customer, và xem dashboard tổng hợp (`GET /api/admin/dashboard`) từ cả 3 microservices.
 
 ## Commands
 
@@ -88,7 +89,8 @@ apps/<service-name>/src/
 - Trong **api-gateway**, các module được nhóm theo downstream service mà chúng forward đến:
   - `modules/auth/` → forward đến auth-service
   - `modules/venue/` → forward đến venue-service (venue, menu, upload controllers)
-  - `modules/interaction/` → forward đến interaction-service (notification controller)
+  - `modules/interaction/` → forward đến interaction-service (notification, review, report controllers)
+  - `modules/admin/` → các controller cần `AdminGuard`, fan-out đến nhiều downstream services
 - Shared utilities (guards, interceptors, strategies) nằm trong `common/` (chỉ api-gateway).
 
 ## Key Conventions
@@ -170,3 +172,36 @@ Hệ thống dùng Entity **Account** với **AccountType** là `customer` hoặ
 - JWT payload chứa `type` (AccountType) thay vì `role`.
 - Header forwarding: `x-user-type` (thay vì `x-user-role`).
 - `CurrentUserPayload` có trường `type` (thay vì `role`).
+
+## Admin Endpoints (route: `/api/admin/*`)
+
+Tất cả cần `JwtAuthGuard + AdminGuard` (`type = admin`).
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| GET    | `/api/admin/dashboard` | Overview tổng hợp: accounts, venues, interaction, reports |
+| GET    | `/api/admin/accounts` | List accounts (filter: type, is_active, q, page, limit) |
+| GET    | `/api/admin/accounts/stats` | Thống kê accounts |
+| GET    | `/api/admin/accounts/:id` | Chi tiết account |
+| PATCH  | `/api/admin/accounts/:id/status` | Khóa / mở tài khoản (`{ is_active }`) |
+| GET    | `/api/admin/venues` | List tất cả venues (gồm inactive) |
+| GET    | `/api/admin/venues/stats` | Stats venues (tổng, hot, popular areas) |
+| GET    | `/api/admin/venues/cities` | Phân bố theo city |
+| POST   | `/api/admin/venues` | Admin tạo venue |
+| PATCH  | `/api/admin/venues/:id` | Admin cập nhật bất kỳ venue nào |
+| PATCH  | `/api/admin/venues/:id/restore` | Khôi phục venue đã soft-delete |
+| DELETE | `/api/admin/venues/:id` | Soft-delete venue |
+| DELETE | `/api/admin/venues/:id/hard` | Xóa vĩnh viễn venue |
+| GET    | `/api/admin/reviews` | List reviews (filter: venue_id, account_id) |
+| DELETE | `/api/admin/reviews/:id` | Xóa review |
+| GET    | `/api/admin/reports` | List review reports |
+| GET    | `/api/admin/reports/stats` | Stats reports |
+| GET    | `/api/admin/reports/:id` | Chi tiết report (kèm review gốc) |
+| PATCH  | `/api/admin/reports/:id/resolve` | Xử lý report (`action: delete \| dismiss`) |
+| POST   | `/api/admin/notifications/broadcast` | Gửi thông báo tổng (`target: all \| customer \| owner` hoặc `account_ids[]`) |
+
+## User Report Endpoint
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| POST   | `/api/reports` | User report review vi phạm (`review_id`, `reason`, `description?`) |

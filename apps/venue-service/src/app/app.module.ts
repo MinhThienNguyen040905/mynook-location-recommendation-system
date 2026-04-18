@@ -4,6 +4,7 @@ import { DatabaseModule, Venue, MenuCategory, MenuItem } from '@mynook/database'
 import { VenueModule } from './modules/venue/venue.module.js';
 import { MenuModule } from './modules/menu/menu.module.js';
 import { UploadModule } from './modules/upload/upload.module.js';
+import { AdminVenueModule } from './modules/admin/admin.module.js';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { UploadModule } from './modules/upload/upload.module.js';
     VenueModule,
     MenuModule,
     UploadModule,
+    AdminVenueModule,
   ],
 })
 export class AppModule {}

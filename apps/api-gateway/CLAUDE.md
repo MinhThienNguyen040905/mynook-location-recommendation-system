@@ -7,9 +7,10 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 ## Vai trò trong kiến trúc
 
 - Verify JWT (`JwtStrategy` + `JwtAuthGuard`) — **chỉ nơi duy nhất** trong toàn hệ thống làm điều này
+- Chặn truy cập admin-only bằng `AdminGuard` (kiểm tra `user.type === 'admin'`)
 - Forward request đến microservices qua HTTP (`@nestjs/axios`)
 - Gắn `x-user-id` + `x-user-type` headers vào request forward (qua `AuthHeadersInterceptor`)
-- **KHÔNG** chứa business logic — chỉ proxy + auth
+- **KHÔNG** chứa business logic — chỉ proxy + auth (ngoại trừ admin broadcast cần fan-out auth-service → interaction-service)
 
 ## Auth Endpoints (route: /api/auth/...)
 
@@ -28,9 +29,17 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 
 | File | Mô tả |
 |------|-------|
-| `src/app/common/strategies/jwt.strategy.ts` | Passport JWT strategy — verify token, extract payload |
+| `src/app/common/strategies/jwt.strategy.ts` | Passport JWT strategy — verify token, extract payload (`sub`, `email`, `type`) |
 | `src/app/common/guards/jwt-auth.guard.ts` | Guard bảo vệ route cần auth |
+| `src/app/common/guards/admin.guard.ts` | Guard yêu cầu `user.type === 'admin'` (dùng kèm JwtAuthGuard) |
 | `src/app/common/interceptors/auth-headers.interceptor.ts` | Gắn x-user-id + x-user-type vào req.authHeaders |
+| `src/app/modules/admin/admin.module.ts` | Admin proxy module |
+| `src/app/modules/admin/admin-user.controller.ts` | Proxy `/admin/accounts/*` → auth-service |
+| `src/app/modules/admin/admin-venue.controller.ts` | Proxy `/admin/venues/*` → venue-service |
+| `src/app/modules/admin/admin-review.controller.ts` | Proxy `/admin/reviews/*` + `/admin/reports/*` → interaction-service |
+| `src/app/modules/admin/admin-notification.controller.ts` | `/admin/notifications/broadcast` — fan-out auth-service → interaction-service |
+| `src/app/modules/admin/admin-dashboard.controller.ts` | `/admin/dashboard` — gộp stats song song từ 3 services |
+| `src/app/modules/interaction/report.controller.ts` | User-facing POST `/reports` |
 | `src/app/modules/auth/auth.controller.ts` | Proxy tất cả /auth/* routes đến auth-service |
 | `src/app/modules/auth/dto/auth.dto.ts` | Gateway-level Auth DTOs (Swagger docs) |
 | `src/app/modules/venue/venue.controller.ts` | Proxy /venues/* routes đến venue-service |
@@ -67,6 +76,39 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 |--------|------|-------|-------|
 | GET | `/api/reviews/venue/:venueId` | Public | Lấy reviews của venue |
 | POST | `/api/reviews` | JwtAuthGuard | Tạo review mới |
+
+## Report Endpoints (route: /api/reports)
+
+| Method | Path | Guard | Mô tả |
+|--------|------|-------|-------|
+| POST | `/api/reports` | JwtAuthGuard | User report một review vi phạm |
+
+## Admin Endpoints (route: /api/admin/...)
+
+Tất cả cần `JwtAuthGuard + AdminGuard` (`user.type === 'admin'`).
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| GET    | `/api/admin/dashboard` | Dashboard tổng hợp (accounts + venues + interaction + reports) |
+| GET    | `/api/admin/accounts` | List accounts (filter: `type`, `is_active`, `q`, `page`, `limit`) |
+| GET    | `/api/admin/accounts/stats` | Thống kê accounts (tổng, theo type, active/inactive, 30 ngày gần nhất) |
+| GET    | `/api/admin/accounts/:id` | Chi tiết account |
+| PATCH  | `/api/admin/accounts/:id/status` | Khóa / mở tài khoản |
+| GET    | `/api/admin/venues` | List tất cả venues (gồm inactive) |
+| GET    | `/api/admin/venues/stats` | Stats venues + top hot venues + popular areas (districts) |
+| GET    | `/api/admin/venues/cities` | Phân bố theo city |
+| POST   | `/api/admin/venues` | Admin tạo venue |
+| PATCH  | `/api/admin/venues/:id` | Admin cập nhật venue |
+| PATCH  | `/api/admin/venues/:id/restore` | Khôi phục venue đã soft-delete |
+| DELETE | `/api/admin/venues/:id` | Soft-delete venue |
+| DELETE | `/api/admin/venues/:id/hard` | Xóa vĩnh viễn venue |
+| GET    | `/api/admin/reviews` | List reviews |
+| DELETE | `/api/admin/reviews/:id` | Xóa review |
+| GET    | `/api/admin/reports` | List reports (filter: `status`) |
+| GET    | `/api/admin/reports/stats` | Stats reports |
+| GET    | `/api/admin/reports/:id` | Chi tiết report kèm review gốc |
+| PATCH  | `/api/admin/reports/:id/resolve` | Xử lý report (`{ action: 'delete' \| 'dismiss' }`) |
+| POST   | `/api/admin/notifications/broadcast` | Gửi thông báo tổng (`target: 'all' \| 'customer' \| 'owner'` hoặc `account_ids[]`) |
 
 ## Pattern chuẩn — Route cần auth
 

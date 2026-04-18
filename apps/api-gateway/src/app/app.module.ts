@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { VenueModule } from './modules/venue/venue.module.js';
 import { InteractionModule } from './modules/interaction/interaction.module.js';
 import { SearchModule } from './modules/search/search.module.js';
+import { AdminModule } from './modules/admin/admin.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { SearchModule } from './modules/search/search.module.js';
     VenueModule,
     InteractionModule,
     SearchModule,
+    AdminModule,
   ],
   providers: [JwtStrategy],
 })

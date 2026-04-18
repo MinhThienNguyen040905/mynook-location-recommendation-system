@@ -23,6 +23,16 @@ NestJS HTTP microservice chạy ở **port 3002**. Xử lý toàn bộ logic xá
 | POST | `/auth/change-password` | x-user-id header | Đổi mật khẩu (cần mật khẩu cũ) |
 | PATCH | `/auth/profile` | x-user-id header | Cập nhật tên, SĐT, avatar |
 
+## Admin Endpoints (Internal — protected by AdminGuard ở gateway)
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| GET  | `/admin/accounts` | List accounts — filter `type`, `is_active`, `q`, pagination |
+| GET  | `/admin/accounts/stats` | Thống kê accounts (tổng, theo type, active/inactive, 30d) |
+| POST | `/admin/accounts/lookup` | Enrich nhiều ids cùng lúc (`{ ids: string[] }`) |
+| GET  | `/admin/accounts/:id` | Chi tiết account |
+| PATCH| `/admin/accounts/:id/status` | Khóa / mở tài khoản (`{ is_active }`) |
+
 ## DTOs
 
 | File | Dùng cho |
