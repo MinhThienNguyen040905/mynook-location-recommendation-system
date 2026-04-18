@@ -69,10 +69,34 @@ export const API_ENDPOINTS = {
 
   // Admin
   ADMIN: {
-    USERS: '/admin/users',
+    DASHBOARD: '/admin/dashboard',
+    // Accounts
+    ACCOUNTS: '/admin/accounts',
+    ACCOUNTS_STATS: '/admin/accounts/stats',
+    ACCOUNT_DETAIL: (id: string) => `/admin/accounts/${id}`,
+    ACCOUNT_STATUS: (id: string) => `/admin/accounts/${id}/status`,
+    // Venues
     VENUES: '/admin/venues',
+    VENUES_STATS: '/admin/venues/stats',
+    VENUES_CITIES: '/admin/venues/cities',
+    VENUE_DETAIL: (id: string) => `/admin/venues/${id}`,
+    VENUE_RESTORE: (id: string) => `/admin/venues/${id}/restore`,
+    VENUE_HARD_DELETE: (id: string) => `/admin/venues/${id}/hard`,
+    // Reviews
+    REVIEWS: '/admin/reviews',
+    REVIEW_DETAIL: (id: string) => `/admin/reviews/${id}`,
+    // Review reports
     REPORTS: '/admin/reports',
-    STATS: '/admin/stats',
+    REPORTS_STATS: '/admin/reports/stats',
+    REPORT_DETAIL: (id: string) => `/admin/reports/${id}`,
+    REPORT_RESOLVE: (id: string) => `/admin/reports/${id}/resolve`,
+    // Venue reports
+    VENUE_REPORTS: '/admin/venue-reports',
+    VENUE_REPORTS_STATS: '/admin/venue-reports/stats',
+    VENUE_REPORT_DETAIL: (id: string) => `/admin/venue-reports/${id}`,
+    VENUE_REPORT_RESOLVE: (id: string) => `/admin/venue-reports/${id}/resolve`,
+    // Broadcast
+    NOTIFICATIONS_BROADCAST: '/admin/notifications/broadcast',
   },
 
   // Notifications
