@@ -84,7 +84,7 @@ export function CategoryPills() {
 
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2 md:pb-0"
+          className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2 md:pb-0 md:justify-center"
         >
           {isLoading &&
             Array.from({ length: 5 }).map((_, i) => (
