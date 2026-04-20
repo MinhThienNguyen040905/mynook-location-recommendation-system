@@ -1,6 +1,5 @@
 // Auth schema
-export { Account, AccountType } from './account.entity.js';
-export { RegistrationOtp } from './registration-otp.entity.js';
+export { Account, AccountType, RegistrationOtp } from './auth.entity.js';
 
 // Venue schema
 export { Venue, MenuCategory, MenuItem, CrowdLevel } from './venue.entity.js';
