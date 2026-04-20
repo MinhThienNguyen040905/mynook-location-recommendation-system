@@ -24,9 +24,6 @@ export class Tag {
   @Column({ type: 'varchar', length: 100 })
   display_name!: string;
 
-  @Column({ type: 'text', nullable: true })
-  icon_url!: string | null;
-
   @Column({ type: 'varchar', length: 50, nullable: true })
   category!: string | null;
 }

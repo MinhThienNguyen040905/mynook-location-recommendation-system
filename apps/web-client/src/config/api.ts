@@ -113,6 +113,11 @@ export const API_ENDPOINTS = {
     SUGGESTIONS: '/search/suggestions',
   },
 
+  // Tags
+  TAGS: {
+    LIST: '/tags',
+  },
+
   // Upload
   UPLOAD: '/upload',
 } as const;
