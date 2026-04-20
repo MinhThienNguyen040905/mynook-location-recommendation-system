@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, ChevronDown, ArrowRight, Mic, Loader2 } from "lucide-react";
+import { Search, ArrowRight, Mic, Loader2 } from "lucide-react";
 import { useVoiceSearch } from "@/hooks/use-voice-search";
 
 export function HeroSection() {
@@ -102,27 +102,6 @@ export function HeroSection() {
                   <Mic size={20} />
                 )}
               </button>
-            </div>
-
-            <div className="hidden md:block w-px h-8 bg-slate-200 dark:bg-slate-600" />
-
-            {/* Location Dropdown */}
-            <div className="relative w-full md:w-64 group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <MapPin
-                  className="text-slate-400 group-focus-within:text-[#e9590c] transition-colors"
-                  size={20}
-                />
-              </div>
-              <select className="block w-full pl-12 pr-10 py-3 bg-transparent border-none rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-[#e9590c]/20 focus:bg-slate-50 dark:focus:bg-slate-700/50 cursor-pointer appearance-none transition-all text-base outline-none">
-                <option>Current Location</option>
-                <option>New York, NY</option>
-                <option>San Francisco, CA</option>
-                <option>Austin, TX</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                <ChevronDown className="text-slate-400" size={16} />
-              </div>
             </div>
 
             {/* Search Button */}
