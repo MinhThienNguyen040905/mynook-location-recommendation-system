@@ -33,11 +33,9 @@ export default function LoginPage() {
       setUser(res.user);
       toast.success("Đăng nhập thành công!");
 
-      // Redirect dựa trên account type
+      // Redirect dựa trên account type — admin & customer vào Home, owner vào Dashboard
       if (res.user.type === "owner") {
         router.push(ROUTES.DASHBOARD);
-      } else if (res.user.type === "admin") {
-        router.push(ROUTES.ADMIN);
       } else {
         router.push(ROUTES.HOME);
       }

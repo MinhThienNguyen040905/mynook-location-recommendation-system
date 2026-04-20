@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Heart, Menu, X, ChevronDown, LogOut, Plus } from 'lucide-react';
+import { User, Heart, Menu, X, ChevronDown, LogOut, Plus, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
@@ -32,6 +32,7 @@ function UserMenu({ name, avatar, role }: { name: string | null; avatar: string 
   }
 
   const isOwner = role === 'owner';
+  const isAdmin = role === 'admin';
 
   return (
     <div className="relative" ref={ref}>
@@ -71,6 +72,12 @@ function UserMenu({ name, avatar, role }: { name: string | null; avatar: string 
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
               <Heart size={15} className="text-nook-olive" /> Yêu thích
             </Link>
+            {isAdmin && (
+              <Link href="/admin"
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
+                <Shield size={15} className="text-nook-olive" /> Admin Panel
+              </Link>
+            )}
             <hr className="my-1 border-nook-sand" />
             <button onClick={handleLogout}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">

@@ -30,7 +30,7 @@ export function AdminSidebar() {
   }
 
   return (
-    <aside className="w-64 shrink-0 bg-slate-900 flex flex-col min-h-screen">
+    <aside className="w-64 shrink-0 bg-slate-900 flex flex-col self-stretch">
       {/* Logo */}
       <div className="px-6 py-6 border-b border-slate-800">
         <Link href="/admin">
