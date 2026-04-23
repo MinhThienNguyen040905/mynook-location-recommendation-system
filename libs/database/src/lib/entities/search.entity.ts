@@ -24,9 +24,6 @@ export class Tag {
   @Column({ type: 'varchar', length: 100 })
   display_name!: string;
 
-  @Column({ type: 'text', nullable: true })
-  icon_url!: string | null;
-
   @Column({ type: 'varchar', length: 50, nullable: true })
   category!: string | null;
 }
@@ -66,7 +63,7 @@ export class SearchLog {
   id!: string;
 
   @Column({ type: 'uuid', nullable: true })
-  user_id!: string | null;
+  account_id!: string | null;
 
   @Column({ type: 'text', nullable: true })
   search_query!: string | null;

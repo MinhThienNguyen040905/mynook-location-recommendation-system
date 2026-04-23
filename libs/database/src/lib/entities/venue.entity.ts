@@ -5,6 +5,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 export enum CrowdLevel {
@@ -21,6 +23,9 @@ export class Venue {
 
   @Column({ type: 'uuid' })
   owner_id!: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  branch_name!: string | null;
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;
@@ -71,6 +76,9 @@ export class Venue {
   @Column({ type: 'jsonb', nullable: true })
   owner_amenities!: unknown | null;
 
+  @Column({ type: 'text', nullable: true })
+  menu_image_url!: string | null;
+
   @Column({ type: 'float', default: 0 })
   rating_avg!: number;
 
@@ -82,6 +90,30 @@ export class Venue {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at!: Date;
+
+  // --- Community contribution ---
+
+  /** True if this venue was contributed by a regular user (not the owner) */
+  @Column({ type: 'boolean', default: false })
+  is_community_contributed!: boolean;
+
+  /** Account ID of the user who contributed this venue (null if created by owner) */
+  @Column({ type: 'uuid', nullable: true })
+  contributed_by!: string | null;
+
+  // --- Hybrid Search columns ---
+
+  /** Pre-built text document for full-text / embedding generation */
+  @Column({ type: 'text', nullable: true })
+  search_document!: string | null;
+
+  /**
+   * 384-dimension vector embedding (all-MiniLM-L6-v2).
+   * Stored as pgvector `vector(384)`.
+   * TypeORM maps it as a plain string; pgvector handles casting.
+   */
+  @Column({ type: 'text', nullable: true })
+  embedding!: string | null;
 
   @OneToMany(() => MenuCategory, (cat) => cat.venue)
   menu_categories?: MenuCategory[];
@@ -101,8 +133,9 @@ export class MenuCategory {
   @Column({ type: 'int', default: 0 })
   display_order!: number;
 
-  @Column({ type: 'uuid', nullable: true })
-  venue!: Venue;
+  @ManyToOne(() => Venue, (v) => v.menu_categories)
+  @JoinColumn({ name: 'venue_id' })
+  venue?: Venue;
 
   @OneToMany(() => MenuItem, (item) => item.category)
   items?: MenuItem[];
@@ -131,5 +164,7 @@ export class MenuItem {
   @Column({ type: 'boolean', default: true })
   is_available!: boolean;
 
+  @ManyToOne(() => MenuCategory, (cat) => cat.items)
+  @JoinColumn({ name: 'category_id' })
   category?: MenuCategory;
 }

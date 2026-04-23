@@ -1,5 +1,5 @@
 // Auth schema
-export { User, UserRole } from './user.entity.js';
+export { Account, AccountType, RegistrationOtp } from './auth.entity.js';
 
 // Venue schema
 export { Venue, MenuCategory, MenuItem, CrowdLevel } from './venue.entity.js';
@@ -14,4 +14,8 @@ export {
   UserInteraction,
   Notification,
   NotificationType,
+  ReviewReport,
+  ReportStatus,
+  VenueReport,
+  VenueReportStatus,
 } from './interaction.entity.js';

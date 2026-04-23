@@ -1,19 +1,27 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { AuthController } from './auth.controller.js';
-import { JwtStrategy } from './strategies/jwt.strategy.js';
+import { JwtStrategy } from './common/strategies/jwt.strategy.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { VenueModule } from './modules/venue/venue.module.js';
+import { InteractionModule } from './modules/interaction/interaction.module.js';
+import { SearchModule } from './modules/search/search.module.js';
+import { AdminModule } from './modules/admin/admin.module.js';
+import { TagModule } from './modules/tag/tag.module.js';
 
 @Module({
   imports: [
-    HttpModule,
     PassportModule,
     JwtModule.register({
       secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
     }),
+    AuthModule,
+    VenueModule,
+    InteractionModule,
+    SearchModule,
+    AdminModule,
+    TagModule,
   ],
-  controllers: [AuthController],
   providers: [JwtStrategy],
 })
 export class AppModule {}
