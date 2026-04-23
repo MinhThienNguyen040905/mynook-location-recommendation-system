@@ -42,7 +42,4 @@ export class CreateVenueDto {
 
   @ApiPropertyOptional()
   opening_hours?: unknown;
-
-  @ApiPropertyOptional()
-  owner_amenities?: unknown;
 }

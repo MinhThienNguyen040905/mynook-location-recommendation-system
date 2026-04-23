@@ -39,9 +39,6 @@ export class GatewayCreateVenueDto {
 
   @ApiPropertyOptional()
   opening_hours?: unknown;
-
-  @ApiPropertyOptional()
-  owner_amenities?: unknown;
 }
 
 export class GatewayUpdateVenueDto {
@@ -83,7 +80,4 @@ export class GatewayUpdateVenueDto {
 
   @ApiPropertyOptional()
   opening_hours?: unknown;
-
-  @ApiPropertyOptional()
-  owner_amenities?: unknown;
 }

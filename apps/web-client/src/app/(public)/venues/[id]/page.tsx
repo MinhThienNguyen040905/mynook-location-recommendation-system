@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { Footer } from "@/components/layout/footer";
 import { VenueHeader } from "@/components/venue-detail/venue-header";
 import { VenueGallery } from "@/components/venue-detail/venue-gallery";
-import { VenueAmenities } from "@/components/venue-detail/venue-amenities";
 import { VenueLocationMap } from "@/components/venue-detail/venue-location-map";
 import { VenueReviews } from "@/components/venue-detail/venue-reviews";
 import { CommunityEditBanner } from "@/components/venue-detail/community-edit-banner";
@@ -64,11 +63,6 @@ export default async function VenueDetailPage({
                 </div>
               </div>
             </section>
-
-            {/* Amenities */}
-            {venue.owner_amenities && venue.owner_amenities.length > 0 && (
-              <VenueAmenities amenities={venue.owner_amenities} />
-            )}
 
             {/* Menu */}
             <VenueMenuSection

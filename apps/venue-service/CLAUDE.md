@@ -40,7 +40,7 @@ NestJS HTTP microservice chạy ở **port 3003**. Xử lý toàn bộ logic qu�
 
 | File | Dùng cho |
 |------|----------|
-| `create-venue.dto.ts` | name, branch_name?, description?, address, city?, district?, latitude, longitude, total_capacity?, max_group_size?, is_group_friendly?, media?, opening_hours?, owner_amenities? |
+| `create-venue.dto.ts` | name, branch_name?, description?, address, city?, district?, latitude, longitude, total_capacity?, max_group_size?, is_group_friendly?, media?, opening_hours? |
 | `update-venue.dto.ts` | Tất cả fields optional (partial update) |
 
 ## Database Entities
@@ -68,7 +68,6 @@ Schema: `venue_schema`
 | current_crowd_level | enum | empty/moderate/crowded/full, default: moderate |
 | is_active | boolean | default: true (soft delete) |
 | opening_hours | jsonb | nullable |
-| owner_amenities | jsonb | nullable |
 | rating_avg | float | default: 0 |
 | review_count | int | default: 0 |
 | is_community_contributed | boolean | default: false — venue do cộng đồng đóng góp |

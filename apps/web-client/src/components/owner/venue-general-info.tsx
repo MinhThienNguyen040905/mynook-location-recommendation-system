@@ -3,20 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Info, Image as ImageIcon, CheckCircle, Trash2,
+  Info, Image as ImageIcon, Trash2,
   MapPin, Clock, Plus,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { getVenueById, updateVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Venue } from '@/types/venue';
-
-const ALL_AMENITIES = [
-  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
-  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
-  'Phòng họp', 'Bãi đỗ xe',
-];
 
 export function VenueGeneralInfo() {
   const searchParams = useSearchParams();
@@ -32,7 +25,6 @@ export function VenueGeneralInfo() {
     name: '',
     address: '',
     description: '',
-    owner_amenities: [] as string[],
     opening_hours: {} as Record<string, { open: string; close: string }>,
   });
 
@@ -48,7 +40,6 @@ export function VenueGeneralInfo() {
           name: v.name ?? '',
           address: v.address ?? '',
           description: v.description ?? '',
-          owner_amenities: v.owner_amenities ?? [],
           opening_hours: v.opening_hours ?? {},
         });
       })
@@ -61,10 +52,7 @@ export function VenueGeneralInfo() {
       <div className="space-y-8">
         <Skeleton className="h-64 rounded-3xl" />
         <Skeleton className="h-48 rounded-3xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Skeleton className="h-48 rounded-3xl" />
-          <Skeleton className="h-48 rounded-3xl" />
-        </div>
+        <Skeleton className="h-48 rounded-3xl" />
       </div>
     );
   }
@@ -78,15 +66,6 @@ export function VenueGeneralInfo() {
     );
   }
 
-  function toggleAmenity(name: string) {
-    setForm(prev => ({
-      ...prev,
-      owner_amenities: prev.owner_amenities.includes(name)
-        ? prev.owner_amenities.filter(a => a !== name)
-        : [...prev.owner_amenities, name],
-    }));
-  }
-
   async function handleSave() {
     if (!venueId) return;
     setSaving(true);
@@ -95,7 +74,6 @@ export function VenueGeneralInfo() {
         name: form.name,
         address: form.address,
         description: form.description,
-        owner_amenities: form.owner_amenities,
         opening_hours: form.opening_hours,
       });
       setVenue(updated);
@@ -141,7 +119,6 @@ export function VenueGeneralInfo() {
       name: venue.name ?? '',
       address: venue.address ?? '',
       description: venue.description ?? '',
-      owner_amenities: venue.owner_amenities ?? [],
       opening_hours: venue.opening_hours ?? {},
     });
   }
@@ -255,55 +232,27 @@ export function VenueGeneralInfo() {
         </div>
       </div>
 
-      {/* Amenities + Open Hours */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        {/* Amenities */}
-        <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
-            <CheckCircle className="text-primary size-5" /> Amenities
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {ALL_AMENITIES.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => toggleAmenity(name)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                  form.owner_amenities.includes(name)
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-white text-slate-500 border-slate-200 hover:border-primary/50'
-                )}
+      {/* Open Hours */}
+      <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
+        <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
+          <Clock className="text-primary size-5" /> Open Hours
+        </h3>
+        <div className="space-y-3">
+          {Object.keys(hours).length > 0 ? (
+            Object.entries(hours).map(([day, time]) => (
+              <div
+                key={day}
+                className="flex items-center justify-between p-3 rounded-xl bg-slate-50/50 border border-slate-100"
               >
-                {name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Open Hours */}
-        <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
-            <Clock className="text-primary size-5" /> Open Hours
-          </h3>
-          <div className="space-y-3">
-            {Object.keys(hours).length > 0 ? (
-              Object.entries(hours).map(([day, time]) => (
-                <div
-                  key={day}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50/50 border border-slate-100"
-                >
-                  <span className="text-sm font-bold text-slate-700 capitalize">{day}</span>
-                  <span className="text-sm font-medium text-primary">{time.open} – {time.close}</span>
-                </div>
-              ))
-            ) : (
-              <div className="py-6 text-center text-slate-400 text-sm">
-                Chưa thiết lập giờ mở cửa
+                <span className="text-sm font-bold text-slate-700 capitalize">{day}</span>
+                <span className="text-sm font-medium text-primary">{time.open} – {time.close}</span>
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="py-6 text-center text-slate-400 text-sm">
+              Chưa thiết lập giờ mở cửa
+            </div>
+          )}
         </div>
       </div>
 

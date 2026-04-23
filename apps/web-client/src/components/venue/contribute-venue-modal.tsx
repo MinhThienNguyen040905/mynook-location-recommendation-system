@@ -39,7 +39,6 @@ interface FormData {
   is_group_friendly: boolean;
   openTime: string;
   closeTime: string;
-  owner_amenities: string[];
   mediaItems: MediaItem[];
 }
 
@@ -48,14 +47,8 @@ const EMPTY_FORM: FormData = {
   description: '', latitude: 0, longitude: 0,
   total_capacity: '50', max_group_size: '10', is_group_friendly: false,
   openTime: '08:00', closeTime: '22:00',
-  owner_amenities: [], mediaItems: [],
+  mediaItems: [],
 };
-
-const AMENITIES = [
-  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
-  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
-  'Phòng họp', 'Bãi đỗ xe',
-];
 
 const STEPS = ['Thông tin quán', 'Vị trí', 'Chi tiết thêm'];
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
@@ -189,13 +182,6 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 
 /* ── Step 3: Chi tiết thêm ────────────────────────────────────── */
 function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
-  function toggleAmenity(a: string) {
-    const next = form.owner_amenities.includes(a)
-      ? form.owner_amenities.filter(x => x !== a)
-      : [...form.owner_amenities, a];
-    set({ owner_amenities: next });
-  }
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
@@ -232,23 +218,6 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
         <input type="checkbox" checked={form.is_group_friendly} onChange={e => set({ is_group_friendly: e.target.checked })} className="sr-only" />
         <span className="text-sm font-medium text-gray-700">Phù hợp cho nhóm đông</span>
       </label>
-
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tiện ích</label>
-        <div className="flex flex-wrap gap-1.5">
-          {AMENITIES.map(a => (
-            <button key={a} type="button" onClick={() => toggleAmenity(a)}
-              className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all',
-                form.owner_amenities.includes(a)
-                  ? 'bg-[#e9590c] text-white border-[#e9590c]'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-[#e9590c]/50'
-              )}>
-              {a}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -304,7 +273,6 @@ export function ContributeVenueModal({ onClose, onSuccess }: { onClose: () => vo
         is_group_friendly: form.is_group_friendly,
         media: mediaUrls.length > 0 ? mediaUrls : undefined,
         opening_hours,
-        owner_amenities: form.owner_amenities.length > 0 ? form.owner_amenities : undefined,
       };
 
       await createCommunityVenue(body);

@@ -73,9 +73,6 @@ export class Venue {
   @Column({ type: 'jsonb', nullable: true })
   opening_hours!: unknown | null;
 
-  @Column({ type: 'jsonb', nullable: true })
-  owner_amenities!: unknown | null;
-
   @Column({ type: 'text', nullable: true })
   menu_image_url!: string | null;
 

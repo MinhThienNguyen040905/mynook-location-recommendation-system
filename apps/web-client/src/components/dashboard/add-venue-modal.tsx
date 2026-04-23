@@ -41,7 +41,6 @@ interface FormData {
   is_group_friendly: boolean;
   openTime: string;
   closeTime: string;
-  owner_amenities: string[];
   mediaItems: MediaItem[];
 }
 
@@ -50,16 +49,10 @@ const EMPTY_FORM: FormData = {
   description: '', latitude: 0, longitude: 0,
   total_capacity: '50', max_group_size: '10', is_group_friendly: false,
   openTime: '08:00', closeTime: '22:00',
-  owner_amenities: [], mediaItems: [],
+  mediaItems: [],
 };
 
-const AMENITIES = [
-  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
-  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
-  'Phòng họp', 'Bãi đỗ xe',
-];
-
-const STEPS = ['Thông tin cơ bản', 'Vị trí & Sức chứa', 'Giờ mở cửa & Tiện ích', 'Xác nhận'];
+const STEPS = ['Thông tin cơ bản', 'Vị trí & Sức chứa', 'Giờ mở cửa', 'Xác nhận'];
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
 
 /* ── Step indicator ──────────────────────────────────────────── */
@@ -258,15 +251,8 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
   );
 }
 
-/* ── Step 3: Giờ mở cửa & Tiện ích ──────────────────────────── */
+/* ── Step 3: Giờ mở cửa ──────────────────────────────────────── */
 function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
-  function toggleAmenity(a: string) {
-    const next = form.owner_amenities.includes(a)
-      ? form.owner_amenities.filter(x => x !== a)
-      : [...form.owner_amenities, a];
-    set({ owner_amenities: next });
-  }
-
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
@@ -284,23 +270,6 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
         </div>
       </div>
       <p className="text-xs text-gray-400">Áp dụng cho tất cả các ngày. Bạn có thể chỉnh sửa chi tiết sau.</p>
-
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tiện ích của quán</label>
-        <div className="flex flex-wrap gap-2">
-          {AMENITIES.map(a => (
-            <button key={a} type="button" onClick={() => toggleAmenity(a)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                form.owner_amenities.includes(a)
-                  ? 'bg-nook-olive text-white border-nook-olive'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-nook-olive/50'
-              )}>
-              {a}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -315,7 +284,6 @@ function Step4({ form }: { form: FormData }) {
     ['Giờ mở cửa',    `${form.openTime} – ${form.closeTime}`],
     ['Sức chứa',      `${form.total_capacity} người (nhóm tối đa ${form.max_group_size})` ],
     ['Nhóm đông',     form.is_group_friendly ? 'Có' : 'Không'],
-    ['Tiện ích',      form.owner_amenities.join(', ') || '—'],
     ['Media',         form.mediaItems.length > 0 ? `${form.mediaItems.length} file` : '—'],
   ];
 
@@ -442,7 +410,6 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
         is_group_friendly: form.is_group_friendly,
         media: mediaUrls.length > 0 ? mediaUrls : undefined,
         opening_hours,
-        owner_amenities: form.owner_amenities.length > 0 ? form.owner_amenities : undefined,
       };
 
       await createVenue(body);

@@ -18,7 +18,6 @@ export interface Venue {
   current_crowd_level: CrowdLevel;
   is_active: boolean;
   opening_hours: Record<string, { open: string; close: string }> | null;
-  owner_amenities: string[] | null;
   menu_image_url: string | null;
   rating_avg: number;
   review_count: number;
@@ -42,7 +41,6 @@ export interface CreateVenueRequest {
   is_group_friendly?: boolean;
   media?: string[];
   opening_hours?: Record<string, { open: string; close: string }>;
-  owner_amenities?: string[];
 }
 
 export interface VenueSearchParams {
