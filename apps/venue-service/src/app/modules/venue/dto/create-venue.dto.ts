@@ -42,4 +42,15 @@ export class CreateVenueDto {
 
   @ApiPropertyOptional()
   opening_hours?: unknown;
+
+  @ApiPropertyOptional({
+    example: ['11111111-2222-3333-4444-555555555555'],
+    description: 'Category IDs to assign to this venue (M:N). First one becomes primary unless primary_category_id is provided.',
+  })
+  category_ids?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Optional: force this category id to be the primary one',
+  })
+  primary_category_id?: string;
 }

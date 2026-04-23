@@ -12,7 +12,8 @@ MyNook is a location review & discovery system built with **Nx monorepo** + **Ne
 - **api-gateway** (port 3001): the ONLY public HTTP entry point, prefixed `/api`. Forwards requests to microservices via HTTP (`@nestjs/axios`).
 - **4 microservices** (auth:3002, venue:3003, interaction:3004, search-ai:3005): NestJS HTTP apps, internal only (not exposed publicly in production).
 - Inter-service async events use RabbitMQ via `@mynook/rmq-messaging` (production).
-- **Hybrid Search**: search-ai-service combines pgvector semantic search + tag-based filtering + capacity/time filters.
+- **AI-powered Hybrid Search**: search-ai-service calls Groq per query to extract `{ intent, possible_name, categories, tags, excluded_tags, location, require_high_rating, time_context }`. Ranking combines pgvector cosine + matched-tag SUM + pg_trgm fuzzy name match + category boost + rating. LRU cache + single-flight protect against stampede.
+- **Venue Categories (M:N)**: `venue_schema.categories` is a master list (cafe, restaurant, hotpot, …) with synonyms. `venue_schema.venue_categories` joins it to venues. Categories are human-curated (owner/admin) and used by the AI search as hard filter (when Groq confidence=high) or boost. CRUD lives in venue-service; search-ai-service reads via cross-schema join.
 - **AI Review Processing**: interaction-service emits `venue.reviewed` → search-ai-service analyzes via Groq AI (Llama 3.3) → upserts VenueTag scores → callbacks AI analysis JSON.
 - **Community Venue Contribution**: Any logged-in user (customer or owner) can contribute venues via `POST /venues/community`. Community venues (`is_community_contributed = true`) have no owner and can be edited by anyone.
 - **Admin Console**: Mọi endpoint admin đặt dưới `/api/admin/*` ở api-gateway, bảo vệ bằng `JwtAuthGuard + AdminGuard` (yêu cầu `account.type = admin`). Admin quản lý accounts (khóa/mở), venues (CRUD + khôi phục + hard delete), reviews + reports (duyệt, xóa), broadcast notifications cho toàn user/owner/customer, và xem dashboard tổng hợp (`GET /api/admin/dashboard`) từ cả 3 microservices.
@@ -203,6 +204,23 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`type = admin`).
 | GET    | `/api/admin/venue-reports/:id` | Chi tiết venue report |
 | PATCH  | `/api/admin/venue-reports/:id/resolve` | Xử lý (`action: deactivate \| dismiss`) — deactivate sẽ soft-delete venue + bulk-resolve tất cả report của venue đó |
 | POST   | `/api/admin/notifications/broadcast` | Gửi thông báo tổng (`target: all \| customer \| owner` hoặc `account_ids[]`) |
+| GET    | `/api/admin/categories` | List tất cả venue categories (gồm inactive) |
+| POST   | `/api/admin/categories` | Tạo category mới (`key`, `display_name`, `synonyms[]`, ...) |
+| PATCH  | `/api/admin/categories/:id` | Cập nhật category |
+| DELETE | `/api/admin/categories/:id` | Xóa category |
+
+## Public Category Endpoints
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| GET    | `/api/categories` | List active venue categories (dùng cho venue form, search filter UI) |
+| GET    | `/api/categories/:id` | Chi tiết category |
+
+## Venue Create/Update with Categories
+
+Cả `POST /api/venues`, `POST /api/venues/community`, `PATCH /api/venues/:id`, `POST/PATCH /api/admin/venues` đều nhận thêm:
+- `category_ids: string[]` — M:N categories. Gửi `[]` khi update để xóa hết.
+- `primary_category_id?: string` — ép 1 category làm primary (mặc định: phần tử đầu tiên trong `category_ids`).
 
 ## User Report Endpoints
 

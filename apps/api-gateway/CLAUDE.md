@@ -52,13 +52,24 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 | `src/app/modules/interaction/review.controller.ts` | Proxy /reviews/* routes đến interaction-service |
 | `src/app/modules/search/search.controller.ts` | Proxy /search routes đến search-ai-service |
 | `src/app/modules/search/search.module.ts` | Search proxy module |
+| `src/app/modules/venue/category.controller.ts` | Public proxy `/categories/*` → venue-service |
+| `src/app/modules/admin/admin-category.controller.ts` | Admin proxy `/admin/categories/*` → venue-service (CRUD + list all) |
 
 ## Search Endpoints (route: /api/search/...)
 
 | Method | Path | Guard | Mô tả |
 |--------|------|-------|-------|
-| GET | `/api/search?q=...&limit=20` | JwtAuthGuard | Hybrid search (logged-in, search logged) |
-| GET | `/api/search/public?q=...&limit=20` | Public | Hybrid search (anonymous) |
+| GET | `/api/search?q=...&limit=20&offset=0&debug=0` | JwtAuthGuard | AI hybrid search (logged-in, search logged). `debug=1` trả `score_breakdown` cho dev |
+| GET | `/api/search/public?q=...&limit=20` | Public | AI hybrid search (anonymous) |
+
+Search pipeline: Groq extract intent/name/categories/tags/location → parallel với embedding → SQL hybrid (semantic + trigram name + matched-tags SUM + category boost + rating − excluded tags).
+
+## Category Endpoints (route: /api/categories/...)
+
+| Method | Path | Guard | Mô tả |
+|--------|------|-------|-------|
+| GET | `/api/categories` | Public | List active venue categories (dùng cho venue form + filter UI) |
+| GET | `/api/categories/:id` | Public | Chi tiết category |
 
 ## Venue Endpoints (route: /api/venues/...)
 
@@ -66,10 +77,10 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 |--------|------|-------|-------|
 | GET | `/api/venues` | Public | Lấy tất cả venues |
 | GET | `/api/venues/owner/my-venues` | JwtAuthGuard | Lấy venues của owner đang đăng nhập |
-| GET | `/api/venues/:id` | Public | Lấy chi tiết venue |
-| POST | `/api/venues` | JwtAuthGuard | Tạo venue mới (owner) |
+| GET | `/api/venues/:id` | Public | Lấy chi tiết venue (kèm `categories[]`) |
+| POST | `/api/venues` | JwtAuthGuard | Tạo venue mới (owner) — body hỗ trợ `category_ids[]`, `primary_category_id?` |
 | POST | `/api/venues/community` | JwtAuthGuard | Tạo venue đóng góp từ cộng đồng (customer/owner) |
-| PATCH | `/api/venues/:id` | JwtAuthGuard | Cập nhật venue (owner hoặc community venue) |
+| PATCH | `/api/venues/:id` | JwtAuthGuard | Cập nhật venue (gửi `category_ids: []` để xóa hết) |
 | DELETE | `/api/venues/:id` | JwtAuthGuard | Xóa venue (soft delete) |
 
 ## Review Endpoints (route: /api/reviews/...)
@@ -116,6 +127,10 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`user.type === 'admin'`).
 | GET    | `/api/admin/venue-reports/:id` | Chi tiết venue report |
 | PATCH  | `/api/admin/venue-reports/:id/resolve` | Xử lý venue report (`{ action: 'deactivate' \| 'dismiss' }`) — `deactivate` sẽ orchestrate: soft-delete venue (venue-service) rồi bulk-resolve tất cả report pending của venue |
 | POST   | `/api/admin/notifications/broadcast` | Gửi thông báo tổng (`target: 'all' \| 'customer' \| 'owner'` hoặc `account_ids[]`) |
+| GET    | `/api/admin/categories` | List tất cả venue categories (active + inactive) |
+| POST   | `/api/admin/categories` | Tạo venue category (`key`, `display_name`, `synonyms[]`, `description?`, `display_order?`, `is_active?`) |
+| PATCH  | `/api/admin/categories/:id` | Cập nhật venue category |
+| DELETE | `/api/admin/categories/:id` | Xóa venue category |
 
 ## Pattern chuẩn — Route cần auth
 

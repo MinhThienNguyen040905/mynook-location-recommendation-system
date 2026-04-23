@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Venue } from '@mynook/database';
 import { VenueController } from './venue.controller.js';
 import { VenueService } from './venue.service.js';
+import { CategoryModule } from '../category/category.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Venue])],
+  imports: [TypeOrmModule.forFeature([Venue]), CategoryModule],
   controllers: [VenueController],
   providers: [VenueService],
   exports: [VenueService],

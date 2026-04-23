@@ -6,6 +6,7 @@ import { AdminReviewController } from './admin-review.controller.js';
 import { AdminVenueReportController } from './admin-venue-report.controller.js';
 import { AdminNotificationController } from './admin-notification.controller.js';
 import { AdminDashboardController } from './admin-dashboard.controller.js';
+import { AdminCategoryController } from './admin-category.controller.js';
 
 @Module({
   imports: [HttpModule],
@@ -16,6 +17,7 @@ import { AdminDashboardController } from './admin-dashboard.controller.js';
     AdminVenueReportController,
     AdminNotificationController,
     AdminDashboardController,
+    AdminCategoryController,
   ],
 })
 export class AdminModule {}

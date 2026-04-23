@@ -8,12 +8,14 @@ import { Repository } from 'typeorm';
 import { Venue } from '@mynook/database';
 import { CreateVenueDto } from './dto/create-venue.dto.js';
 import { UpdateVenueDto } from './dto/update-venue.dto.js';
+import { CategoryService } from '../category/category.service.js';
 
 @Injectable()
 export class VenueService {
   constructor(
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,
+    private readonly categoryService: CategoryService,
   ) {}
 
   /** Lấy tất cả venues đang active */
@@ -44,20 +46,30 @@ export class VenueService {
     });
   }
 
-  /** Lấy chi tiết venue theo ID */
-  async findById(id: string): Promise<Venue> {
+  /** Lấy chi tiết venue theo ID (kèm categories) */
+  async findById(id: string): Promise<Venue & { categories: unknown[] }> {
     const venue = await this.venueRepo.findOne({ where: { id } });
     if (!venue) throw new NotFoundException('Venue not found');
-    return venue;
+    const categories = await this.categoryService.getCategoriesForVenue(id);
+    return Object.assign(venue, { categories });
   }
 
   /** Tạo venue mới (owner — venue thuộc quyền quản lý của owner) */
   async create(ownerId: string, dto: CreateVenueDto): Promise<Venue> {
+    const { category_ids, primary_category_id, ...venueDto } = dto;
     const venue = this.venueRepo.create({
-      ...dto,
+      ...venueDto,
       owner_id: ownerId,
     });
-    return this.venueRepo.save(venue);
+    const saved = await this.venueRepo.save(venue);
+    if (category_ids && category_ids.length > 0) {
+      await this.categoryService.setCategoriesForVenue(
+        saved.id,
+        category_ids,
+        primary_category_id,
+      );
+    }
+    return saved;
   }
 
   /**
@@ -69,13 +81,22 @@ export class VenueService {
     contributorId: string,
     dto: CreateVenueDto,
   ): Promise<Venue> {
+    const { category_ids, primary_category_id, ...venueDto } = dto;
     const venue = this.venueRepo.create({
-      ...dto,
-      owner_id: contributorId, // placeholder — not a real owner
+      ...venueDto,
+      owner_id: contributorId,
       is_community_contributed: true,
       contributed_by: contributorId,
     });
-    return this.venueRepo.save(venue);
+    const saved = await this.venueRepo.save(venue);
+    if (category_ids && category_ids.length > 0) {
+      await this.categoryService.setCategoriesForVenue(
+        saved.id,
+        category_ids,
+        primary_category_id,
+      );
+    }
+    return saved;
   }
 
   /**
@@ -88,19 +109,32 @@ export class VenueService {
     userId: string,
     dto: UpdateVenueDto,
   ): Promise<Venue> {
-    const venue = await this.findById(venueId);
+    const venue = await this.venueRepo.findOne({ where: { id: venueId } });
+    if (!venue) throw new NotFoundException('Venue not found');
 
     if (!venue.is_community_contributed && venue.owner_id !== userId) {
       throw new ForbiddenException('You do not own this venue');
     }
 
-    Object.assign(venue, dto);
-    return this.venueRepo.save(venue);
+    const { category_ids, primary_category_id, ...venueDto } = dto;
+    Object.assign(venue, venueDto);
+    const saved = await this.venueRepo.save(venue);
+
+    // category_ids = [] → clear all; undefined → leave alone
+    if (category_ids !== undefined) {
+      await this.categoryService.setCategoriesForVenue(
+        venueId,
+        category_ids,
+        primary_category_id,
+      );
+    }
+    return saved;
   }
 
   /** Xóa mềm venue (set is_active = false) — chỉ owner hoặc admin */
   async remove(venueId: string, ownerId: string): Promise<void> {
-    const venue = await this.findById(venueId);
+    const venue = await this.venueRepo.findOne({ where: { id: venueId } });
+    if (!venue) throw new NotFoundException('Venue not found');
     if (venue.owner_id !== ownerId) {
       throw new ForbiddenException('You do not own this venue');
     }

@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { Venue } from '@mynook/database';
 import { CreateVenueDto } from '../venue/dto/create-venue.dto.js';
 import { UpdateVenueDto } from '../venue/dto/update-venue.dto.js';
+import { CategoryService } from '../category/category.service.js';
 
 export interface ListVenuesQuery {
   is_active?: boolean;
@@ -23,6 +24,7 @@ export class AdminVenueService {
   constructor(
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,
+    private readonly categoryService: CategoryService,
   ) {}
 
   async list(query: ListVenuesQuery) {
@@ -58,18 +60,36 @@ export class AdminVenueService {
   }
 
   async create(adminId: string, dto: CreateVenueDto) {
+    const { category_ids, primary_category_id, ...venueDto } = dto;
     const venue = this.venueRepo.create({
-      ...dto,
+      ...venueDto,
       owner_id: adminId,
     });
-    return this.venueRepo.save(venue);
+    const saved = await this.venueRepo.save(venue);
+    if (category_ids && category_ids.length > 0) {
+      await this.categoryService.setCategoriesForVenue(
+        saved.id,
+        category_ids,
+        primary_category_id,
+      );
+    }
+    return saved;
   }
 
   async update(id: string, dto: UpdateVenueDto) {
     const venue = await this.venueRepo.findOne({ where: { id } });
     if (!venue) throw new NotFoundException('Venue not found');
-    Object.assign(venue, dto);
-    return this.venueRepo.save(venue);
+    const { category_ids, primary_category_id, ...venueDto } = dto;
+    Object.assign(venue, venueDto);
+    const saved = await this.venueRepo.save(venue);
+    if (category_ids !== undefined) {
+      await this.categoryService.setCategoriesForVenue(
+        id,
+        category_ids,
+        primary_category_id,
+      );
+    }
+    return saved;
   }
 
   async softDelete(id: string) {

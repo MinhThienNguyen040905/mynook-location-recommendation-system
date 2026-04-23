@@ -42,4 +42,13 @@ export class UpdateVenueDto {
 
   @ApiPropertyOptional()
   opening_hours?: unknown;
+
+  @ApiPropertyOptional({
+    example: ['11111111-2222-3333-4444-555555555555'],
+    description: 'Replace the venue categories. Send empty array to clear.',
+  })
+  category_ids?: string[];
+
+  @ApiPropertyOptional()
+  primary_category_id?: string;
 }

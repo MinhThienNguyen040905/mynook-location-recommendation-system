@@ -39,6 +39,15 @@ export class GatewayCreateVenueDto {
 
   @ApiPropertyOptional()
   opening_hours?: unknown;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Category IDs to attach to this venue (M:N). First becomes primary unless primary_category_id provided.',
+  })
+  category_ids?: string[];
+
+  @ApiPropertyOptional({ description: 'Force a specific category as primary' })
+  primary_category_id?: string;
 }
 
 export class GatewayUpdateVenueDto {
@@ -80,4 +89,10 @@ export class GatewayUpdateVenueDto {
 
   @ApiPropertyOptional()
   opening_hours?: unknown;
+
+  @ApiPropertyOptional({ type: [String] })
+  category_ids?: string[];
+
+  @ApiPropertyOptional()
+  primary_category_id?: string;
 }
