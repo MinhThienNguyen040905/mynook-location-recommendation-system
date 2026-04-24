@@ -9,14 +9,20 @@ import {
   QueryExtractionService,
 } from './query-extraction.service.js';
 import { CategoryTagProviderService } from './category-tag-provider.service.js';
+import { LocationResolverService } from './location-resolver.service.js';
 
 export interface SearchResult {
   id: string;
   name: string;
   branch_name: string | null;
   description: string | null;
+  /** Composed display address: "<address_line>, <ward>, <district>, <city>" */
   address: string;
-  city: string;
+  address_line: string | null;
+  ward: string | null;
+  city_id: string | null;
+  city: string | null;
+  district_id: string | null;
   district: string | null;
   latitude: number;
   longitude: number;
@@ -30,6 +36,8 @@ export interface SearchResult {
   relevance_score: number;
   vector_distance: number | null;
   name_score: number;
+  /** Metres from query location — only set when user provided coords */
+  distance_m: number | null;
   matched_tags: string[];
   matched_categories: string[];
   /** Present only when debug=true */
@@ -42,6 +50,7 @@ interface ScoreBreakdown {
   name: number;
   category_match: number;
   rating: number;
+  location: number;
   strategy: string;
 }
 
@@ -52,9 +61,23 @@ interface SearchStrategy {
   tagW: number;
   categoryBoost: number;
   ratingW: number;
+  locationW: number;
   applyCategoryHardFilter: boolean;
   applyRatingHardFilter: boolean;
   minNameScore: number | null;
+}
+
+export interface HybridSearchOptions {
+  query: string;
+  accountId?: string;
+  limit?: number;
+  offset?: number;
+  debug?: boolean;
+  /** Optional GPS from the caller; enables distance ranking + "nearby" boost */
+  userLat?: number;
+  userLng?: number;
+  /** If set, restrict to venues within this many metres of the user point */
+  maxDistanceM?: number;
 }
 
 @Injectable()
@@ -69,49 +92,53 @@ export class VenueSearchService {
     private readonly embedding: EmbeddingService,
     private readonly queryExtractor: QueryExtractionService,
     private readonly provider: CategoryTagProviderService,
+    private readonly locationResolver: LocationResolverService,
     @InjectRepository(SearchLog)
     private readonly searchLogRepo: Repository<SearchLog>,
   ) {}
 
-  async hybridSearch(
-    rawQuery: string,
-    accountId?: string,
-    limit = 20,
-    offset = 0,
-    debug = false,
-  ): Promise<SearchResult[]> {
-    const trimmed = rawQuery.trim();
+  async hybridSearch(opts: HybridSearchOptions): Promise<SearchResult[]> {
+    const {
+      query,
+      accountId,
+      limit = 20,
+      offset = 0,
+      debug = false,
+      userLat,
+      userLng,
+      maxDistanceM,
+    } = opts;
+
+    const trimmed = query.trim();
     if (trimmed.length < 2) return [];
 
-    // 1. Fast regex parse (capacity + time)
     const parsed = this.parser.parse(trimmed);
 
-    // 2. Kick off Groq extraction and embedding IN PARALLEL
     const [extraction, embedResult] = await Promise.all([
       this.queryExtractor.extract(trimmed),
       this.safeEmbed(parsed.cleanQuery || trimmed),
     ]);
 
-    // 3. Merge time context (regex wins, then Groq fallback)
     const timeContext = parsed.timeContext ?? extraction.time_context;
 
-    // 4. Resolve keys → ids for SQL
-    const [matchedCategoryIds, matchedTagIds, excludedTagIds] = await Promise.all([
-      this.provider.resolveCategoryIds(extraction.categories),
-      this.provider.resolveTagIds(extraction.tags),
-      this.provider.resolveTagIds(extraction.excluded_tags),
-    ]);
+    // Resolve extracted text location → exact ids (parallel with other lookups)
+    const [matchedCategoryIds, matchedTagIds, excludedTagIds, resolvedLocation] =
+      await Promise.all([
+        this.provider.resolveCategoryIds(extraction.categories),
+        this.provider.resolveTagIds(extraction.tags),
+        this.provider.resolveTagIds(extraction.excluded_tags),
+        this.locationResolver.resolve(extraction.location),
+      ]);
 
-    // 5. Pick strategy by intent
-    const strategy = this.buildStrategy(extraction);
+    const strategy = this.buildStrategy(extraction, userLat !== undefined);
 
     this.logger.log(
       `q="${trimmed}" intent=${extraction.intent} conf=${extraction.confidence} ` +
         `name="${extraction.possible_name ?? ''}" cats=${extraction.categories.length} ` +
-        `tags=${extraction.tags.length} excl=${extraction.excluded_tags.length}`,
+        `tags=${extraction.tags.length} excl=${extraction.excluded_tags.length} ` +
+        `city=${resolvedLocation.city_id ?? '-'} dist=${resolvedLocation.district_id ?? '-'}`,
     );
 
-    // 6. Execute query — retry with relaxed strategy if too few results
     let results = await this.executeHybridQuery({
       cleanQuery: parsed.cleanQuery || trimmed,
       queryVector: embedResult,
@@ -122,6 +149,11 @@ export class VenueSearchService {
       matchedCategoryIds,
       matchedTagIds,
       excludedTagIds,
+      cityId: resolvedLocation.city_id,
+      districtId: resolvedLocation.district_id,
+      userLat,
+      userLng,
+      maxDistanceM,
       limit,
       offset,
       debug,
@@ -152,21 +184,34 @@ export class VenueSearchService {
         matchedCategoryIds,
         matchedTagIds,
         excludedTagIds,
+        cityId: resolvedLocation.city_id,
+        districtId: resolvedLocation.district_id,
+        userLat,
+        userLng,
+        maxDistanceM,
         limit,
         offset,
         debug,
       });
     }
 
-    // 7. Log search (fire-and-forget)
-    this.logSearch(trimmed, parsed, extraction, accountId).catch(() => {});
+    this.logSearch(trimmed, parsed, extraction, resolvedLocation, accountId).catch(
+      () => {},
+    );
 
     return results;
   }
 
   // ── Strategy selection ───────────────────────────────────────────
 
-  private buildStrategy(ext: ExtractedQuery): SearchStrategy {
+  private buildStrategy(
+    ext: ExtractedQuery,
+    hasUserCoords: boolean,
+  ): SearchStrategy {
+    // When user provides GPS coords, reserve ~0.1 weight for distance ranking
+    // by stealing from semantic. Without coords, locationW stays 0.
+    const locationW = hasUserCoords ? 0.1 : 0;
+
     switch (ext.intent) {
       case 'name':
         return {
@@ -175,7 +220,8 @@ export class VenueSearchService {
           semW: 0.1,
           tagW: 0.1,
           categoryBoost: 0,
-          ratingW: 0.1,
+          ratingW: 0.1 - locationW,
+          locationW,
           applyCategoryHardFilter: false,
           applyRatingHardFilter: ext.require_high_rating,
           minNameScore: 0.3,
@@ -184,10 +230,11 @@ export class VenueSearchService {
         return {
           name: 'attribute',
           nameW: 0,
-          semW: 0.4,
+          semW: 0.4 - locationW,
           tagW: 0.4,
           categoryBoost: 0.1,
           ratingW: 0.1,
+          locationW,
           applyCategoryHardFilter:
             ext.confidence === 'high' && ext.categories.length > 0,
           applyRatingHardFilter: ext.require_high_rating,
@@ -197,10 +244,11 @@ export class VenueSearchService {
         return {
           name: 'mixed',
           nameW: 0.4,
-          semW: 0.2,
+          semW: 0.2 - locationW,
           tagW: 0.2,
           categoryBoost: 0.1,
           ratingW: 0.1,
+          locationW,
           applyCategoryHardFilter: false,
           applyRatingHardFilter: ext.require_high_rating,
           minNameScore: null,
@@ -210,10 +258,11 @@ export class VenueSearchService {
         return {
           name: 'unclear',
           nameW: 0.2,
-          semW: 0.5,
+          semW: 0.5 - locationW,
           tagW: 0.2,
           categoryBoost: 0,
           ratingW: 0.1,
+          locationW,
           applyCategoryHardFilter: false,
           applyRatingHardFilter: false,
           minNameScore: null,
@@ -243,6 +292,11 @@ export class VenueSearchService {
     matchedCategoryIds: string[];
     matchedTagIds: string[];
     excludedTagIds: string[];
+    cityId: string | null;
+    districtId: string | null;
+    userLat?: number;
+    userLng?: number;
+    maxDistanceM?: number;
     limit: number;
     offset: number;
     debug: boolean;
@@ -257,6 +311,11 @@ export class VenueSearchService {
       matchedCategoryIds,
       matchedTagIds,
       excludedTagIds,
+      cityId,
+      districtId,
+      userLat,
+      userLng,
+      maxDistanceM,
       limit,
       offset,
       debug,
@@ -270,7 +329,7 @@ export class VenueSearchService {
       return `$${idx}`;
     };
 
-    // Semantic score expression — NULL-safe (0 when venue has no embedding)
+    // Semantic score expression — NULL-safe
     let semanticExpr = '0';
     let vectorDistExpr = 'NULL::float';
     if (queryVector) {
@@ -279,8 +338,7 @@ export class VenueSearchService {
       semanticExpr = `CASE WHEN v.embedding IS NULL THEN 0 ELSE (1 - LEAST(v.embedding <=> ${vec}::vector, 1.0)) END`;
     }
 
-    // Matched-tag score — SUM only of tags the query actually mentions.
-    // Optionally filtered by time_frame (fall back to ALL_DAY).
+    // Matched-tag score — SUM only of tags the query mentions, time-frame filtered
     let matchedTagScoreExpr = '0';
     if (matchedTagIds.length > 0) {
       const tagIdsParam = p(matchedTagIds);
@@ -300,7 +358,7 @@ export class VenueSearchService {
       )`;
     }
 
-    // Excluded-tag penalty — sum of scores for negated tags (subtracted later)
+    // Excluded-tag penalty
     let excludedTagPenaltyExpr = '0';
     if (excludedTagIds.length > 0) {
       const exIdsParam = p(excludedTagIds);
@@ -313,7 +371,7 @@ export class VenueSearchService {
       )`;
     }
 
-    // Category match flag
+    // Category match flag (boost)
     let categoryMatchExpr = '0';
     if (matchedCategoryIds.length > 0) {
       const catIdsParam = p(matchedCategoryIds);
@@ -325,7 +383,7 @@ export class VenueSearchService {
       )`;
     }
 
-    // Matched category keys (return in result for UI)
+    // Matched category keys (display)
     const matchedCategoriesExpr = `(
       SELECT COALESCE(array_agg(c.key), ARRAY[]::text[])
       FROM venue_schema.venue_categories vc
@@ -333,9 +391,7 @@ export class VenueSearchService {
       WHERE vc.venue_id = v.id
     )`;
 
-    // Matched tag keys for display — re-push ids as a separate param to
-    // keep the subquery self-contained (avoids off-by-one bugs when
-    // reusing earlier param indexes).
+    // Matched tag keys for display (self-contained param)
     let matchedTagsKeysExpr = `ARRAY[]::text[]`;
     if (matchedTagIds.length > 0) {
       const tagIdsForKeys = p(matchedTagIds);
@@ -349,9 +405,7 @@ export class VenueSearchService {
       )`;
     }
 
-    // Name similarity — pg_trgm + f_unaccent wrapper (IMMUTABLE).
-    // The same wrapper must be used on both sides so the planner can pick
-    // the GIN expression indexes defined in migration 007.
+    // Name similarity via f_unaccent wrapper (matches GIN index)
     let nameScoreExpr = '0';
     const name = extraction.possible_name;
     if (name) {
@@ -362,7 +416,18 @@ export class VenueSearchService {
       )`;
     }
 
-    // Normalized tag score — cap at 1.0 so it doesn't dominate
+    // Distance score: 1 at the user point, → 0 at 5km. Only when coords provided.
+    let distanceScoreExpr = '0';
+    let distanceMExpr = 'NULL::float';
+    if (userLat !== undefined && userLng !== undefined) {
+      const uLng = p(userLng);
+      const uLat = p(userLat);
+      const userPoint = `ST_SetSRID(ST_MakePoint(${uLng}, ${uLat}), 4326)::geography`;
+      distanceMExpr = `CASE WHEN v.location IS NULL THEN NULL ELSE ST_Distance(v.location, ${userPoint}) END`;
+      // Exponential decay: 1 / (1 + d / 1500) so ~0.5 at 1.5km, ~0.23 at 5km
+      distanceScoreExpr = `CASE WHEN v.location IS NULL THEN 0 ELSE 1.0 / (1.0 + (ST_Distance(v.location, ${userPoint}) / 1500.0)) END`;
+    }
+
     const normTagScore = `LEAST((${matchedTagScoreExpr}) / 3.0, 1.0)`;
     const normExcluded = `LEAST((${excludedTagPenaltyExpr}) / 3.0, 1.0)`;
 
@@ -372,6 +437,7 @@ export class VenueSearchService {
       + ${strategy.nameW} * (${nameScoreExpr})
       + ${strategy.categoryBoost} * (${categoryMatchExpr})
       + ${strategy.ratingW} * (v.rating_avg / 5.0)
+      + ${strategy.locationW} * (${distanceScoreExpr})
       - 0.15 * (${normExcluded})
     )`;
 
@@ -380,9 +446,12 @@ export class VenueSearchService {
       'v.is_active = true',
       `v.current_crowd_level != 'full'`,
     ];
-    if (minCapacity) {
-      where.push(`v.max_group_size >= ${p(minCapacity)}`);
-    }
+    if (minCapacity) where.push(`v.max_group_size >= ${p(minCapacity)}`);
+
+    // Location hard filters — EXACT match via FK now that we resolved IDs
+    if (cityId) where.push(`v.city_id = ${p(cityId)}`);
+    if (districtId) where.push(`v.district_id = ${p(districtId)}`);
+
     if (strategy.applyCategoryHardFilter && matchedCategoryIds.length > 0) {
       const catIdsHard = p(matchedCategoryIds);
       where.push(`EXISTS (
@@ -397,20 +466,29 @@ export class VenueSearchService {
       where.push(`(${nameScoreExpr}) >= ${p(strategy.minNameScore)}`);
     }
 
-    // Location filters — soft ILIKE (boosted inside score via semantic anyway)
-    if (extraction.location.city) {
-      where.push(`v.city ILIKE ${p(`%${extraction.location.city}%`)}`);
-    }
-    if (extraction.location.district) {
+    // Street-level trigram fuzzy match on address_line (uses idx_venues_address_line_trgm)
+    if (extraction.location.street) {
+      const street = p(extraction.location.street.toLowerCase());
       where.push(
-        `(v.district ILIKE ${p(`%${extraction.location.district}%`)} OR v.address ILIKE ${p(`%${extraction.location.district}%`)})`,
+        `public.f_unaccent(lower(coalesce(v.address_line, ''))) ILIKE '%' || public.f_unaccent(${street}) || '%'`,
       );
     }
-    if (extraction.location.street) {
-      where.push(`v.address ILIKE ${p(`%${extraction.location.street}%`)}`);
+
+    // Bounding-box max distance filter
+    if (
+      userLat !== undefined &&
+      userLng !== undefined &&
+      maxDistanceM !== undefined
+    ) {
+      const uLng2 = p(userLng);
+      const uLat2 = p(userLat);
+      const maxD = p(maxDistanceM);
+      where.push(
+        `ST_DWithin(v.location, ST_SetSRID(ST_MakePoint(${uLng2}, ${uLat2}), 4326)::geography, ${maxD})`,
+      );
     }
 
-    // Pure-text fallback when embedding failed and no name was extracted
+    // Pure-text fallback only when we have nothing else
     if (!queryVector && !name && cleanQuery.length >= 2) {
       const likeParam = p(`%${cleanQuery}%`);
       where.push(
@@ -423,19 +501,28 @@ export class VenueSearchService {
 
     const sql = `
       SELECT
-        v.id, v.name, v.branch_name, v.description, v.address, v.city, v.district,
-        v.latitude, v.longitude, v.media, v.max_group_size, v.is_group_friendly,
+        v.id, v.name, v.branch_name, v.description,
+        v.address_line, v.ward,
+        v.city_id, v.district_id,
+        city.name AS city_name,
+        district.name AS district_name,
+        v.latitude, v.longitude, v.media,
+        v.max_group_size, v.is_group_friendly,
         v.current_crowd_level, v.rating_avg, v.review_count, v.opening_hours,
         ${vectorDistExpr} AS vector_distance,
+        ${distanceMExpr} AS distance_m,
         (${semanticExpr}) AS d_semantic,
         (${normTagScore}) AS d_tag,
         (${nameScoreExpr}) AS d_name,
         (${categoryMatchExpr})::float AS d_cat,
         (v.rating_avg / 5.0) AS d_rating,
+        (${distanceScoreExpr}) AS d_loc,
         ${combinedScore} AS relevance_score,
         ${matchedTagsKeysExpr} AS matched_tags,
         ${matchedCategoriesExpr} AS matched_categories
       FROM venue_schema.venues v
+      LEFT JOIN venue_schema.cities city ON city.id = v.city_id
+      LEFT JOIN venue_schema.districts district ON district.id = v.district_id
       WHERE ${where.join(' AND ')}
       ORDER BY relevance_score DESC
       LIMIT ${limitParam} OFFSET ${offsetParam}
@@ -444,14 +531,26 @@ export class VenueSearchService {
     const rows = await this.dataSource.query(sql, params);
 
     return rows.map((row: Record<string, unknown>) => {
+      const city = (row['city_name'] as string | null) ?? null;
+      const district = (row['district_name'] as string | null) ?? null;
+      const addressLine = (row['address_line'] as string | null) ?? null;
+      const ward = (row['ward'] as string | null) ?? null;
+      const address = [addressLine, ward, district, city]
+        .filter((s) => !!s)
+        .join(', ');
+
       const r: SearchResult = {
         id: row['id'] as string,
         name: row['name'] as string,
         branch_name: row['branch_name'] as string | null,
         description: row['description'] as string | null,
-        address: row['address'] as string,
-        city: row['city'] as string,
-        district: row['district'] as string | null,
+        address,
+        address_line: addressLine,
+        ward,
+        city_id: (row['city_id'] as string | null) ?? null,
+        city,
+        district_id: (row['district_id'] as string | null) ?? null,
+        district,
         latitude: row['latitude'] as number,
         longitude: row['longitude'] as number,
         media: row['media'] as unknown[],
@@ -467,6 +566,10 @@ export class VenueSearchService {
             ? parseFloat(String(row['vector_distance']))
             : null,
         name_score: parseFloat(String(row['d_name'])) || 0,
+        distance_m:
+          row['distance_m'] !== null && row['distance_m'] !== undefined
+            ? parseFloat(String(row['distance_m']))
+            : null,
         matched_tags: (row['matched_tags'] as string[]) || [],
         matched_categories: (row['matched_categories'] as string[]) || [],
       };
@@ -477,6 +580,7 @@ export class VenueSearchService {
           name: parseFloat(String(row['d_name'])) || 0,
           category_match: parseFloat(String(row['d_cat'])) || 0,
           rating: parseFloat(String(row['d_rating'])) || 0,
+          location: parseFloat(String(row['d_loc'])) || 0,
           strategy: strategy.name,
         };
       }
@@ -488,6 +592,7 @@ export class VenueSearchService {
     rawQuery: string,
     parsed: { cleanQuery: string; capacity: number | null; timeContext: TimeContext | null },
     extraction: ExtractedQuery,
+    resolved: { city_id: string | null; district_id: string | null },
     accountId?: string,
   ): Promise<void> {
     try {
@@ -503,7 +608,9 @@ export class VenueSearchService {
           categories: extraction.categories,
           tags: extraction.tags,
           excluded_tags: extraction.excluded_tags,
-          location: extraction.location,
+          location_text: extraction.location,
+          resolved_city_id: resolved.city_id,
+          resolved_district_id: resolved.district_id,
           require_high_rating: extraction.require_high_rating,
           confidence: extraction.confidence,
         },

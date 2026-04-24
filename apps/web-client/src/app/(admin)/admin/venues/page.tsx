@@ -13,6 +13,7 @@ import {
   type ListAdminVenuesParams,
 } from '@/lib/api/admin';
 import type { Venue } from '@/types/venue';
+import { formatAddress, formatShortAddress } from '@/lib/utils';
 
 type Tab = 'active' | 'inactive';
 
@@ -166,7 +167,7 @@ export default function AdminVenuesPage() {
               <div className="p-5 flex-1 flex flex-col">
                 <h3 className="font-bold text-slate-800 text-base mb-1 leading-snug line-clamp-1">{v.name}</h3>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3">
-                  <MapPin size={11} /> {v.district ? `${v.district}, ` : ''}{v.city}
+                  <MapPin size={11} /> {formatShortAddress(v) || '—'}
                 </div>
                 <p className="text-xs text-slate-500 line-clamp-2 mb-4 flex-1">
                   {v.description || <span className="italic text-slate-300">Không có mô tả</span>}
@@ -265,7 +266,7 @@ export default function AdminVenuesPage() {
                 <h2 className="text-xl font-bold text-slate-800 mb-1">{preview.name}</h2>
                 {preview.branch_name && <p className="text-sm text-slate-500 mb-2">Chi nhánh: {preview.branch_name}</p>}
                 <div className="flex items-center gap-3 text-sm text-slate-500 mb-3">
-                  <span className="flex items-center gap-1"><MapPin size={13} />{preview.address}</span>
+                  <span className="flex items-center gap-1"><MapPin size={13} />{formatAddress(preview) || '—'}</span>
                 </div>
                 <p className="text-sm text-slate-600 leading-relaxed mb-4">
                   {preview.description || <span className="italic text-slate-400">Không có mô tả</span>}

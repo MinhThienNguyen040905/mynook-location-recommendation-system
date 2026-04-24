@@ -27,12 +27,19 @@ export interface VenuesStats {
     id: string;
     name: string;
     district: string | null;
-    city: string;
+    city: string | null;
     rating_avg: number;
     review_count: number;
-    current_crowd_level: string;
+    current_crowd_level?: string;
   }>;
-  popular_areas: Array<{ district: string | null; city: string; venue_count: number }>;
+  popular_areas: Array<{
+    district_id?: string;
+    district: string | null;
+    city_id?: string;
+    city: string | null;
+    count: number;
+    avg_rating?: number;
+  }>;
 }
 
 export interface InteractionStats {

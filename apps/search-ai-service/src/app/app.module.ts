@@ -9,6 +9,8 @@ import {
   MenuItem,
   Category,
   VenueCategory,
+  City,
+  District,
 } from '@mynook/database';
 import { SearchModule } from './modules/search/search.module.js';
 import { ReviewProcessingModule } from './modules/review-processing/review-processing.module.js';
@@ -26,6 +28,8 @@ import { TagModule } from './modules/tag/tag.module.js';
         MenuItem,
         Category,
         VenueCategory,
+        City,
+        District,
       ],
     }),
     SearchModule,

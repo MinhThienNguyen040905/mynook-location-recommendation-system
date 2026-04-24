@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MapPin, Star } from "lucide-react";
+import { formatAddress } from "@/lib/utils";
 import type { Venue } from "@/types/venue";
 
 const CROWD_CONFIG: Record<string, { label: string; percent: number; color: string }> = {
@@ -11,7 +12,7 @@ const CROWD_CONFIG: Record<string, { label: string; percent: number; color: stri
 
 export function VenueHeader({ venue }: { venue: Venue }) {
   const crowd = CROWD_CONFIG[venue.current_crowd_level] ?? CROWD_CONFIG.moderate;
-  const fullAddress = `${venue.address}${venue.district ? `, ${venue.district}` : ""}, ${venue.city}`;
+  const fullAddress = formatAddress(venue);
 
   return (
     <div className="mb-8">

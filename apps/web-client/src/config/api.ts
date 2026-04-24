@@ -118,6 +118,20 @@ export const API_ENDPOINTS = {
     LIST: '/tags',
   },
 
+  // Locations (cities / districts — public read, admin CRUD)
+  LOCATIONS: {
+    CITIES: '/cities',
+    CITY_DETAIL: (id: string) => `/cities/${id}`,
+    DISTRICTS: '/districts',
+    DISTRICT_DETAIL: (id: string) => `/districts/${id}`,
+  },
+
+  // Categories (venue types — public read)
+  CATEGORIES: {
+    LIST: '/categories',
+    DETAIL: (id: string) => `/categories/${id}`,
+  },
+
   // Upload
   UPLOAD: '/upload',
 } as const;

@@ -8,8 +8,31 @@ import {
 } from 'lucide-react';
 import { getVenueById, updateVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
+import { listCities, listDistricts } from '@/lib/api/locations';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Venue } from '@/types/venue';
+import type { City, District, Venue } from '@/types/venue';
+
+interface FormState {
+  name: string;
+  address_line: string;
+  ward: string;
+  city_id: string;
+  district_id: string;
+  description: string;
+  opening_hours: Record<string, { open: string; close: string }>;
+}
+
+function formFromVenue(v: Venue): FormState {
+  return {
+    name: v.name ?? '',
+    address_line: v.address_line ?? '',
+    ward: v.ward ?? '',
+    city_id: v.city_id ?? '',
+    district_id: v.district_id ?? '',
+    description: v.description ?? '',
+    opening_hours: v.opening_hours ?? {},
+  };
+}
 
 export function VenueGeneralInfo() {
   const searchParams = useSearchParams();
@@ -21,12 +44,35 @@ export function VenueGeneralInfo() {
   const [mediaUploading, setMediaUploading] = useState(false);
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: '',
-    address: '',
+    address_line: '',
+    ward: '',
+    city_id: '',
+    district_id: '',
     description: '',
-    opening_hours: {} as Record<string, { open: string; close: string }>,
+    opening_hours: {},
   });
+
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    listCities().then((data) => { if (!cancelled) setCities(data); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!form.city_id) { setDistricts([]); return; }
+    let cancelled = false;
+    setLoadingDistricts(true);
+    listDistricts(form.city_id)
+      .then((data) => { if (!cancelled) setDistricts(data); })
+      .finally(() => { if (!cancelled) setLoadingDistricts(false); });
+    return () => { cancelled = true; };
+  }, [form.city_id]);
 
   useEffect(() => {
     if (!venueId) {
@@ -36,12 +82,7 @@ export function VenueGeneralInfo() {
     getVenueById(venueId)
       .then((v) => {
         setVenue(v);
-        setForm({
-          name: v.name ?? '',
-          address: v.address ?? '',
-          description: v.description ?? '',
-          opening_hours: v.opening_hours ?? {},
-        });
+        setForm(formFromVenue(v));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -72,7 +113,10 @@ export function VenueGeneralInfo() {
     try {
       const updated = await updateVenue(venueId, {
         name: form.name,
-        address: form.address,
+        address_line: form.address_line,
+        ward: form.ward || undefined,
+        city_id: form.city_id || undefined,
+        district_id: form.district_id || undefined,
         description: form.description,
         opening_hours: form.opening_hours,
       });
@@ -115,12 +159,7 @@ export function VenueGeneralInfo() {
 
   function handleCancel() {
     if (!venue) return;
-    setForm({
-      name: venue.name ?? '',
-      address: venue.address ?? '',
-      description: venue.description ?? '',
-      opening_hours: venue.opening_hours ?? {},
-    });
+    setForm(formFromVenue(venue));
   }
 
   const hours = form.opening_hours as Record<string, { open: string; close: string }>;
@@ -150,16 +189,52 @@ export function VenueGeneralInfo() {
             </div>
           </div>
           <div className="md:col-span-2 space-y-2">
-            <label className="text-sm font-bold text-slate-700">Address</label>
+            <label className="text-sm font-bold text-slate-700">Address (số nhà + tên đường)</label>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
                 type="text"
-                value={form.address}
-                onChange={e => setForm({ ...form, address: e.target.value })}
+                value={form.address_line}
+                onChange={e => setForm({ ...form, address_line: e.target.value })}
+                placeholder="VD: 123 Nguyễn Huệ"
                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-slate-50/50"
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Phường/Xã</label>
+            <input
+              type="text"
+              value={form.ward}
+              onChange={e => setForm({ ...form, ward: e.target.value })}
+              placeholder="VD: Phường Bến Nghé"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-slate-50/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Thành phố</label>
+            <select
+              value={form.city_id}
+              onChange={e => setForm({ ...form, city_id: e.target.value, district_id: '' })}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-slate-50/50"
+            >
+              <option value="">— Chọn —</option>
+              {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Quận/Huyện</label>
+            <select
+              value={form.district_id}
+              onChange={e => setForm({ ...form, district_id: e.target.value })}
+              disabled={!form.city_id || loadingDistricts}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-slate-50/50 disabled:opacity-60"
+            >
+              <option value="">
+                {!form.city_id ? 'Chọn TP trước' : loadingDistricts ? 'Đang tải...' : '— Chọn —'}
+              </option>
+              {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
           </div>
           <div className="md:col-span-2 space-y-2">
             <label className="text-sm font-bold text-slate-700">Description</label>

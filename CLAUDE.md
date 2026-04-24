@@ -14,6 +14,7 @@ MyNook is a location review & discovery system built with **Nx monorepo** + **Ne
 - Inter-service async events use RabbitMQ via `@mynook/rmq-messaging` (production).
 - **AI-powered Hybrid Search**: search-ai-service calls Groq per query to extract `{ intent, possible_name, categories, tags, excluded_tags, location, require_high_rating, time_context }`. Ranking combines pgvector cosine + matched-tag SUM + pg_trgm fuzzy name match + category boost + rating. LRU cache + single-flight protect against stampede.
 - **Venue Categories (M:N)**: `venue_schema.categories` is a master list (cafe, restaurant, hotpot, …) with synonyms. `venue_schema.venue_categories` joins it to venues. Categories are human-curated (owner/admin) and used by the AI search as hard filter (when Groq confidence=high) or boost. CRUD lives in venue-service; search-ai-service reads via cross-schema join.
+- **Location taxonomy (cities/districts + PostGIS)**: `venue_schema.cities` + `venue_schema.districts` are master tables with `aliases[]` (e.g. `["q1","quan 1","district 1"]`) and PostGIS `centroid` points. Venues now reference them via `city_id` + `district_id` FKs (instead of the old free-text `city`/`district`). `venues.location` is a generated `geography(Point, 4326)` from `(longitude, latitude)` enabling distance ranking + `ST_DWithin` "nearby" filter. search-ai-service has a `LocationResolverService` that maps Groq-extracted text ("Q1") → district_id via aliases/trigram, enabling exact FK filtering instead of ILIKE.
 - **AI Review Processing**: interaction-service emits `venue.reviewed` → search-ai-service analyzes via Groq AI (Llama 3.3) → upserts VenueTag scores → callbacks AI analysis JSON.
 - **Community Venue Contribution**: Any logged-in user (customer or owner) can contribute venues via `POST /venues/community`. Community venues (`is_community_contributed = true`) have no owner and can be edited by anyone.
 - **Admin Console**: Mọi endpoint admin đặt dưới `/api/admin/*` ở api-gateway, bảo vệ bằng `JwtAuthGuard + AdminGuard` (yêu cầu `account.type = admin`). Admin quản lý accounts (khóa/mở), venues (CRUD + khôi phục + hard delete), reviews + reports (duyệt, xóa), broadcast notifications cho toàn user/owner/customer, và xem dashboard tổng hợp (`GET /api/admin/dashboard`) từ cả 3 microservices.
@@ -208,6 +209,14 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`type = admin`).
 | POST   | `/api/admin/categories` | Tạo category mới (`key`, `display_name`, `synonyms[]`, ...) |
 | PATCH  | `/api/admin/categories/:id` | Cập nhật category |
 | DELETE | `/api/admin/categories/:id` | Xóa category |
+| GET    | `/api/admin/cities` | List tất cả cities |
+| POST   | `/api/admin/cities` | Tạo city (`code`, `name`, `aliases[]`, `latitude?`, `longitude?`) |
+| PATCH  | `/api/admin/cities/:id` | Cập nhật city |
+| DELETE | `/api/admin/cities/:id` | Xóa city |
+| GET    | `/api/admin/districts?city_id=...` | List tất cả districts |
+| POST   | `/api/admin/districts` | Tạo district (`city_id`, `code`, `name`, `aliases[]`, ...) |
+| PATCH  | `/api/admin/districts/:id` | Cập nhật district |
+| DELETE | `/api/admin/districts/:id` | Xóa district |
 
 ## Public Category Endpoints
 
@@ -216,11 +225,31 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`type = admin`).
 | GET    | `/api/categories` | List active venue categories (dùng cho venue form, search filter UI) |
 | GET    | `/api/categories/:id` | Chi tiết category |
 
-## Venue Create/Update with Categories
+## Public Location Endpoints
 
-Cả `POST /api/venues`, `POST /api/venues/community`, `PATCH /api/venues/:id`, `POST/PATCH /api/admin/venues` đều nhận thêm:
-- `category_ids: string[]` — M:N categories. Gửi `[]` khi update để xóa hết.
-- `primary_category_id?: string` — ép 1 category làm primary (mặc định: phần tử đầu tiên trong `category_ids`).
+| Method | Path | Mô tả |
+|--------|------|-------|
+| GET    | `/api/cities` | List active cities (TP.HCM, HN, DN) — dropdown cho venue form |
+| GET    | `/api/cities/:id` | Chi tiết city |
+| GET    | `/api/districts?city_id=...` | List districts, filter theo city |
+| GET    | `/api/districts/:id` | Chi tiết district |
+
+Admin CRUD đầy đủ ở `/api/admin/cities/*` và `/api/admin/districts/*` (yêu cầu JwtAuthGuard + AdminGuard).
+
+## Venue Create/Update with Categories + Location
+
+Cả `POST /api/venues`, `POST /api/venues/community`, `PATCH /api/venues/:id`, `POST/PATCH /api/admin/venues` nhận:
+- **Address**: `address_line` (số nhà + đường), `ward?`, `city_id`, `district_id`, `latitude`, `longitude`
+- **Categories**: `category_ids: string[]` + `primary_category_id?`
+
+Venue response trả về kèm `city_ref` + `district_ref` cho hiển thị name.
+
+## Search với location
+
+`GET /api/search?q=<query>&lat=<float>&lng=<float>&max_distance_m=<int>` hỗ trợ:
+- Groq extract `location.{city, district, street}` từ câu search → resolve thành `city_id`/`district_id` qua alias → filter cứng
+- `lat`/`lng` từ FE (GPS user) → thêm `location` weight vào ranking (1.0 tại user point, decay exponential)
+- `max_distance_m` → bounding box `ST_DWithin` loại các venue quá xa
 
 ## User Report Endpoints
 

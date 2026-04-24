@@ -159,7 +159,7 @@ export default function AdminDashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-800 truncate">{v.name}</p>
                       <p className="text-xs text-slate-400 truncate">
-                        {v.district ? `${v.district}, ` : ''}{v.city}
+                        {[v.district, v.city].filter(Boolean).join(', ') || '—'}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
@@ -186,16 +186,16 @@ export default function AdminDashboardPage() {
               </div>
               <div className="divide-y divide-slate-50">
                 {(venues?.popular_areas ?? []).slice(0, 10).map((a, i) => (
-                  <div key={`${a.district}-${a.city}-${i}`} className="flex items-center justify-between px-6 py-3 hover:bg-slate-50">
+                  <div key={`${a.district_id ?? a.district}-${a.city_id ?? a.city}-${i}`} className="flex items-center justify-between px-6 py-3 hover:bg-slate-50">
                     <div className="flex items-center gap-3">
                       <span className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{i + 1}</span>
                       <div>
                         <p className="text-sm font-semibold text-slate-800">{a.district ?? '—'}</p>
-                        <p className="text-xs text-slate-400">{a.city}</p>
+                        <p className="text-xs text-slate-400">{a.city ?? '—'}</p>
                       </div>
                     </div>
                     <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">
-                      {a.venue_count} venue
+                      {a.count} venue
                     </span>
                   </div>
                 ))}

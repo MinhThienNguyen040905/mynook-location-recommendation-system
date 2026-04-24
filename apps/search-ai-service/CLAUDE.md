@@ -6,7 +6,8 @@ NestJS HTTP microservice chạy ở **port 3005**. Xử lý logic tìm kiếm hy
 
 ## Vai trò trong kiến trúc
 
-- **AI-powered Hybrid Search**: Mỗi query tìm kiếm → gọi Groq extract `{ intent, possible_name, categories, tags, excluded_tags, location, require_high_rating, time_context, confidence }`. Ranking hợp nhất: semantic vector (pgvector) + fuzzy name (pg_trgm + unaccent) + matched-tag SUM + category boost + rating − excluded_tag penalty. Chiến lược weights thay đổi theo intent (`name` / `attribute` / `mixed` / `unclear`).
+- **AI-powered Hybrid Search**: Mỗi query tìm kiếm → gọi Groq extract `{ intent, possible_name, categories, tags, excluded_tags, location, require_high_rating, time_context, confidence }`. Ranking hợp nhất: semantic vector (pgvector) + fuzzy name (pg_trgm + f_unaccent) + matched-tag SUM + category boost + PostGIS distance (nếu có GPS) + rating − excluded_tag penalty. Chiến lược weights thay đổi theo intent (`name` / `attribute` / `mixed` / `unclear`).
+- **LocationResolverService**: Map text location từ Groq ("Q1", "Quận 1", "q.1", "huu duyen"...) → `city_id`/`district_id` qua `aliases = ANY(...)` + trigram fallback. Cache in-process 10 phút. Nhờ đó filter theo location dùng FK equal chính xác thay vì ILIKE mơ hồ. **District resolve được scope theo `city_id`** (nếu có) để "Quận 1" trong HN không match HCM.
 - **Query Cache + Single-Flight**: LRU 5000 entries, TTL 60 phút, key = normalized query. Các request concurrent cùng query share 1 Groq call.
 - **CategoryTagProvider**: Cache 5 phút cho danh sách active categories + top-100 tags theo `usage_count` — dùng để dựng prompt cho Groq và validate key khi Groq trả kết quả (filter out key không tồn tại trong DB).
 - **Graceful Degradation**: Nếu Groq fail/timeout → FALLBACK_EXTRACTION (intent='unclear') → search vẫn chạy bằng semantic-only. Nếu search với strict filters < 5 kết quả → auto retry với relaxed filters (bỏ hard category/rating, bỏ minNameScore).
@@ -28,7 +29,8 @@ NestJS HTTP microservice chạy ở **port 3005**. Xử lý logic tìm kiếm hy
 | `src/app/modules/search/query-extraction.service.ts` | Groq call: intent + possible_name + categories + tags + excluded_tags + location + require_high_rating + time_context. Có timeout 3.5s + sanitize output (drop unknown keys). |
 | `src/app/modules/search/query-cache.service.ts` | LRU + single-flight cho extract() — chống thundering herd |
 | `src/app/modules/search/category-tag-provider.service.ts` | Load + cache 5 phút: active categories + top-100 tags theo `usage_count`. Resolve keys → ids cho SQL. |
-| `src/app/modules/search/venue-search.service.ts` | Hybrid SQL: semantic + pg_trgm name + matched-tag SUM + category boost + rating, dynamic weights theo intent, fallback khi ít kết quả |
+| `src/app/modules/search/location-resolver.service.ts` | Resolve text location ("Q1") → `city_id`/`district_id` qua alias + trigram. Cache 10 phút. District scoped theo resolved city. |
+| `src/app/modules/search/venue-search.service.ts` | Hybrid SQL: semantic + pg_trgm name + matched-tag SUM + category boost + rating + PostGIS distance (ST_Distance / ST_DWithin), dynamic weights theo intent, fallback khi ít kết quả. LEFT JOIN `cities`/`districts` để trả `city.name`/`district.name` ra FE. |
 | **Review Processing Module** | |
 | `src/app/modules/review-processing/review-processing.module.ts` | AI review processing module |
 | `src/app/modules/review-processing/review-processing.controller.ts` | RMQ handler for `venue.reviewed` event |
@@ -52,11 +54,14 @@ After processing a review, search-ai-service calls back to interaction-service v
 
 ## Database Entities
 
-- `Tag`, `VenueTag`, `SearchLog`, `Venue`, `Category`, `VenueCategory` (từ `@mynook/database`)
+- `Tag`, `VenueTag`, `SearchLog`, `Venue`, `Category`, `VenueCategory`, `City`, `District` (từ `@mynook/database`)
 - `Venue.embedding`: pgvector `vector(384)` column with HNSW index
+- `Venue.location`: PostGIS `geography(Point, 4326)` GENERATED từ `(longitude, latitude)`. Index GIST để `ST_DWithin` + `ST_Distance` nhanh.
+- `Venue.city_id` / `Venue.district_id`: FK → `cities` / `districts`. Index B-tree.
 - `Tag.usage_count`: int column sort để lấy top-100 tags phổ biến cho Groq prompt (seed từ migration 007 dựa trên venue_tags hiện có; cần cập nhật định kỳ)
 - `venue_schema.categories` / `venue_schema.venue_categories`: master list + M:N junction. search-ai-service CHỈ ĐỌC; CRUD nằm ở venue-service.
-- Trigram indexes (pg_trgm + unaccent) trên `venues.name`, `venues.branch_name`, `venues.address` cho fuzzy match tên / địa chỉ
+- `venue_schema.cities` / `venue_schema.districts`: master tables với `aliases text[]` + `centroid geography(Point, 4326)`. search-ai-service CHỈ ĐỌC qua `LocationResolverService`.
+- Trigram indexes (pg_trgm + `public.f_unaccent`) trên `venues.name`, `venues.branch_name`, `venues.address_line`, `cities.name`, `districts.name` cho fuzzy match. LƯU Ý: phải dùng wrapper `public.f_unaccent` (IMMUTABLE) trong query — không dùng `unaccent()` trực tiếp — để planner pick được index.
 
 ## Hybrid Search Algorithm (AI-powered)
 
@@ -72,15 +77,18 @@ After processing a review, search-ai-service calls back to interaction-service v
 | mixed | 0.40 | 0.20 | 0.20 | 0.10 | 0.10 | ❌ | if require | null |
 | unclear | 0.20 | 0.50 | 0.20 | 0 | 0.10 | ❌ | ❌ | null |
 
-5. **SQL hybrid query**:
+5. **Location resolution**: LocationResolver map `location.city`/`location.district` text → `city_id`/`district_id` (alias exact + trigram). Dùng để filter cứng bằng FK equal.
+6. **SQL hybrid query**:
    - Semantic: `1 - LEAST(v.embedding <=> $vec, 1.0)` (NULL-safe — venue thiếu embedding → 0)
    - Matched-tag score: `SUM(vt.score)` CHỈ của tags match query, lọc theo `time_frame` (hoặc `all_day`). Chia cho 3 và cap 1.0.
-   - Name score: `GREATEST(similarity(unaccent(lower(name)), unaccent(lower($name))), similarity(branch_name, $name))` qua pg_trgm
+   - Name score: `GREATEST(similarity(public.f_unaccent(lower(name)), public.f_unaccent(lower($name))), similarity(branch_name, $name))` qua pg_trgm
    - Category boost: `EXISTS` check trong `venue_categories`
+   - **Distance score** (khi FE gửi `lat`/`lng`): `1 / (1 + d/1500)` → 1.0 tại user point, ~0.5 tại 1.5km, ~0.23 tại 5km. Chiếm weight 0.1 (steal từ semantic)
    - Excluded tags: trừ thẳng `0.15 * excluded_tag_score` (penalty)
-   - Hard filters: `is_active`, `crowd_level != 'full'`, optional `max_group_size`, optional category, optional rating ≥ 4.0, optional minNameScore, optional location ILIKE
-6. **Relaxation fallback**: nếu < 5 kết quả và đang áp dụng filter cứng → re-run với filters relaxed
-7. **Debug mode**: `?debug=1` → response kèm `score_breakdown { semantic, tag, name, category_match, rating, strategy }`
+   - Hard filters: `is_active`, `crowd_level != 'full'`, optional `max_group_size`, optional category, optional rating ≥ 4.0, optional minNameScore, optional **`city_id` / `district_id` FK equal**, optional **`ST_DWithin(location, user_point, max_distance_m)`**, optional `address_line` trigram ILIKE cho street
+   - LEFT JOIN `cities` + `districts` để trả `city.name` + `district.name` cho FE display
+7. **Relaxation fallback**: nếu < 5 kết quả và đang áp dụng filter cứng → re-run với filters relaxed
+8. **Debug mode**: `?debug=1` → response kèm `score_breakdown { semantic, tag, name, category_match, rating, location, strategy }`
 
 ## Environment Variables
 

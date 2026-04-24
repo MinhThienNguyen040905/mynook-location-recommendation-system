@@ -1,6 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Tag, VenueTag, SearchLog, Venue, Category, VenueCategory } from '@mynook/database';
+import {
+  Tag,
+  VenueTag,
+  SearchLog,
+  Venue,
+  Category,
+  VenueCategory,
+  City,
+  District,
+} from '@mynook/database';
 import { SearchController } from './search.controller.js';
 import { SearchService } from './search.service.js';
 import { SearchParserService } from './search-parser.service.js';
@@ -9,10 +18,20 @@ import { VenueSearchService } from './venue-search.service.js';
 import { CategoryTagProviderService } from './category-tag-provider.service.js';
 import { QueryExtractionService } from './query-extraction.service.js';
 import { QueryCacheService } from './query-cache.service.js';
+import { LocationResolverService } from './location-resolver.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Tag, VenueTag, SearchLog, Venue, Category, VenueCategory]),
+    TypeOrmModule.forFeature([
+      Tag,
+      VenueTag,
+      SearchLog,
+      Venue,
+      Category,
+      VenueCategory,
+      City,
+      District,
+    ]),
   ],
   controllers: [SearchController],
   providers: [
@@ -23,6 +42,7 @@ import { QueryCacheService } from './query-cache.service.js';
     CategoryTagProviderService,
     QueryExtractionService,
     QueryCacheService,
+    LocationResolverService,
   ],
   exports: [
     SearchService,
@@ -30,6 +50,7 @@ import { QueryCacheService } from './query-cache.service.js';
     EmbeddingService,
     VenueSearchService,
     CategoryTagProviderService,
+    LocationResolverService,
   ],
 })
 export class SearchModule {}

@@ -12,8 +12,8 @@ import { CategoryService } from '../category/category.service.js';
 export interface ListVenuesQuery {
   is_active?: boolean;
   is_community_contributed?: boolean;
-  city?: string;
-  district?: string;
+  city_id?: string;
+  district_id?: string;
   q?: string;
   page?: number;
   limit?: number;
@@ -33,6 +33,8 @@ export class AdminVenueService {
 
     const qb = this.venueRepo
       .createQueryBuilder('v')
+      .leftJoinAndSelect('v.city_ref', 'city')
+      .leftJoinAndSelect('v.district_ref', 'district')
       .orderBy('v.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -45,12 +47,14 @@ export class AdminVenueService {
         cc: query.is_community_contributed,
       });
     }
-    if (query.city) qb.andWhere('v.city = :city', { city: query.city });
-    if (query.district) {
-      qb.andWhere('v.district = :district', { district: query.district });
+    if (query.city_id) {
+      qb.andWhere('v.city_id = :cityId', { cityId: query.city_id });
+    }
+    if (query.district_id) {
+      qb.andWhere('v.district_id = :districtId', { districtId: query.district_id });
     }
     if (query.q) {
-      qb.andWhere('(v.name ILIKE :q OR v.address ILIKE :q)', {
+      qb.andWhere('(v.name ILIKE :q OR v.address_line ILIKE :q)', {
         q: `%${query.q}%`,
       });
     }
@@ -126,22 +130,30 @@ export class AdminVenueService {
 
     const hot = await this.venueRepo
       .createQueryBuilder('v')
+      .leftJoinAndSelect('v.city_ref', 'city')
+      .leftJoinAndSelect('v.district_ref', 'district')
       .where('v.is_active = true')
       .orderBy('v.review_count', 'DESC')
       .addOrderBy('v.rating_avg', 'DESC')
       .limit(10)
       .getMany();
 
+    // GROUP BY district_id / city_id instead of raw text — aliases now survive.
     const popularAreas = await this.venueRepo
       .createQueryBuilder('v')
-      .select('v.district', 'district')
-      .addSelect('v.city', 'city')
+      .select('d.id', 'district_id')
+      .addSelect('d.name', 'district')
+      .addSelect('c.id', 'city_id')
+      .addSelect('c.name', 'city')
       .addSelect('COUNT(v.id)', 'count')
       .addSelect('COALESCE(AVG(v.rating_avg), 0)', 'avg_rating')
+      .innerJoin('v.district_ref', 'd')
+      .innerJoin('v.city_ref', 'c')
       .where('v.is_active = true')
-      .andWhere('v.district IS NOT NULL')
-      .groupBy('v.district')
-      .addGroupBy('v.city')
+      .groupBy('d.id')
+      .addGroupBy('d.name')
+      .addGroupBy('c.id')
+      .addGroupBy('c.name')
       .orderBy('count', 'DESC')
       .limit(10)
       .getRawMany();
@@ -154,13 +166,15 @@ export class AdminVenueService {
       hot_venues: hot.map((v) => ({
         id: v.id,
         name: v.name,
-        city: v.city,
-        district: v.district,
+        city: v.city_ref?.name ?? null,
+        district: v.district_ref?.name ?? null,
         rating_avg: v.rating_avg,
         review_count: v.review_count,
       })),
       popular_areas: popularAreas.map((r) => ({
+        district_id: r.district_id,
         district: r.district,
+        city_id: r.city_id,
         city: r.city,
         count: Number(r.count),
         avg_rating: Number(r.avg_rating),
@@ -171,12 +185,19 @@ export class AdminVenueService {
   async cityBreakdown() {
     const rows = await this.venueRepo
       .createQueryBuilder('v')
-      .select('v.city', 'city')
+      .select('c.id', 'city_id')
+      .addSelect('c.name', 'city')
       .addSelect('COUNT(v.id)', 'count')
+      .innerJoin('v.city_ref', 'c')
       .where('v.is_active = true')
-      .groupBy('v.city')
+      .groupBy('c.id')
+      .addGroupBy('c.name')
       .orderBy('count', 'DESC')
       .getRawMany();
-    return rows.map((r) => ({ city: r.city, count: Number(r.count) }));
+    return rows.map((r) => ({
+      city_id: r.city_id,
+      city: r.city,
+      count: Number(r.count),
+    }));
   }
 }

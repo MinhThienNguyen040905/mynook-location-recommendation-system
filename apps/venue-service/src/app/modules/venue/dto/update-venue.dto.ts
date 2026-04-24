@@ -10,14 +10,17 @@ export class UpdateVenueDto {
   @ApiPropertyOptional({ example: 'Quán cà phê yên tĩnh' })
   description?: string;
 
-  @ApiPropertyOptional({ example: '123 Nguyễn Huệ, Quận 1, TP.HCM' })
-  address?: string;
+  @ApiPropertyOptional({ example: '123 Nguyễn Huệ' })
+  address_line?: string;
 
-  @ApiPropertyOptional({ example: 'Ho Chi Minh' })
-  city?: string;
+  @ApiPropertyOptional({ example: 'Phường Bến Nghé' })
+  ward?: string;
 
-  @ApiPropertyOptional({ example: 'Quận 1' })
-  district?: string;
+  @ApiPropertyOptional()
+  city_id?: string;
+
+  @ApiPropertyOptional()
+  district_id?: string;
 
   @ApiPropertyOptional({ example: 10.7769 })
   latitude?: number;
@@ -44,7 +47,7 @@ export class UpdateVenueDto {
   opening_hours?: unknown;
 
   @ApiPropertyOptional({
-    example: ['11111111-2222-3333-4444-555555555555'],
+    type: [String],
     description: 'Replace the venue categories. Send empty array to clear.',
   })
   category_ids?: string[];

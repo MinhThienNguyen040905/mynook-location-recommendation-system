@@ -1,6 +1,11 @@
 import { apiClient } from './client';
 import { API_BASE_URL, API_ENDPOINTS } from '@/config/api';
-import type { Venue, VenueSearchParams, CreateVenueRequest } from '@/types/venue';
+import type {
+  Venue,
+  VenueSearchParams,
+  CreateVenueRequest,
+  UpdateVenueRequest,
+} from '@/types/venue';
 import type { PaginatedResponse } from '@/types/api';
 
 // ─── Client-side fetchers (dùng trong 'use client' component + React Query) ──
@@ -72,8 +77,14 @@ export async function createCommunityVenue(body: CreateVenueRequest): Promise<Ve
 }
 
 /** Cập nhật venue */
-export async function updateVenue(id: string, body: Partial<Venue>): Promise<Venue> {
-  const { data } = await apiClient.patch<Venue>(API_ENDPOINTS.VENUES.DETAIL(id), body);
+export async function updateVenue(
+  id: string,
+  body: UpdateVenueRequest,
+): Promise<Venue> {
+  const { data } = await apiClient.patch<Venue>(
+    API_ENDPOINTS.VENUES.DETAIL(id),
+    body,
+  );
   return data;
 }
 

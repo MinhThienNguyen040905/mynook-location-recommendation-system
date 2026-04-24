@@ -2,6 +2,7 @@ import { Star, MapPin } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllVenuesServer } from "@/lib/api/venues";
+import { formatShortAddress } from "@/lib/utils";
 import type { Venue } from "@/types/venue";
 
 const CROWD_LABEL: Record<string, { text: string; color: string }> = {
@@ -94,8 +95,7 @@ export async function AllVenuesSection() {
                 <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-2">
                   <MapPin size={14} className="mr-1 shrink-0" />
                   <span className="truncate">
-                    {venue.district ? `${venue.district}, ` : ""}
-                    {venue.city}
+                    {formatShortAddress(venue) || "—"}
                   </span>
                 </div>
 

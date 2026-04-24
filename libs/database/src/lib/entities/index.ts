@@ -9,6 +9,8 @@ export {
   CrowdLevel,
   Category,
   VenueCategory,
+  City,
+  District,
 } from './venue.entity.js';
 
 // Search schema

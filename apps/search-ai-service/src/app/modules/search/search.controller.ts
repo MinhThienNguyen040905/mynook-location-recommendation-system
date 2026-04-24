@@ -9,25 +9,22 @@ import { VenueSearchService } from './venue-search.service.js';
 export class SearchController {
   constructor(private readonly venueSearch: VenueSearchService) {}
 
-  /**
-   * Hybrid search endpoint.
-   * Combines AI query extraction (Groq) + semantic vector search + tag + category matching.
-   *
-   * Called by api-gateway: GET /api/search?q=...
-   */
   @Get()
   @ApiOperation({
     summary: 'Hybrid AI venue search',
     description:
-      'Vietnamese natural-language venue search. Groq-powered intent detection + pgvector + pg_trgm + tag/category filtering.',
+      'Vietnamese natural-language venue search. Groq intent/name/category/tags + pgvector + pg_trgm + PostGIS distance.',
   })
   @ApiQuery({ name: 'q', required: true })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
+  @ApiQuery({ name: 'debug', required: false })
+  @ApiQuery({ name: 'lat', required: false, description: 'User latitude for distance ranking' })
+  @ApiQuery({ name: 'lng', required: false, description: 'User longitude for distance ranking' })
   @ApiQuery({
-    name: 'debug',
+    name: 'max_distance_m',
     required: false,
-    description: 'Include per-venue score breakdown in response',
+    description: 'Restrict to venues within N metres of (lat,lng)',
   })
   @ApiResponse({ status: 200 })
   async search(
@@ -35,6 +32,9 @@ export class SearchController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Query('debug') debug?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('max_distance_m') maxDistanceM?: string,
     @CurrentUser() user?: CurrentUserPayload,
   ) {
     if (!query || query.trim().length === 0) {
@@ -44,14 +44,25 @@ export class SearchController {
     const maxResults = limit ? Math.min(parseInt(limit, 10) || 20, 50) : 20;
     const skip = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
     const debugOn = debug === 'true' || debug === '1';
+    const userLat = lat ? parseFloat(lat) : undefined;
+    const userLng = lng ? parseFloat(lng) : undefined;
+    const maxD = maxDistanceM ? parseInt(maxDistanceM, 10) : undefined;
+    const validCoords =
+      userLat !== undefined &&
+      userLng !== undefined &&
+      !Number.isNaN(userLat) &&
+      !Number.isNaN(userLng);
 
-    const results = await this.venueSearch.hybridSearch(
+    const results = await this.venueSearch.hybridSearch({
       query,
-      user?.id,
-      maxResults,
-      skip,
-      debugOn,
-    );
+      accountId: user?.id,
+      limit: maxResults,
+      offset: skip,
+      debug: debugOn,
+      userLat: validCoords ? userLat : undefined,
+      userLng: validCoords ? userLng : undefined,
+      maxDistanceM: validCoords && maxD ? maxD : undefined,
+    });
 
     return {
       results,

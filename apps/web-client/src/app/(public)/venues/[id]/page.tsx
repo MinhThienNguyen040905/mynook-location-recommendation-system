@@ -8,6 +8,7 @@ import { CommunityEditBanner } from "@/components/venue-detail/community-edit-ba
 import { VenueMenuSection } from "@/components/venue-detail/venue-menu-section";
 import { getVenueByIdServer } from "@/lib/api/venues";
 import { getVenueReviewsServer } from "@/lib/api/reviews";
+import { formatAddress } from "@/lib/utils";
 
 export default async function VenueDetailPage({
   params,
@@ -93,7 +94,7 @@ export default async function VenueDetailPage({
             {/* Location Map */}
             <VenueLocationMap
               name={venue.name}
-              address={`${venue.address}${venue.district ? `, ${venue.district}` : ""}, ${venue.city}`}
+              address={formatAddress(venue)}
               lat={venue.latitude}
               lng={venue.longitude}
             />

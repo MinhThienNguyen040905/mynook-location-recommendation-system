@@ -27,8 +27,8 @@ export class AdminVenueController {
   list(
     @Query('is_active') isActive?: string,
     @Query('is_community_contributed') isCc?: string,
-    @Query('city') city?: string,
-    @Query('district') district?: string,
+    @Query('city_id') cityId?: string,
+    @Query('district_id') districtId?: string,
     @Query('q') q?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -38,8 +38,8 @@ export class AdminVenueController {
         isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       is_community_contributed:
         isCc === 'true' ? true : isCc === 'false' ? false : undefined,
-      city,
-      district,
+      city_id: cityId,
+      district_id: districtId,
       q,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
