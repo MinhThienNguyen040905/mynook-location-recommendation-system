@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { createCommunityVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
 import { listCities, listDistricts } from '@/lib/api/locations';
+import { CategoryPickerChips } from '@/components/venue/category-picker-chips';
 import type { UploadResult } from '@/lib/api/upload';
 import type { City, District, CreateVenueRequest } from '@/types/venue';
 
@@ -42,6 +43,8 @@ interface FormData {
   openTime: string;
   closeTime: string;
   mediaItems: MediaItem[];
+  category_ids: string[];
+  primary_category_id: string | null;
 }
 
 const EMPTY_FORM: FormData = {
@@ -50,6 +53,7 @@ const EMPTY_FORM: FormData = {
   total_capacity: '50', max_group_size: '10', is_group_friendly: false,
   openTime: '08:00', closeTime: '22:00',
   mediaItems: [],
+  category_ids: [], primary_category_id: null,
 };
 
 const STEPS = ['Thông tin quán', 'Vị trí', 'Chi tiết thêm'];
@@ -118,6 +122,13 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
           placeholder="Mô tả ngắn về quán..."
           className="nook-input resize-none" />
       </div>
+
+      <CategoryPickerChips
+        selectedIds={form.category_ids}
+        primaryId={form.primary_category_id}
+        onChange={(ids, primary) => set({ category_ids: ids, primary_category_id: primary })}
+        tone="orange"
+      />
 
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ảnh (không bắt buộc)</label>
@@ -262,7 +273,9 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 
 /* ── Validate ─────────────────────────────────────────────────── */
 function isStepValid(step: number, form: FormData) {
-  if (step === 0) return form.name.trim() !== '';
+  if (step === 0) {
+    return form.name.trim() !== '' && form.category_ids.length > 0;
+  }
   if (step === 1) {
     return (
       form.address_line.trim() !== '' &&
@@ -343,6 +356,8 @@ export function ContributeVenueModal({ onClose, onSuccess }: { onClose: () => vo
         is_group_friendly: form.is_group_friendly,
         media: mediaUrls.length > 0 ? mediaUrls : undefined,
         opening_hours,
+        category_ids: form.category_ids,
+        primary_category_id: form.primary_category_id ?? undefined,
       };
 
       await createCommunityVenue(body);

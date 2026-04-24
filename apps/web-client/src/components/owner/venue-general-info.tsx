@@ -9,6 +9,8 @@ import {
 import { getVenueById, updateVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
 import { listCities, listDistricts } from '@/lib/api/locations';
+import { CategoryPickerChips } from '@/components/venue/category-picker-chips';
+import { Tag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { City, District, Venue } from '@/types/venue';
 
@@ -20,9 +22,14 @@ interface FormState {
   district_id: string;
   description: string;
   opening_hours: Record<string, { open: string; close: string }>;
+  category_ids: string[];
+  primary_category_id: string | null;
 }
 
 function formFromVenue(v: Venue): FormState {
+  const cats = v.categories ?? [];
+  // Backend returns categories as plain VenueCategory[]; no "is_primary" flag
+  // is exposed. Default to the first one as primary (can be changed via picker).
   return {
     name: v.name ?? '',
     address_line: v.address_line ?? '',
@@ -31,6 +38,8 @@ function formFromVenue(v: Venue): FormState {
     district_id: v.district_id ?? '',
     description: v.description ?? '',
     opening_hours: v.opening_hours ?? {},
+    category_ids: cats.map((c) => c.id),
+    primary_category_id: cats[0]?.id ?? null,
   };
 }
 
@@ -52,6 +61,8 @@ export function VenueGeneralInfo() {
     district_id: '',
     description: '',
     opening_hours: {},
+    category_ids: [],
+    primary_category_id: null,
   });
 
   const [cities, setCities] = useState<City[]>([]);
@@ -119,8 +130,14 @@ export function VenueGeneralInfo() {
         district_id: form.district_id || undefined,
         description: form.description,
         opening_hours: form.opening_hours,
+        category_ids: form.category_ids,
+        primary_category_id: form.primary_category_id ?? undefined,
       });
-      setVenue(updated);
+      // Re-fetch to get eager-loaded categories back into form state
+      const full = await getVenueById(venueId);
+      setVenue(full);
+      setForm(formFromVenue(full));
+      void updated;
     } catch {
       // TODO: toast error
     } finally {
@@ -246,6 +263,21 @@ export function VenueGeneralInfo() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Categories */}
+      <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
+        <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
+          <Tag className="text-primary size-5" /> Loại quán
+        </h3>
+        <CategoryPickerChips
+          selectedIds={form.category_ids}
+          primaryId={form.primary_category_id}
+          onChange={(ids, primary) => setForm({ ...form, category_ids: ids, primary_category_id: primary })}
+          tone="olive"
+          label="Phân loại"
+          helpText="Venue có thể thuộc nhiều loại. Nhấn ngôi sao để đặt loại chính (hiển thị trên card)."
+        />
       </div>
 
       {/* Photo & Media */}

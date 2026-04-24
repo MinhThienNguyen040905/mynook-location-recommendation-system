@@ -11,8 +11,10 @@ import { cn } from '@/lib/utils';
 import { createVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
 import { listCities, listDistricts } from '@/lib/api/locations';
+import { listCategories } from '@/lib/api/categories';
+import { CategoryPickerChips } from '@/components/venue/category-picker-chips';
 import type { UploadResult } from '@/lib/api/upload';
-import type { City, District, CreateVenueRequest } from '@/types/venue';
+import type { City, District, VenueCategory, CreateVenueRequest } from '@/types/venue';
 
 // Lazy-load Leaflet map (no SSR)
 const LocationPickerMap = dynamic(
@@ -44,6 +46,8 @@ interface FormData {
   openTime: string;
   closeTime: string;
   mediaItems: MediaItem[];
+  category_ids: string[];
+  primary_category_id: string | null;
 }
 
 const EMPTY_FORM: FormData = {
@@ -53,6 +57,7 @@ const EMPTY_FORM: FormData = {
   total_capacity: '50', max_group_size: '10', is_group_friendly: false,
   openTime: '08:00', closeTime: '22:00',
   mediaItems: [],
+  category_ids: [], primary_category_id: null,
 };
 
 const STEPS = ['Thông tin cơ bản', 'Vị trí & Sức chứa', 'Giờ mở cửa', 'Xác nhận'];
@@ -135,6 +140,13 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
           placeholder="Mô tả không gian, phong cách, điểm nổi bật..."
           className="nook-input resize-none" />
       </div>
+
+      <CategoryPickerChips
+        selectedIds={form.category_ids}
+        primaryId={form.primary_category_id}
+        onChange={(ids, primary) => set({ category_ids: ids, primary_category_id: primary })}
+        tone="olive"
+      />
 
       {/* Media upload */}
       <div className="space-y-1.5">
@@ -318,10 +330,21 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 }
 
 /* ── Step 4: Xác nhận ────────────────────────────────────────── */
-function Step4({ form, cityName, districtName }: { form: FormData; cityName: string; districtName: string }) {
+function Step4({
+  form,
+  cityName,
+  districtName,
+  categoryLabel,
+}: {
+  form: FormData;
+  cityName: string;
+  districtName: string;
+  categoryLabel: string;
+}) {
   const rows: [string, string][] = [
     ['Tên quán',       form.name],
     ['Chi nhánh',      form.branch_name || '—'],
+    ['Loại quán',      categoryLabel || '—'],
     ['Địa chỉ',       [form.address_line, form.ward, districtName, cityName].filter(Boolean).join(', ')],
     ['Tọa độ',        form.latitude && form.longitude ? `${form.latitude.toFixed(6)}, ${form.longitude.toFixed(6)}` : '—'],
     ['Giờ mở cửa',    `${form.openTime} – ${form.closeTime}`],
@@ -391,7 +414,13 @@ function SuccessScreen({ name, onClose }: { name: string; onClose: () => void })
 
 /* ── Validate each step ──────────────────────────────────────── */
 function isStepValid(step: number, form: FormData) {
-  if (step === 0) return form.name.trim() !== '' && form.description.trim() !== '';
+  if (step === 0) {
+    return (
+      form.name.trim() !== '' &&
+      form.description.trim() !== '' &&
+      form.category_ids.length > 0
+    );
+  }
   if (step === 1) {
     return (
       form.address_line.trim() !== '' &&
@@ -414,15 +443,19 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
 
   const [cities, setCities] = useState<City[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [categories, setCategories] = useState<VenueCategory[]>([]);
   const [loadingCities, setLoadingCities] = useState(true);
   const [loadingDistricts, setLoadingDistricts] = useState(false);
 
-  // Load cities once
+  // Load cities + categories once
   useEffect(() => {
     let cancelled = false;
     listCities()
       .then((data) => { if (!cancelled) setCities(data); })
       .finally(() => { if (!cancelled) setLoadingCities(false); });
+    listCategories()
+      .then((data) => { if (!cancelled) setCategories(data); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -439,6 +472,18 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
 
   const cityName = cities.find((c) => c.id === form.city_id)?.name ?? '';
   const districtName = districts.find((d) => d.id === form.district_id)?.name ?? '';
+
+  // Build "Quán cà phê (chính), Co-working" for Step 4 review
+  const categoryLabel = form.category_ids
+    .map((id) => {
+      const cat = categories.find((c) => c.id === id);
+      if (!cat) return '';
+      return id === form.primary_category_id
+        ? `${cat.display_name} (chính)`
+        : cat.display_name;
+    })
+    .filter(Boolean)
+    .join(', ');
 
   function set(partial: Partial<FormData>) {
     setFormState(prev => ({ ...prev, ...partial }));
@@ -490,6 +535,8 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
         is_group_friendly: form.is_group_friendly,
         media: mediaUrls.length > 0 ? mediaUrls : undefined,
         opening_hours,
+        category_ids: form.category_ids,
+        primary_category_id: form.primary_category_id ?? undefined,
       };
 
       await createVenue(body);
@@ -561,7 +608,12 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
                   )}
                   {step === 2 && <Step3 form={form} set={set} />}
                   {step === 3 && (
-                    <Step4 form={form} cityName={cityName} districtName={districtName} />
+                    <Step4
+                      form={form}
+                      cityName={cityName}
+                      districtName={districtName}
+                      categoryLabel={categoryLabel}
+                    />
                   )}
                 </motion.div>
               </AnimatePresence>
