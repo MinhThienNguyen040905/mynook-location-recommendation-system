@@ -9,6 +9,8 @@ import {
   LogOut,
   ChevronRight,
   ListChecks,
+  Tag,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
@@ -17,6 +19,8 @@ const NAV = [
   { label: 'Tổng quan',       path: '/admin',                icon: LayoutDashboard },
   { label: 'Người dùng',      path: '/admin/users',          icon: Users           },
   { label: 'Danh sách quán',  path: '/admin/venues/list',    icon: ListChecks      },
+  { label: 'Loại quán',       path: '/admin/categories',     icon: Tag             },
+  { label: 'Vị trí',          path: '/admin/locations',      icon: MapPin          },
   { label: 'Báo cáo',         path: '/admin/reports',        icon: Flag            },
 ];
 

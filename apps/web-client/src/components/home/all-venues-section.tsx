@@ -82,9 +82,16 @@ export async function AllVenuesSection() {
               </div>
 
               <div className="p-4">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-[#e9590c] transition-colors truncate">
-                  {venue.name}
-                </h3>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-[#e9590c] transition-colors truncate">
+                    {venue.name}
+                  </h3>
+                  {venue.categories && venue.categories.length > 0 && (
+                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#e9590c]/10 text-[#e9590c] border border-[#e9590c]/20">
+                      {(venue.categories.find((c) => c.is_primary) ?? venue.categories[0]).display_name}
+                    </span>
+                  )}
+                </div>
 
                 {venue.branch_name && (
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">

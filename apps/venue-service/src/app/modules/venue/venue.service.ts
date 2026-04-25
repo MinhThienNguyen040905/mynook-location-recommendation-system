@@ -34,24 +34,71 @@ export class VenueService {
     private readonly embeddingService: VenueEmbeddingService,
   ) {}
 
+  /**
+   * Hydrate `venue.categories` (with `is_primary`) for a list of venues using
+   * a single SQL pass. We don't use TypeORM's nested relation here because we
+   * want the partial unique flag (is_primary) which lives on the junction.
+   */
+  private async attachCategories<T extends Venue>(venues: T[]): Promise<T[]> {
+    if (venues.length === 0) return venues;
+    const ids = venues.map((v) => v.id);
+    const links = await this.venueRepo.manager
+      .createQueryBuilder()
+      .select('vc.venue_id', 'venue_id')
+      .addSelect('vc.is_primary', 'is_primary')
+      .addSelect('c.id', 'id')
+      .addSelect('c.key', 'key')
+      .addSelect('c.display_name', 'display_name')
+      .addSelect('c.display_order', 'display_order')
+      .from('venue_schema.venue_categories', 'vc')
+      .innerJoin('venue_schema.categories', 'c', 'c.id = vc.category_id')
+      .where('vc.venue_id = ANY(:ids)', { ids })
+      .orderBy('vc.is_primary', 'DESC')
+      .addOrderBy('c.display_order', 'ASC')
+      .getRawMany();
+
+    const byVenue = new Map<string, unknown[]>();
+    for (const r of links) {
+      const arr = byVenue.get(r.venue_id) ?? [];
+      arr.push({
+        id: r.id,
+        key: r.key,
+        display_name: r.display_name,
+        display_order: Number(r.display_order),
+        is_primary: r.is_primary === true || r.is_primary === 't',
+        synonyms: [],
+        description: null,
+        is_active: true,
+      });
+      byVenue.set(r.venue_id, arr);
+    }
+    for (const v of venues) {
+      (v as unknown as { categories: unknown[] }).categories =
+        byVenue.get(v.id) ?? [];
+    }
+    return venues;
+  }
+
   async findAll(): Promise<Venue[]> {
-    return this.venueRepo.find({
+    const venues = await this.venueRepo.find({
       where: { is_active: true },
       relations: WITH_LOCATION,
       order: { created_at: 'DESC' },
     });
+    return this.attachCategories(venues);
   }
 
   async findByOwner(ownerId: string): Promise<Venue[]> {
-    return this.venueRepo.find({
+    const venues = await this.venueRepo.find({
       where: { owner_id: ownerId, is_active: true },
       relations: WITH_LOCATION,
       order: { created_at: 'DESC' },
     });
+    return this.attachCategories(venues);
   }
 
   async findByContributor(contributorId: string): Promise<Venue[]> {
-    return this.venueRepo.find({
+    const venues = await this.venueRepo.find({
       where: {
         contributed_by: contributorId,
         is_community_contributed: true,
@@ -60,6 +107,7 @@ export class VenueService {
       relations: WITH_LOCATION,
       order: { created_at: 'DESC' },
     });
+    return this.attachCategories(venues);
   }
 
   async findById(id: string): Promise<VenueWithCategories> {

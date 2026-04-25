@@ -97,6 +97,16 @@ export const API_ENDPOINTS = {
     VENUE_REPORT_RESOLVE: (id: string) => `/admin/venue-reports/${id}/resolve`,
     // Broadcast
     NOTIFICATIONS_BROADCAST: '/admin/notifications/broadcast',
+    // Categories
+    CATEGORIES: '/admin/categories',
+    CATEGORY_DETAIL: (id: string) => `/admin/categories/${id}`,
+    // Locations
+    CITIES: '/admin/cities',
+    CITY_DETAIL: (id: string) => `/admin/cities/${id}`,
+    DISTRICTS: '/admin/districts',
+    DISTRICT_DETAIL: (id: string) => `/admin/districts/${id}`,
+    // Reindex
+    VENUES_REINDEX: '/admin/venues/reindex-embeddings',
   },
 
   // Notifications

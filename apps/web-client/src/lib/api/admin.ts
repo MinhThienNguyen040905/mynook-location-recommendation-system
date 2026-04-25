@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 import { API_ENDPOINTS } from '@/config/api';
 import type { AuthUser } from '@/types/auth';
-import type { Venue } from '@/types/venue';
+import type { City, District, Venue, VenueCategory } from '@/types/venue';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -293,6 +293,153 @@ export async function broadcastNotification(
   const { data } = await apiClient.post<BroadcastResponse>(
     API_ENDPOINTS.ADMIN.NOTIFICATIONS_BROADCAST,
     payload,
+  );
+  return data;
+}
+
+// ─── Categories (admin CRUD) ────────────────────────────────────────────────
+
+export interface AdminCategoryUpsert {
+  key?: string;
+  display_name?: string;
+  synonyms?: string[];
+  description?: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export async function adminListCategories(): Promise<VenueCategory[]> {
+  const { data } = await apiClient.get<VenueCategory[]>(
+    API_ENDPOINTS.ADMIN.CATEGORIES,
+  );
+  return data;
+}
+
+export async function adminCreateCategory(
+  body: AdminCategoryUpsert & { key: string; display_name: string },
+): Promise<VenueCategory> {
+  const { data } = await apiClient.post<VenueCategory>(
+    API_ENDPOINTS.ADMIN.CATEGORIES,
+    body,
+  );
+  return data;
+}
+
+export async function adminUpdateCategory(
+  id: string,
+  body: AdminCategoryUpsert,
+): Promise<VenueCategory> {
+  const { data } = await apiClient.patch<VenueCategory>(
+    API_ENDPOINTS.ADMIN.CATEGORY_DETAIL(id),
+    body,
+  );
+  return data;
+}
+
+export async function adminDeleteCategory(id: string): Promise<void> {
+  await apiClient.delete(API_ENDPOINTS.ADMIN.CATEGORY_DETAIL(id));
+}
+
+// ─── Locations (admin CRUD) ─────────────────────────────────────────────────
+
+export interface AdminCityUpsert {
+  code?: string;
+  name?: string;
+  aliases?: string[];
+  latitude?: number;
+  longitude?: number;
+  is_active?: boolean;
+}
+
+export interface AdminDistrictUpsert {
+  city_id?: string;
+  code?: string;
+  name?: string;
+  aliases?: string[];
+  latitude?: number;
+  longitude?: number;
+  is_active?: boolean;
+}
+
+export async function adminListCities(): Promise<City[]> {
+  const { data } = await apiClient.get<City[]>(API_ENDPOINTS.ADMIN.CITIES);
+  return data;
+}
+
+export async function adminCreateCity(
+  body: AdminCityUpsert & { code: string; name: string },
+): Promise<City> {
+  const { data } = await apiClient.post<City>(API_ENDPOINTS.ADMIN.CITIES, body);
+  return data;
+}
+
+export async function adminUpdateCity(
+  id: string,
+  body: AdminCityUpsert,
+): Promise<City> {
+  const { data } = await apiClient.patch<City>(
+    API_ENDPOINTS.ADMIN.CITY_DETAIL(id),
+    body,
+  );
+  return data;
+}
+
+export async function adminDeleteCity(id: string): Promise<void> {
+  await apiClient.delete(API_ENDPOINTS.ADMIN.CITY_DETAIL(id));
+}
+
+export async function adminListDistricts(cityId?: string): Promise<District[]> {
+  const { data } = await apiClient.get<District[]>(
+    API_ENDPOINTS.ADMIN.DISTRICTS,
+    { params: cityId ? { city_id: cityId } : undefined },
+  );
+  return data;
+}
+
+export async function adminCreateDistrict(
+  body: AdminDistrictUpsert & { city_id: string; code: string; name: string },
+): Promise<District> {
+  const { data } = await apiClient.post<District>(
+    API_ENDPOINTS.ADMIN.DISTRICTS,
+    body,
+  );
+  return data;
+}
+
+export async function adminUpdateDistrict(
+  id: string,
+  body: AdminDistrictUpsert,
+): Promise<District> {
+  const { data } = await apiClient.patch<District>(
+    API_ENDPOINTS.ADMIN.DISTRICT_DETAIL(id),
+    body,
+  );
+  return data;
+}
+
+export async function adminDeleteDistrict(id: string): Promise<void> {
+  await apiClient.delete(API_ENDPOINTS.ADMIN.DISTRICT_DETAIL(id));
+}
+
+// ─── Reindex embeddings ─────────────────────────────────────────────────────
+
+export interface ReindexResult {
+  processed: number;
+  ok: number;
+  failed: number;
+}
+
+export async function adminReindexEmbeddings(opts?: {
+  force?: boolean;
+  limit?: number;
+}): Promise<ReindexResult> {
+  const params: Record<string, string | number> = {};
+  if (opts?.force) params.force = '1';
+  if (opts?.limit) params.limit = opts.limit;
+  const { data } = await apiClient.post<ReindexResult>(
+    API_ENDPOINTS.ADMIN.VENUES_REINDEX,
+    {},
+    { params },
   );
   return data;
 }
