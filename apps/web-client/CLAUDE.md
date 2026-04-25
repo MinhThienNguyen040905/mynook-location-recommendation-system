@@ -276,6 +276,23 @@ Root `page.tsx` (Home/Landing) lives at `app/page.tsx` — outside any route gro
 - **Map + Grid toggle**: Search results support both grid view and map view (Leaflet)
 - **Skeleton loading**: Use `loading-skeleton.tsx` for content loading states
 - **Voice Search**: `Mic` button in hero search bar — `MediaRecorder` captures audio, sends to Groq Whisper (`POST https://api.groq.com/openai/v1/audio/transcriptions`), result fills the input. Click once to start, click again (or wait 15s) to stop.
+- **GPS-aware search**: `useGeolocation()` hook (in `src/hooks/use-geolocation.ts`) gates browser geolocation behind an explicit user click (chip button on `/search`). Coords are cached in localStorage so subsequent visits seed instantly. When coords are present, every `hybridSearchPublic()` call attaches `lat`/`lng` → backend boosts nearby venues + populates `distance_m` per result.
+- **Category + distance badges on cards**: `SearchVenueCard` shows the venue's primary `matched_category` as an orange pill (top-left of image) and `distance_m` as a black chip (bottom-left, only when GPS provided). Home grid uses a smaller text pill next to the venue name. Both read from data the venue-service eager-loads — no extra requests.
+
+## Venue create/edit flow (UI-side)
+
+Three forms speak the same DTO shape:
+- `add-venue-modal` (owner) — 4 steps: basic info + **CategoryPickerChips** + media → address (cascading city/district dropdown via `useEffect` chain) + capacity → hours → review
+- `contribute-venue-modal` (any logged-in user) — 3 steps with the same picker
+- `owner/venue-general-info` (edit existing) — flat layout; `formFromVenue()` resolves `primary_category_id` from the response (backend includes it on `findById`)
+
+`CategoryPickerChips` is a controlled component: parent owns `selectedIds` + `primaryId`, click a chip toggles, click the star promotes to primary. First selected becomes primary automatically.
+
+## Admin master-data UI
+
+- `/admin/categories` — table of all venue categories with create/edit/delete dialogs. Synonyms input is comma-separated; backend lowercases on save.
+- `/admin/locations` — tabbed page (Cities | Districts). Districts tab has a city filter; create dialog locks `city_id`/`code` after first save (matches backend `UNIQUE (city_id, code)` constraint). Click the building icon on a city row to jump to that city's districts.
+- Both pages use TanStack Query with `invalidateQueries` after mutations so changes show without manual refresh.
 
 ## Environment Variables
 
@@ -310,6 +327,8 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=               # Cloudinary cloud name
 16. **Admin User Management** (`/admin/users`) — ban/unban, reset password
 17. **Admin Venue Approval** (`/admin/venues`) — approval queue
 18. **Admin Reports** (`/admin/reports`) — handle user reports
-19. **Forgot Password** (`/forgot-password`) — email → OTP → reset
+19. **Admin Categories** (`/admin/categories`) — CRUD venue categories + synonyms (drives AI search filter)
+20. **Admin Locations** (`/admin/locations`) — CRUD cities/districts + aliases (drives AI search location resolution)
+21. **Forgot Password** (`/forgot-password`) — email → OTP → reset
 
 Total: ~25-30 screens (including modals and multi-step flows)

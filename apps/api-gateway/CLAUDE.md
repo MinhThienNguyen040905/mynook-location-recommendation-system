@@ -62,9 +62,11 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 | Method | Path | Guard | Mô tả |
 |--------|------|-------|-------|
 | GET | `/api/search?q=...&limit=20&offset=0&debug=0&lat=&lng=&max_distance_m=` | JwtAuthGuard | AI hybrid search (logged-in, search logged). `debug=1` trả `score_breakdown`; `lat`/`lng` bật distance ranking; `max_distance_m` bounded `ST_DWithin` |
-| GET | `/api/search/public?q=...&limit=20` | Public | AI hybrid search (anonymous) |
+| GET | `/api/search/public?q=...&limit=20&lat=&lng=&max_distance_m=` | Public | AI hybrid search (anonymous) — chấp nhận tất cả query params như endpoint authenticated |
 
 Search pipeline: Groq extract intent/name/categories/tags/location → parallel với embedding → LocationResolver (Q1 → district_id) → SQL hybrid (semantic + trigram name + matched-tags SUM + category boost + rating + PostGIS distance − excluded tags).
+
+FE dùng `useGeolocation()` hook ở web-client để xin GPS một lần, lưu localStorage, tự động truyền `lat`/`lng` vào mọi search subsequent.
 
 ## Category Endpoints (route: /api/categories/...)
 
@@ -152,6 +154,7 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`user.type === 'admin'`).
 | POST   | `/api/admin/districts` | Tạo district (`city_id`, `code`, `name`, `aliases[]`, ...) |
 | PATCH  | `/api/admin/districts/:id` | Cập nhật district |
 | DELETE | `/api/admin/districts/:id` | Xóa district |
+| POST   | `/api/admin/venues/reindex-embeddings?force=&limit=` | Bulk re-generate embedding cho venues thiếu (proxy → venue-service). Trả `{ processed, ok, failed }`. |
 
 ## Pattern chuẩn — Route cần auth
 

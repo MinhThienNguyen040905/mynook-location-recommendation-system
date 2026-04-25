@@ -58,7 +58,7 @@ After processing a review, search-ai-service calls back to interaction-service v
 - `Venue.embedding`: pgvector `vector(384)` column with HNSW index
 - `Venue.location`: PostGIS `geography(Point, 4326)` GENERATED từ `(longitude, latitude)`. Index GIST để `ST_DWithin` + `ST_Distance` nhanh.
 - `Venue.city_id` / `Venue.district_id`: FK → `cities` / `districts`. Index B-tree.
-- `Tag.usage_count`: int column sort để lấy top-100 tags phổ biến cho Groq prompt (seed từ migration 007 dựa trên venue_tags hiện có; cần cập nhật định kỳ)
+- `Tag.usage_count`: int column sort để lấy top-100 tags phổ biến cho Groq prompt. Migration 010 thêm trigger `trg_venue_tags_bump_usage` tự cập nhật trên mọi insert/update/delete `venue_tags` → list top-100 luôn fresh, không cần cron.
 - `venue_schema.categories` / `venue_schema.venue_categories`: master list + M:N junction. search-ai-service CHỈ ĐỌC; CRUD nằm ở venue-service.
 - `venue_schema.cities` / `venue_schema.districts`: master tables với `aliases text[]` + `centroid geography(Point, 4326)`. search-ai-service CHỈ ĐỌC qua `LocationResolverService`.
 - Trigram indexes (pg_trgm + `public.f_unaccent`) trên `venues.name`, `venues.branch_name`, `venues.address_line`, `cities.name`, `districts.name` cho fuzzy match. LƯU Ý: phải dùng wrapper `public.f_unaccent` (IMMUTABLE) trong query — không dùng `unaccent()` trực tiếp — để planner pick được index.
@@ -88,7 +88,14 @@ After processing a review, search-ai-service calls back to interaction-service v
    - Hard filters: `is_active`, `crowd_level != 'full'`, optional `max_group_size`, optional category, optional rating ≥ 4.0, optional minNameScore, optional **`city_id` / `district_id` FK equal**, optional **`ST_DWithin(location, user_point, max_distance_m)`**, optional `address_line` trigram ILIKE cho street
    - LEFT JOIN `cities` + `districts` để trả `city.name` + `district.name` cho FE display
 7. **Relaxation fallback**: nếu < 5 kết quả và đang áp dụng filter cứng → re-run với filters relaxed
-8. **Debug mode**: `?debug=1` → response kèm `score_breakdown { semantic, tag, name, category_match, rating, location, strategy }`
+8. **Debug mode**: `?debug=1` → response kèm `score_breakdown { semantic, tag, name, category_match, rating, location, strategy }` cho mỗi venue. Response cũng có `distance_m` khi FE truyền GPS.
+
+## Data flow phụ thuộc (cross-service)
+
+- **Embedding sinh ở venue-service** (không phải search-ai-service). venue-service tự call HuggingFace mỗi lần create/update venue và ghi `embedding` vào DB. search-ai-service chỉ ĐỌC khi search.
+- **Tags sinh ở review-processing module** (search-ai-service). Mỗi review mới qua RMQ → Groq phân tích → upsert `venue_tags`. Trigger DB tự cập nhật `tags.usage_count` → CategoryTagProvider lấy top-100 fresh ở cache miss kế tiếp (TTL 5 phút).
+- **Categories master + venue_categories** thuộc venue-service domain. search-ai-service chỉ JOIN cross-schema để lấy `c.key` cho `matched_categories` field trên response.
+- **Cities + districts master** thuộc venue-service domain. search-ai-service `LocationResolverService` đọc bảng để resolve text → uuid.
 
 ## Environment Variables
 

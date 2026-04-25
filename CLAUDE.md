@@ -15,6 +15,8 @@ MyNook is a location review & discovery system built with **Nx monorepo** + **Ne
 - **AI-powered Hybrid Search**: search-ai-service calls Groq per query to extract `{ intent, possible_name, categories, tags, excluded_tags, location, require_high_rating, time_context }`. Ranking combines pgvector cosine + matched-tag SUM + pg_trgm fuzzy name match + category boost + rating. LRU cache + single-flight protect against stampede.
 - **Venue Categories (M:N)**: `venue_schema.categories` is a master list (cafe, restaurant, hotpot, …) with synonyms. `venue_schema.venue_categories` joins it to venues. Categories are human-curated (owner/admin) and used by the AI search as hard filter (when Groq confidence=high) or boost. CRUD lives in venue-service; search-ai-service reads via cross-schema join.
 - **Location taxonomy (cities/districts + PostGIS)**: `venue_schema.cities` + `venue_schema.districts` are master tables with `aliases[]` (e.g. `["q1","quan 1","district 1"]`) and PostGIS `centroid` points. Venues now reference them via `city_id` + `district_id` FKs (instead of the old free-text `city`/`district`). `venues.location` is a generated `geography(Point, 4326)` from `(longitude, latitude)` enabling distance ranking + `ST_DWithin` "nearby" filter. search-ai-service has a `LocationResolverService` that maps Groq-extracted text ("Q1") → district_id via aliases/trigram, enabling exact FK filtering instead of ILIKE.
+- **Auto Embedding Generation**: venue-service `VenueEmbeddingService` builds `search_document` from `name + branch + description + ward + district.name + city.name` and calls HuggingFace (`all-MiniLM-L6-v2`, 384-dim) on every venue create/update — fire-and-forget so HF latency never blocks the CRUD response. Admin can bulk-fix via `POST /api/admin/venues/reindex-embeddings?force=1`.
+- **Tag usage_count auto-fresh**: DB trigger `trg_venue_tags_bump_usage` (migration 010) increments/decrements `search_schema.tags.usage_count` on every `venue_tags` insert/update/delete. Keeps `CategoryTagProvider`'s top-100 popular-tags list correct over time without crons.
 - **AI Review Processing**: interaction-service emits `venue.reviewed` → search-ai-service analyzes via Groq AI (Llama 3.3) → upserts VenueTag scores → callbacks AI analysis JSON.
 - **Community Venue Contribution**: Any logged-in user (customer or owner) can contribute venues via `POST /venues/community`. Community venues (`is_community_contributed = true`) have no owner and can be edited by anyone.
 - **Admin Console**: Mọi endpoint admin đặt dưới `/api/admin/*` ở api-gateway, bảo vệ bằng `JwtAuthGuard + AdminGuard` (yêu cầu `account.type = admin`). Admin quản lý accounts (khóa/mở), venues (CRUD + khôi phục + hard delete), reviews + reports (duyệt, xóa), broadcast notifications cho toàn user/owner/customer, và xem dashboard tổng hợp (`GET /api/admin/dashboard`) từ cả 3 microservices.
@@ -217,6 +219,7 @@ Tất cả cần `JwtAuthGuard + AdminGuard` (`type = admin`).
 | POST   | `/api/admin/districts` | Tạo district (`city_id`, `code`, `name`, `aliases[]`, ...) |
 | PATCH  | `/api/admin/districts/:id` | Cập nhật district |
 | DELETE | `/api/admin/districts/:id` | Xóa district |
+| POST   | `/api/admin/venues/reindex-embeddings?force=&limit=` | Sinh lại `search_document` + embedding (HuggingFace) cho venues thiếu (default) hoặc tất cả (`force=1`). Dùng sau khi bulk-edit venues hoặc khi venues cũ chưa có embedding. |
 
 ## Public Category Endpoints
 
@@ -242,14 +245,32 @@ Cả `POST /api/venues`, `POST /api/venues/community`, `PATCH /api/venues/:id`, 
 - **Address**: `address_line` (số nhà + đường), `ward?`, `city_id`, `district_id`, `latitude`, `longitude`
 - **Categories**: `category_ids: string[]` + `primary_category_id?`
 
-Venue response trả về kèm `city_ref` + `district_ref` cho hiển thị name.
+Venue response trả về kèm `city_ref` + `district_ref` cho hiển thị name. List endpoints (findAll/findByOwner/findByContributor) cũng eager-load categories với `is_primary` flag để FE hiển thị badge mà không cần round-trip.
 
 ## Search với location
 
-`GET /api/search?q=<query>&lat=<float>&lng=<float>&max_distance_m=<int>` hỗ trợ:
+`GET /api/search?q=<query>&lat=<float>&lng=<float>&max_distance_m=<int>&debug=<0|1>` hỗ trợ:
 - Groq extract `location.{city, district, street}` từ câu search → resolve thành `city_id`/`district_id` qua alias → filter cứng
-- `lat`/`lng` từ FE (GPS user) → thêm `location` weight vào ranking (1.0 tại user point, decay exponential)
+- `lat`/`lng` từ FE (GPS user, qua `useGeolocation` hook) → thêm `location` weight vào ranking (1.0 tại user point, decay `1 / (1 + d/1500)`)
 - `max_distance_m` → bounding box `ST_DWithin` loại các venue quá xa
+- `debug=1` → response kèm `score_breakdown { semantic, tag, name, category_match, rating, location, strategy }` cho từng venue
+- Response venue có `distance_m` (chỉ khi `lat`/`lng` truyền vào) + `matched_categories` để FE render badge primary category trên card
+
+## End-to-end search flow
+
+1. **User tạo venue** (owner / community contribute): UI form gửi `address_line + ward + city_id + district_id + category_ids + primary_category_id` → venue-service lưu, set categories qua `setCategoriesForVenue` (atomic replace), `VenueEmbeddingService.regenerateInBackground` fire-and-forget call HF embed
+2. **User để lại review**: interaction-service emit RMQ `venue.reviewed` → search-ai-service Groq phân tích → upsert `venue_tags` → trigger `trg_venue_tags_bump_usage` tự cập nhật `tags.usage_count`
+3. **User search**: FE truyền `q` (và optional `lat`/`lng`) → gateway → search-ai-service:
+   - Regex parse `capacity` + `time` từ query
+   - Parallel: Groq extract intent/name/categories/tags/location + HF embed cleanQuery
+   - LocationResolver map `"Q1"` → `district_id`
+   - Provider resolve category/tag keys → ids (filter unknown keys ra)
+   - Strategy chọn weights theo intent (`name` / `attribute` / `mixed` / `unclear`)
+   - SQL hybrid: pgvector cosine + pg_trgm name + matched-tag SUM (time-frame filtered) + category boost + PostGIS distance + rating − excluded_tag penalty
+   - Hard filters: capacity, crowd, FK city/district (when resolved), rating ≥ 4 (when `require_high_rating`), `ST_DWithin` (when `max_distance_m`), minNameScore (intent=name)
+   - Relaxation fallback nếu < 5 kết quả
+   - LEFT JOIN cities + districts → response chứa display name
+4. **Admin operate**: `/admin/categories` quản lý loại quán + synonyms; `/admin/locations` quản lý cities/districts (cascading filter); `POST /admin/venues/reindex-embeddings` bulk-fix venues thiếu embedding
 
 ## User Report Endpoints
 
