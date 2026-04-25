@@ -52,6 +52,20 @@ export class AdminVenueController {
     return this.adminService.stats();
   }
 
+  @Post('reindex-embeddings')
+  @ApiOperation({
+    summary: 'Sinh lại search_document + embedding cho venues thiếu (hoặc all nếu force=true)',
+  })
+  reindex(
+    @Query('force') force?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.reindexEmbeddings(
+      force === 'true' || force === '1',
+      limit ? Number(limit) : 50,
+    );
+  }
+
   @Get('cities')
   @ApiOperation({ summary: 'Phân bố venue theo city' })
   cityBreakdown() {

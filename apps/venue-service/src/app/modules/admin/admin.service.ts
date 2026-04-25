@@ -8,6 +8,7 @@ import { Venue } from '@mynook/database';
 import { CreateVenueDto } from '../venue/dto/create-venue.dto.js';
 import { UpdateVenueDto } from '../venue/dto/update-venue.dto.js';
 import { CategoryService } from '../category/category.service.js';
+import { VenueEmbeddingService } from '../venue/embedding.service.js';
 
 export interface ListVenuesQuery {
   is_active?: boolean;
@@ -25,6 +26,7 @@ export class AdminVenueService {
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,
     private readonly categoryService: CategoryService,
+    private readonly embeddingService: VenueEmbeddingService,
   ) {}
 
   async list(query: ListVenuesQuery) {
@@ -77,6 +79,7 @@ export class AdminVenueService {
         primary_category_id,
       );
     }
+    this.embeddingService.regenerateInBackground(saved.id);
     return saved;
   }
 
@@ -93,6 +96,8 @@ export class AdminVenueService {
         primary_category_id,
       );
     }
+    // Admin may tweak anything; always re-embed on admin update
+    this.embeddingService.regenerateInBackground(saved.id);
     return saved;
   }
 
@@ -180,6 +185,32 @@ export class AdminVenueService {
         avg_rating: Number(r.avg_rating),
       })),
     };
+  }
+
+  /**
+   * Re-generate search_document + embedding for venues that are missing them
+   * (or all active venues if `force=true`). Synchronous — intended for a
+   * one-shot admin action, not a loop.
+   */
+  async reindexEmbeddings(force = false, limit = 50) {
+    const qb = this.venueRepo
+      .createQueryBuilder('v')
+      .select('v.id', 'id')
+      .where('v.is_active = true');
+    if (!force) qb.andWhere('v.embedding IS NULL');
+    const rows = await qb.limit(Math.max(1, Math.min(limit, 200))).getRawMany();
+
+    let ok = 0;
+    let failed = 0;
+    for (const r of rows) {
+      try {
+        await this.embeddingService.regenerate(r.id);
+        ok++;
+      } catch {
+        failed++;
+      }
+    }
+    return { processed: rows.length, ok, failed };
   }
 
   async cityBreakdown() {

@@ -5,10 +5,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Venue } from '@mynook/database';
+import { Venue, Category } from '@mynook/database';
 import { CreateVenueDto } from './dto/create-venue.dto.js';
 import { UpdateVenueDto } from './dto/update-venue.dto.js';
 import { CategoryService } from '../category/category.service.js';
+import { VenueEmbeddingService } from './embedding.service.js';
+
+export type VenueWithCategories = Venue & {
+  categories: Array<Category & { is_primary: boolean }>;
+  primary_category_id: string | null;
+};
 
 /**
  * Venue relations we always want eager-loaded for list/detail reads so the
@@ -25,6 +31,7 @@ export class VenueService {
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,
     private readonly categoryService: CategoryService,
+    private readonly embeddingService: VenueEmbeddingService,
   ) {}
 
   async findAll(): Promise<Venue[]> {
@@ -55,14 +62,18 @@ export class VenueService {
     });
   }
 
-  async findById(id: string): Promise<Venue & { categories: unknown[] }> {
+  async findById(id: string): Promise<VenueWithCategories> {
     const venue = await this.venueRepo.findOne({
       where: { id },
       relations: WITH_LOCATION,
     });
     if (!venue) throw new NotFoundException('Venue not found');
     const categories = await this.categoryService.getCategoriesForVenue(id);
-    return Object.assign(venue, { categories });
+    const primary = categories.find((c) => c.is_primary) ?? null;
+    return Object.assign(venue, {
+      categories,
+      primary_category_id: primary?.id ?? null,
+    });
   }
 
   async create(ownerId: string, dto: CreateVenueDto): Promise<Venue> {
@@ -79,6 +90,7 @@ export class VenueService {
         primary_category_id,
       );
     }
+    this.embeddingService.regenerateInBackground(saved.id);
     return saved;
   }
 
@@ -101,6 +113,7 @@ export class VenueService {
         primary_category_id,
       );
     }
+    this.embeddingService.regenerateInBackground(saved.id);
     return saved;
   }
 
@@ -127,7 +140,24 @@ export class VenueService {
         primary_category_id,
       );
     }
+    // Only re-embed when fields that affect search_document actually changed.
+    if (this.isSearchRelevantChange(dto)) {
+      this.embeddingService.regenerateInBackground(saved.id);
+    }
     return saved;
+  }
+
+  /** Fields whose change invalidates the embedding / search_document */
+  private isSearchRelevantChange(dto: UpdateVenueDto): boolean {
+    return (
+      dto.name !== undefined ||
+      dto.branch_name !== undefined ||
+      dto.description !== undefined ||
+      dto.address_line !== undefined ||
+      dto.ward !== undefined ||
+      dto.city_id !== undefined ||
+      dto.district_id !== undefined
+    );
   }
 
   async remove(venueId: string, ownerId: string): Promise<void> {

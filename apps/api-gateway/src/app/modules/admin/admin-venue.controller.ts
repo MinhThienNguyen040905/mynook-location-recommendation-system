@@ -57,6 +57,26 @@ export class AdminVenueController {
     return data;
   }
 
+  @Post('reindex-embeddings')
+  @ApiOperation({ summary: 'Sinh lại embedding cho venues thiếu (bulk)' })
+  async reindex(
+    @Request() req: { authHeaders: Record<string, string> },
+    @Query('force') force?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const { data } = await firstValueFrom(
+      this.http.post(
+        `${VENUE_SERVICE_URL}/admin/venues/reindex-embeddings`,
+        {},
+        {
+          headers: req.authHeaders,
+          params: { force, limit },
+        },
+      ),
+    );
+    return data;
+  }
+
   @Get('cities')
   @ApiOperation({ summary: 'Phân bố venues theo city' })
   async cities(@Request() req: { authHeaders: Record<string, string> }) {

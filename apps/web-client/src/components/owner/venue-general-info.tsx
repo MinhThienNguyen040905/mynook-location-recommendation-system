@@ -28,8 +28,14 @@ interface FormState {
 
 function formFromVenue(v: Venue): FormState {
   const cats = v.categories ?? [];
-  // Backend returns categories as plain VenueCategory[]; no "is_primary" flag
-  // is exposed. Default to the first one as primary (can be changed via picker).
+  // Prefer backend-provided primary_category_id; fall back to the category
+  // flagged is_primary, then to the first one (matches getCategoriesForVenue
+  // ordering which puts primary first).
+  const primaryId =
+    v.primary_category_id ??
+    cats.find((c) => c.is_primary)?.id ??
+    cats[0]?.id ??
+    null;
   return {
     name: v.name ?? '',
     address_line: v.address_line ?? '',
@@ -39,7 +45,7 @@ function formFromVenue(v: Venue): FormState {
     description: v.description ?? '',
     opening_hours: v.opening_hours ?? {},
     category_ids: cats.map((c) => c.id),
-    primary_category_id: cats[0]?.id ?? null,
+    primary_category_id: primaryId,
   };
 }
 

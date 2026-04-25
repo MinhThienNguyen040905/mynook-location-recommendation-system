@@ -57,6 +57,8 @@ export interface Venue {
   contributed_by: string | null;
   /** Array of venue Category objects (when fetched via GET /venues/:id) */
   categories?: VenueCategory[];
+  /** Resolved by backend from venue_categories.is_primary, only on detail response */
+  primary_category_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -69,6 +71,8 @@ export interface VenueCategory {
   description: string | null;
   display_order: number;
   is_active: boolean;
+  /** Only set when returned as part of a venue's categories list */
+  is_primary?: boolean;
 }
 
 export interface CreateVenueRequest {

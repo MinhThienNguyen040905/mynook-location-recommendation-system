@@ -74,12 +74,26 @@ export class CategoryService {
 
   // ── Venue ↔ Category links ───────────────────────────────────────
 
-  async getCategoriesForVenue(venueId: string): Promise<Category[]> {
+  /** Categories attached to a venue, with primary flag preserved */
+  async getCategoriesForVenue(
+    venueId: string,
+  ): Promise<Array<Category & { is_primary: boolean }>> {
     const links = await this.venueCategoryRepo.find({
       where: { venue_id: venueId },
       relations: { category: true },
+      order: { is_primary: 'DESC', created_at: 'ASC' },
     });
-    return links.map((l) => l.category).filter((c): c is Category => !!c);
+    return links
+      .filter((l) => !!l.category)
+      .map((l) => ({ ...(l.category as Category), is_primary: l.is_primary }));
+  }
+
+  /** Resolve the primary category id for a venue, or null */
+  async getPrimaryCategoryId(venueId: string): Promise<string | null> {
+    const link = await this.venueCategoryRepo.findOne({
+      where: { venue_id: venueId, is_primary: true },
+    });
+    return link?.category_id ?? null;
   }
 
   /**
