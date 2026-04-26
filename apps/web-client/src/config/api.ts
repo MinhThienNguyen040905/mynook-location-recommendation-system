@@ -27,7 +27,14 @@ export const API_ENDPOINTS = {
     SEARCH: '/venues/search',
     NEARBY: '/venues/nearby',
     TRENDING: '/venues/trending',
+    TOP_RATED: '/venues/top-rated',
     MY_CONTRIBUTIONS: '/venues/my-contributions',
+  },
+
+  // Interactions (track view, recently viewed)
+  INTERACTIONS: {
+    TRACK_VIEW: '/interactions/view',
+    RECENTLY_VIEWED: '/interactions/recently-viewed',
   },
 
   // Bookings
@@ -121,6 +128,7 @@ export const API_ENDPOINTS = {
   SEARCH: {
     SEMANTIC: '/search',
     SUGGESTIONS: '/search/suggestions',
+    RECOMMENDED: '/search/recommended',
   },
 
   // Tags

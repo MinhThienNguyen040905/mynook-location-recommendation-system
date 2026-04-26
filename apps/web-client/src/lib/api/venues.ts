@@ -134,3 +134,18 @@ export async function getTrendingVenuesServer(): Promise<Venue[]> {
     return [];
   }
 }
+
+/** Top-rated venues (Hot tuần này) — Server Component, cache 5 phút */
+export async function getTopRatedVenuesServer(
+  days = 7,
+  limit = 6,
+): Promise<Venue[]> {
+  try {
+    const url = `${API_BASE_URL}${API_ENDPOINTS.VENUES.TOP_RATED}?days=${days}&limit=${limit}`;
+    const res = await fetch(url, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}

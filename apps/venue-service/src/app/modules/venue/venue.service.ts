@@ -88,6 +88,47 @@ export class VenueService {
     return this.attachCategories(venues);
   }
 
+  /**
+   * Top venues by recent activity. We rank by `rating_avg * log10(recent_review_count + 1.5)`
+   * so a quiet venue with a single 5-star review can't outrank a busy 4.5-star venue.
+   * Cross-schema query — `interaction_schema.reviews` lives in the same DB.
+   */
+  async findTopRated(days = 7, limit = 6): Promise<Venue[]> {
+    const safeDays = Math.max(1, Math.min(days, 90));
+    const safeLimit = Math.max(1, Math.min(limit, 50));
+
+    const rows = await this.venueRepo.manager.query(
+      `
+      WITH recent_review_counts AS (
+        SELECT venue_id, COUNT(*)::int AS recent_count
+        FROM interaction_schema.reviews
+        WHERE created_at >= NOW() - ($1 || ' days')::interval
+        GROUP BY venue_id
+      )
+      SELECT v.id
+      FROM venue_schema.venues v
+      LEFT JOIN recent_review_counts rrc ON rrc.venue_id = v.id
+      WHERE v.is_active = true
+        AND v.rating_avg >= 4.0
+      ORDER BY (v.rating_avg * LN(COALESCE(rrc.recent_count, 0) + 1.5)) DESC,
+               v.review_count DESC
+      LIMIT $2
+      `,
+      [safeDays, safeLimit],
+    );
+
+    if (rows.length === 0) return [];
+    const ids: string[] = rows.map((r: { id: string }) => r.id);
+    const venues = await this.venueRepo.find({
+      where: ids.map((id) => ({ id })),
+      relations: WITH_LOCATION,
+    });
+    // Preserve SQL order (find() doesn't guarantee it).
+    const order = new Map(ids.map((id, i) => [id, i]));
+    venues.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return this.attachCategories(venues);
+  }
+
   async findByOwner(ownerId: string): Promise<Venue[]> {
     const venues = await this.venueRepo.find({
       where: { owner_id: ownerId, is_active: true },

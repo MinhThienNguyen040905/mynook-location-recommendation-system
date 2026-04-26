@@ -59,6 +59,32 @@ export class SearchController {
   }
 
   /**
+   * Personalized recommendations (logged-in only). Empty array if the user has
+   * no signals (no favorites and no 4★+ reviews) — FE should fall back gracefully.
+   */
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Get('recommended')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Recommended venues for the current user' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiResponse({ status: 200, description: 'Recommended venues (may be empty)' })
+  async recommended(
+    @Request() req: { authHeaders?: Record<string, string> },
+    @Query('limit') limit?: string,
+  ) {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', limit);
+    const { data } = await firstValueFrom(
+      this.http.get(
+        `${SEARCH_AI_SERVICE_URL}/search/recommended?${params.toString()}`,
+        { headers: req.authHeaders || {} },
+      ),
+    );
+    return data;
+  }
+
+  /**
    * Public search (no auth required) — for unauthenticated users.
    */
   @Get('public')

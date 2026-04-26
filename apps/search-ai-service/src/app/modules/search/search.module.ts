@@ -19,6 +19,7 @@ import { CategoryTagProviderService } from './category-tag-provider.service.js';
 import { QueryExtractionService } from './query-extraction.service.js';
 import { QueryCacheService } from './query-cache.service.js';
 import { LocationResolverService } from './location-resolver.service.js';
+import { RecommendService } from './recommend.service.js';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { LocationResolverService } from './location-resolver.service.js';
     QueryExtractionService,
     QueryCacheService,
     LocationResolverService,
+    RecommendService,
   ],
   exports: [
     SearchService,
@@ -51,6 +53,7 @@ import { LocationResolverService } from './location-resolver.service.js';
     VenueSearchService,
     CategoryTagProviderService,
     LocationResolverService,
+    RecommendService,
   ],
 })
 export class SearchModule {}

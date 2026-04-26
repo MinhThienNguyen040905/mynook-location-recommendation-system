@@ -1,13 +1,37 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { CurrentUser } from '@mynook/shared-types';
 import type { CurrentUserPayload } from '@mynook/shared-types';
 import { VenueSearchService } from './venue-search.service.js';
+import { RecommendService } from './recommend.service.js';
 
 @ApiTags('Search')
 @Controller('search')
 export class SearchController {
-  constructor(private readonly venueSearch: VenueSearchService) {}
+  constructor(
+    private readonly venueSearch: VenueSearchService,
+    private readonly recommend: RecommendService,
+  ) {}
+
+  @Get('recommended')
+  @ApiOperation({
+    summary: 'Recommend venues for the logged-in user (pgvector kNN)',
+    description:
+      'Builds an average-embedding taste vector from the user\'s favorites + 4★+ reviews, ' +
+      'then returns nearest venues. Empty array when the user has no signals yet.',
+  })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiResponse({ status: 200 })
+  async recommended(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Query('limit') limit?: string,
+  ) {
+    if (!user?.id) {
+      throw new UnauthorizedException('Recommendations require authentication');
+    }
+    const max = limit ? Math.min(parseInt(limit, 10) || 6, 30) : 6;
+    return this.recommend.recommendForUser(user.id, max);
+  }
 
   @Get()
   @ApiOperation({
