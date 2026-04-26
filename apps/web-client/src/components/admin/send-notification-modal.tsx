@@ -88,8 +88,6 @@ export function SendNotificationModal({ onClose }: SendNotificationModalProps) {
         onClick={(e) => e.stopPropagation()}
         className="relative z-10 w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
       >
-        <div className={cn('h-1.5 w-full transition-colors', TYPE_HEADER_COLOR[type])} />
-
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-nook-olive/10 text-nook-olive flex items-center justify-center">
