@@ -64,7 +64,7 @@ function UserMenu({ name, avatar, role }: { name: string | null; avatar: string 
             transition={{ duration: 0.15 }}
             className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-nook-sand py-1.5 z-50"
           >
-            <Link href="/profile"
+            <Link href={isOwner ? '/dashboard' : '/profile'}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
               <User size={15} className="text-nook-olive" /> Thông tin cá nhân
             </Link>

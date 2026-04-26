@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Camera, Star, Verified, Edit3, Check, X,
-  User, Link as LinkIcon, MapPin,
+  User, Phone, Link as LinkIcon, MapPin,
   TrendingUp, Store, Plus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -246,7 +246,7 @@ export default function OwnerDashboardPage() {
             <div className="flex flex-wrap gap-4 text-sm text-gray-400 mt-1">
               <span className="flex items-center gap-1.5"><User size={13} className="text-orange-500" />{user.email}</span>
               {user.phone_number && (
-                <span className="flex items-center gap-1.5">{user.phone_number}</span>
+                <span className="flex items-center gap-1.5"><Phone size={13} className="text-orange-500" />{user.phone_number}</span>
               )}
             </div>
           )}
