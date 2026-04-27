@@ -5,6 +5,7 @@ import { ReviewController } from './review.controller.js';
 import { ReportController } from './report.controller.js';
 import { VenueReportController } from './venue-report.controller.js';
 import { InteractionsController } from './interactions.controller.js';
+import { FavoritesController } from './favorites.controller.js';
 
 @Module({
   imports: [HttpModule],
@@ -14,6 +15,7 @@ import { InteractionsController } from './interactions.controller.js';
     ReportController,
     VenueReportController,
     InteractionsController,
+    FavoritesController,
   ],
 })
 export class InteractionModule {}
