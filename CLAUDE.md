@@ -278,3 +278,20 @@ Venue response trả về kèm `city_ref` + `district_ref` cho hiển thị name
 |--------|------|-------|
 | POST   | `/api/reports` | User report review vi phạm (`review_id`, `reason`, `description?`) |
 | POST   | `/api/venue-reports` | User report venue giả mạo / sai thông tin / vi phạm (`venue_id`, `reason`, `description?`) |
+
+## Interaction Endpoints (User Behavior Tracking)
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| POST   | `/api/interactions/view` | Track venue view của user đang đăng nhập (body `{ venue_id }`). FE gọi fire-and-forget khi mở `/venues/:id`. Insert vào `interaction_schema.user_interactions` với `interaction_type='view'`. |
+| GET    | `/api/interactions/recently-viewed?limit=8` | Recently Viewed cho user — gộp theo venue qua `MAX(created_at)`, JOIN cross-schema venues + cities + districts + primary category. |
+
+## Home-page Discovery Lists
+
+Trang chủ (`apps/web-client/src/app/page.tsx`) render 3 section cá nhân hóa thay cho "Trending Near You" cũ:
+
+| Section | Endpoint | Auth | Logic |
+|---------|----------|------|-------|
+| **Top Rated This Week** | `GET /api/venues/top-rated?days=7&limit=6` (venue-service) | Public | Cross-schema query: đếm reviews 7 ngày qua từ `interaction_schema.reviews`, rank `rating_avg * LN(recent_count + 1.5)` để rating cao + nhiều review thắng quán mới có 1 đánh giá 5 sao. Server Component, cache 5 phút. |
+| **Recommended For You** | `GET /api/search/recommended?limit=6` (search-ai-service) | JwtAuthGuard | Build taste vector = `AVG(embedding)::vector` của venues user đã favorite + reviewed `rating>=4`, kNN cosine, exclude venues đã interact. Trả `[]` nếu user chưa có signal → FE ẩn section. |
+| **Recently Viewed** | `POST /api/interactions/view` + `GET /api/interactions/recently-viewed?limit=8` (interaction-service) | JwtAuthGuard | FE gọi `POST` mỗi lần mở `/venues/:id`. User chưa login → FE fallback đọc `localStorage[mynook_recently_viewed]`. |

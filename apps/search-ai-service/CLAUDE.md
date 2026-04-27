@@ -31,6 +31,7 @@ NestJS HTTP microservice chạy ở **port 3005**. Xử lý logic tìm kiếm hy
 | `src/app/modules/search/category-tag-provider.service.ts` | Load + cache 5 phút: active categories + top-100 tags theo `usage_count`. Resolve keys → ids cho SQL. |
 | `src/app/modules/search/location-resolver.service.ts` | Resolve text location ("Q1") → `city_id`/`district_id` qua alias + trigram. Cache 10 phút. District scoped theo resolved city. |
 | `src/app/modules/search/venue-search.service.ts` | Hybrid SQL: semantic + pg_trgm name + matched-tag SUM + category boost + rating + PostGIS distance (ST_Distance / ST_DWithin), dynamic weights theo intent, fallback khi ít kết quả. LEFT JOIN `cities`/`districts` để trả `city.name`/`district.name` ra FE. |
+| `src/app/modules/search/recommend.service.ts` | `RecommendService.recommendForUser(accountId, limit)` — cross-schema query gom seed venues từ `user_favorites` + `reviews` (rating>=4), tính taste vector qua pgvector `AVG(embedding)::vector`, kNN exclude venues đã interact, JOIN cities/districts/primary category. Empty array khi user chưa có signal. |
 | **Review Processing Module** | |
 | `src/app/modules/review-processing/review-processing.module.ts` | AI review processing module |
 | `src/app/modules/review-processing/review-processing.controller.ts` | RMQ handler for `venue.reviewed` event |
@@ -42,6 +43,7 @@ NestJS HTTP microservice chạy ở **port 3005**. Xử lý logic tìm kiếm hy
 | Method | Path | Auth | Mô tả |
 |--------|------|------|-------|
 | GET | `/search?q=...&limit=20` | Optional (via headers) | Hybrid venue search |
+| GET | `/search/recommended?limit=6` | Required (`x-user-id`) | Personalized recommendations. Build taste vector = `AVG(embedding)::vector` của venues user đã favorite + reviewed `rating>=4`, kNN cosine, exclude venues user đã interact. Trả `[]` nếu user chưa có signal. |
 
 ## RabbitMQ Events
 

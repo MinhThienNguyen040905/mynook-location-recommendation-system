@@ -50,6 +50,7 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 | `src/app/modules/venue/dto/venue.dto.ts` | Gateway-level Venue DTOs (Swagger docs) |
 | `src/app/modules/interaction/notification.controller.ts` | Proxy /notifications/* routes đến interaction-service |
 | `src/app/modules/interaction/review.controller.ts` | Proxy /reviews/* routes đến interaction-service |
+| `src/app/modules/interaction/interactions.controller.ts` | Proxy /interactions/view + /interactions/recently-viewed (yêu cầu JwtAuthGuard) |
 | `src/app/modules/search/search.controller.ts` | Proxy /search routes đến search-ai-service |
 | `src/app/modules/search/search.module.ts` | Search proxy module |
 | `src/app/modules/venue/category.controller.ts` | Public proxy `/categories/*` → venue-service |
@@ -63,6 +64,7 @@ NestJS HTTP REST gateway chạy ở **port 3001**, prefix `/api`. Là **điểm 
 |--------|------|-------|-------|
 | GET | `/api/search?q=...&limit=20&offset=0&debug=0&lat=&lng=&max_distance_m=` | JwtAuthGuard | AI hybrid search (logged-in, search logged). `debug=1` trả `score_breakdown`; `lat`/`lng` bật distance ranking; `max_distance_m` bounded `ST_DWithin` |
 | GET | `/api/search/public?q=...&limit=20&lat=&lng=&max_distance_m=` | Public | AI hybrid search (anonymous) — chấp nhận tất cả query params như endpoint authenticated |
+| GET | `/api/search/recommended?limit=6` | JwtAuthGuard | Personalized recommendations cho user đang đăng nhập. Trả `[]` nếu user chưa có favorite/review tốt — FE biết fallback. |
 
 Search pipeline: Groq extract intent/name/categories/tags/location → parallel với embedding → LocationResolver (Q1 → district_id) → SQL hybrid (semantic + trigram name + matched-tags SUM + category boost + rating + PostGIS distance − excluded tags).
 
@@ -91,6 +93,7 @@ Search extract (Groq) trả `location.{city, district, street}` là string; sear
 | Method | Path | Guard | Mô tả |
 |--------|------|-------|-------|
 | GET | `/api/venues` | Public | Lấy tất cả venues |
+| GET | `/api/venues/top-rated?days=7&limit=6` | Public | Top-rated venues (Hot tuần này) — proxy → venue-service `/venues/top-rated` |
 | GET | `/api/venues/owner/my-venues` | JwtAuthGuard | Lấy venues của owner đang đăng nhập |
 | GET | `/api/venues/:id` | Public | Lấy chi tiết venue (kèm `categories[]`, `city_ref`, `district_ref`) |
 | POST | `/api/venues` | JwtAuthGuard | Tạo venue mới — body: `address_line`, `ward?`, `city_id`, `district_id`, `latitude`, `longitude`, `category_ids[]?`, `primary_category_id?` |
@@ -111,6 +114,13 @@ Search extract (Groq) trả `location.{city, district, street}` là string; sear
 |--------|------|-------|-------|
 | POST | `/api/reports` | JwtAuthGuard | User report một review vi phạm |
 | POST | `/api/venue-reports` | JwtAuthGuard | User report venue giả mạo / vi phạm |
+
+## Interaction Endpoints (route: `/api/interactions/*`)
+
+| Method | Path | Guard | Mô tả |
+|--------|------|-------|-------|
+| POST | `/api/interactions/view` | JwtAuthGuard | Track user vừa xem một venue (body `{ venue_id }`). FE gọi fire-and-forget khi mở `/venues/:id`. |
+| GET  | `/api/interactions/recently-viewed?limit=8` | JwtAuthGuard | Lấy danh sách Recently Viewed của user (đã JOIN venues + cities + districts + primary category). |
 
 ## Admin Endpoints (route: /api/admin/...)
 

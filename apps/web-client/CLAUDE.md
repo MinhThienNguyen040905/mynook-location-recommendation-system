@@ -111,12 +111,14 @@ src/
 │   │   ├── sidebar.tsx               # Dashboard sidebar (owner/admin)
 │   │   └── topbar.tsx                # Dashboard top bar
 │   │
-│   ├── home/                         # Homepage-specific sections
-│   │   ├── hero-banner.tsx           # Promotion slider/banner
-│   │   ├── nearby-section.tsx        # "Near you" venue list (GPS-based)
-│   │   ├── trending-section.tsx      # Top-rated venues
-│   │   ├── suggestion-section.tsx    # "Suggestions for you" (study/date/family filters)
-│   │   └── category-filter.tsx       # Quick category chips
+│   ├── home/                         # Homepage-specific sections (rendered in this order)
+│   │   ├── hero-section.tsx          # Hero banner + voice search
+│   │   ├── category-pills.tsx        # Quick category/tag chips
+│   │   ├── recently-viewed-section.tsx # "Recently Viewed" — backend cho logged-in users, localStorage fallback cho anonymous
+│   │   ├── recommended-section.tsx   # "Recommended For You" — pgvector kNN từ favorites + 4★+ reviews; auto-hide khi user chưa có signal
+│   │   ├── top-rated-section.tsx     # "Top Rated This Week" — server component, cache 5 phút, rank `rating × log(recent reviews)`
+│   │   ├── all-venues-section.tsx    # All venues grid
+│   │   └── marketing-banner.tsx      # Marketing banner
 │   │
 │   ├── venue/                        # Venue-related components
 │   │   ├── venue-card.tsx            # Venue card (grid/list item)
@@ -178,6 +180,7 @@ src/
 │   ├── use-current-user.ts           # Current user data
 │   ├── use-debounce.ts               # Debounced value
 │   ├── use-geolocation.ts            # Browser geolocation API
+│   ├── use-recently-viewed.ts        # Read/write `mynook_recently_viewed` (localStorage, anonymous fallback for Recently Viewed section)
 │   ├── use-media-query.ts            # Responsive breakpoint detection
 │   ├── use-infinite-scroll.ts        # Infinite scroll pagination
 │   └── use-local-storage.ts          # LocalStorage with React state
@@ -188,10 +191,11 @@ src/
 │   ├── api/                          # API client layer (all requests → API Gateway)
 │   │   ├── client.ts                 # Axios instance + auth interceptor
 │   │   ├── auth.ts                   # login, register, refresh, profile
-│   │   ├── venues.ts                 # list, detail, search, nearby, trending
+│   │   ├── venues.ts                 # list, detail, search, nearby, trending, top-rated
 │   │   ├── bookings.ts              # list, create, cancel, detail
 │   │   ├── reviews.ts               # list, create, reply
 │   │   ├── search.ts                # semantic search, suggestions
+│   │   ├── interactions.ts          # trackVenueView, getRecentlyViewed, getRecommended (powers Home discovery sections)
 │   │   ├── admin.ts                 # user mgmt, venue approval, reports
 │   │   └── upload.ts                # file upload (Cloudinary via gateway)
 │   └── validators/                   # Zod schemas for form validation
@@ -278,6 +282,10 @@ Root `page.tsx` (Home/Landing) lives at `app/page.tsx` — outside any route gro
 - **Voice Search**: `Mic` button in hero search bar — `MediaRecorder` captures audio, sends to Groq Whisper (`POST https://api.groq.com/openai/v1/audio/transcriptions`), result fills the input. Click once to start, click again (or wait 15s) to stop.
 - **GPS-aware search**: `useGeolocation()` hook (in `src/hooks/use-geolocation.ts`) gates browser geolocation behind an explicit user click (chip button on `/search`). Coords are cached in localStorage so subsequent visits seed instantly. When coords are present, every `hybridSearchPublic()` call attaches `lat`/`lng` → backend boosts nearby venues + populates `distance_m` per result.
 - **Category + distance badges on cards**: `SearchVenueCard` shows the venue's primary `matched_category` as an orange pill (top-left of image) and `distance_m` as a black chip (bottom-left, only when GPS provided). Home grid uses a smaller text pill next to the venue name. Both read from data the venue-service eager-loads — no extra requests.
+- **Home discovery sections**: 3 carousels render below the hero (in order):
+  - **Recently Viewed**: logged-in users fetch `GET /api/interactions/recently-viewed`; anonymous users read `localStorage[mynook_recently_viewed]` (max 12, populated by `useTrackRecentlyViewed` hook on `/venues/:id`). `<TrackRecentlyViewed />` (`components/venue-detail/track-recently-viewed.tsx`) is mounted on the venue detail page — it always writes to localStorage, and additionally fires `POST /api/interactions/view` when the user is logged in (cross-device sync).
+  - **Recommended For You**: client component, only renders when `useAuthStore().user` exists. Backend (search-ai-service) does the kNN — FE just renders or auto-hides on empty array.
+  - **Top Rated This Week**: server component, fetched once per request via `getTopRatedVenuesServer(7, 6)` with Next.js `revalidate: 300`.
 
 ## Venue create/edit flow (UI-side)
 

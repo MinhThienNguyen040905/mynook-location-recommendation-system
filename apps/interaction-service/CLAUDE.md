@@ -8,7 +8,8 @@ NestJS HTTP microservice chạy ở **port 3004**. Xử lý logic tương tác n
 
 - Quản lý notifications (CRUD + RMQ event handlers)
 - Quản lý reviews — CRUD + emit `venue.reviewed` event để search-ai-service xử lý AI analysis
-- (Planned) User Favorites, User Interactions
+- Quản lý user interactions: track view + recently-viewed venues (ghi `interaction_schema.user_interactions` với `interaction_type='view'`)
+- (Planned) User Favorites
 - Nhận thông tin account từ `x-user-id` / `x-user-type` headers (forward từ api-gateway) via `@CurrentUser()` decorator
 - Lắng nghe RabbitMQ events (e.g. `user.registered`) để tạo notifications tự động
 - Publish RabbitMQ events (`venue.reviewed`) khi có review mới
@@ -36,6 +37,10 @@ NestJS HTTP microservice chạy ở **port 3004**. Xử lý logic tương tác n
 | `src/app/modules/report/venue-report.service.ts` | create, list, findById, updateStatus, bulkResolveByVenue, stats |
 | `src/app/modules/report/dto/review-report.dto.ts` | CreateReviewReportDto, ResolveReviewReportDto |
 | `src/app/modules/report/dto/venue-report.dto.ts` | CreateVenueReportDto, UpdateVenueReportStatusDto |
+| **Interactions Module** | |
+| `src/app/modules/interactions/interactions.module.ts` | Module — TypeOrmFeature `UserInteraction` |
+| `src/app/modules/interactions/interactions.controller.ts` | `POST /interactions/view` (body `{venue_id}`) + `GET /interactions/recently-viewed?limit=8` |
+| `src/app/modules/interactions/interactions.service.ts` | `trackView(accountId, venueId)` insert raw SQL với `interaction_type='view'`. `recentlyViewed(accountId, limit)` dùng CTE `MAX(created_at) GROUP BY venue_id` để gộp view trùng + cross-schema JOIN venues + cities + districts + primary category |
 | **Admin Module** | |
 | `src/app/modules/admin/admin.module.ts` | Admin module (review moderation + broadcast + stats) |
 | `src/app/modules/admin/admin.controller.ts` | `/admin/interaction/*` routes |
@@ -51,6 +56,8 @@ NestJS HTTP microservice chạy ở **port 3004**. Xử lý logic tương tác n
 | PATCH | `/reviews/:reviewId/ai-analysis` | Internal only | Callback từ search-ai-service để lưu AI analysis |
 | POST | `/reports` | Yes (via headers) | User report review vi phạm |
 | POST | `/venue-reports` | Yes (via headers) | User report venue giả mạo / vi phạm |
+| POST | `/interactions/view` | Yes (via headers) | Track user vừa xem một venue (`interaction_type='view'`) |
+| GET  | `/interactions/recently-viewed?limit=8` | Yes (via headers) | Recently viewed venues của user — gộp theo venue, sort `MAX(created_at) DESC` |
 
 ## Admin Endpoints (Internal — protected by AdminGuard ở gateway)
 
