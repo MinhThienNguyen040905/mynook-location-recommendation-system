@@ -80,6 +80,7 @@ export const RMQ_EVENTS = {
 
   // Interaction domain
   VENUE_REVIEWED: 'venue.reviewed',
+  VENUE_REVIEW_DELETED: 'venue.review.deleted',
 } as const;
 
 // ---- RabbitMQ Event Payloads ----
@@ -89,6 +90,19 @@ export interface UserRegisteredEvent {
   email: string;
   fullName: string | null;
   type: AccountType;
+}
+
+export interface VenueReviewDeletedEvent {
+  reviewId: string;
+  venueId: string;
+  rating: number;
+  isVerifiedVisit: boolean;
+  /** Snapshot of Review.ai_analysis_json at time of deletion. May be null if Groq failed during create. */
+  analysis: {
+    positive_tags?: string[];
+    negative_tags?: string[];
+    time_context?: 'morning' | 'afternoon' | 'evening' | 'all_day' | null;
+  } | null;
 }
 
 // ---- Service URLs (HTTP) ----

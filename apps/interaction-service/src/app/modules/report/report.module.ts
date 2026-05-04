@@ -5,9 +5,13 @@ import { ReviewReportController } from "./review-report.controller.js";
 import { ReviewReportService } from "./review-report.service.js";
 import { VenueReportController } from "./venue-report.controller.js";
 import { VenueReportService } from "./venue-report.service.js";
+import { ReviewModule } from "../review/review.module.js";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Review, ReviewReport, VenueReport])],
+  imports: [
+    TypeOrmModule.forFeature([Review, ReviewReport, VenueReport]),
+    ReviewModule,
+  ],
   controllers: [ReviewReportController, VenueReportController],
   providers: [ReviewReportService, VenueReportService],
   exports: [ReviewReportService, VenueReportService],

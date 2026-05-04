@@ -1,9 +1,15 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { Review } from '@mynook/database';
-import { RMQ_EVENTS } from '@mynook/shared-types';
+import { RMQ_EVENTS, VenueReviewDeletedEvent } from '@mynook/shared-types';
 import { CreateReviewDto } from './dto/create-review.dto.js';
 
 @Injectable()
@@ -76,5 +82,44 @@ export class ReviewService implements OnModuleInit {
       ai_analysis_json: aiAnalysis as Record<string, unknown>,
     });
     this.logger.log(`Updated AI analysis for review ${reviewId}`);
+  }
+
+  /**
+   * Delete a review and emit `venue.review.deleted` so search-ai-service can
+   * reverse the venue_tag deltas it previously applied. Reads the review row
+   * BEFORE deleting in order to capture the AI analysis snapshot.
+   */
+  async delete(reviewId: string): Promise<void> {
+    const review = await this.reviewRepo.findOne({ where: { id: reviewId } });
+    if (!review) throw new NotFoundException('Review not found');
+
+    if (this.rmqConnected) {
+      const analysis = (review.ai_analysis_json ?? null) as
+        | VenueReviewDeletedEvent['analysis']
+        | null;
+      const payload: VenueReviewDeletedEvent = {
+        reviewId: review.id,
+        venueId: review.venue_id,
+        rating: review.rating,
+        isVerifiedVisit: review.is_verified_visit,
+        analysis,
+      };
+      this.events.emit(RMQ_EVENTS.VENUE_REVIEW_DELETED, payload).subscribe({
+        next: () =>
+          this.logger.log(
+            `Emitted ${RMQ_EVENTS.VENUE_REVIEW_DELETED} for review ${review.id}`,
+          ),
+        error: (err: Error) =>
+          this.logger.warn(
+            `Failed to emit review-deleted event: ${err.message}`,
+          ),
+      });
+    } else {
+      this.logger.warn(
+        `Skipping venue.review.deleted event for review ${reviewId} — RMQ not connected`,
+      );
+    }
+
+    await this.reviewRepo.delete(reviewId);
   }
 }
