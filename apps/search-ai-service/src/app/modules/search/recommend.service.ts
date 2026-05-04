@@ -55,9 +55,11 @@ export class RecommendService {
 
     // Collect seed venue ids (favorites + own positive reviews) and venues
     // we should exclude from results (any past interaction).
+    // Filter `v.is_active = true` so soft-deleted venues' embeddings don't
+    // pollute the taste-vector centroid.
     const seedRows = await this.venueRepo.manager.query(
       `
-      SELECT venue_id, kind FROM (
+      SELECT seeds.venue_id, seeds.kind FROM (
         SELECT venue_id, 'favorite'::text AS kind, created_at
         FROM interaction_schema.user_favorites
         WHERE account_id = $1
@@ -66,7 +68,9 @@ export class RecommendService {
         FROM interaction_schema.reviews
         WHERE account_id = $1 AND rating >= 4
       ) seeds
-      ORDER BY created_at DESC
+      JOIN venue_schema.venues v ON v.id = seeds.venue_id
+      WHERE v.is_active = true
+      ORDER BY seeds.created_at DESC
       LIMIT 50
       `,
       [accountId],

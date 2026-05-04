@@ -33,9 +33,10 @@ export class InteractionsService {
   ) {}
 
   /**
-   * Track a venue view. We collapse repeated views from the same user on the same
-   * venue to a single row by using `account_id + venue_id + interaction_type` as
-   * the upsert key (latest `created_at` wins). This keeps the table bounded.
+   * Track a venue view. Upserts on the partial unique index from migration 011
+   * so each (account_id, venue_id, 'view') keeps a single row whose `created_at`
+   * always reflects the latest view. Without this, a user spamming F5 would
+   * grow the table without bound.
    */
   async trackView(accountId: string, venueId: string): Promise<void> {
     await this.interactionRepo.manager.query(
@@ -43,6 +44,9 @@ export class InteractionsService {
       INSERT INTO interaction_schema.user_interactions
         (account_id, venue_id, interaction_type, time_spent_seconds, created_at)
       VALUES ($1, $2, 'view', 0, NOW())
+      ON CONFLICT (account_id, venue_id, interaction_type)
+        WHERE interaction_type IS NOT NULL
+        DO UPDATE SET created_at = NOW()
       `,
       [accountId, venueId],
     );

@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
   PrimaryColumn,
 } from 'typeorm';
 
@@ -56,6 +57,12 @@ export class UserFavorite {
 }
 
 @Entity({ schema: 'interaction_schema', name: 'user_interactions' })
+// Migration 011 enforces uniqueness on (account_id, venue_id, interaction_type)
+// so trackView() can UPSERT instead of INSERT, keeping the table bounded.
+@Index('uniq_user_interactions_per_type', ['account_id', 'venue_id', 'interaction_type'], {
+  unique: true,
+  where: '"interaction_type" IS NOT NULL',
+})
 export class UserInteraction {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
