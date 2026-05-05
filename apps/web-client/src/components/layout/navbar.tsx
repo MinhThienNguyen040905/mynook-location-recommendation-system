@@ -107,10 +107,12 @@ export function Navbar() {
     { name: 'Tìm kiếm',  path: '/search' },
   ];
 
+  const profilePath = userRole === 'owner' ? '/dashboard' : '/profile';
+
   const authLinks = [
     ...publicLinks,
     { name: 'Yêu thích', path: '/favorites' },
-    { name: 'Hồ sơ',     path: '/profile'   },
+    { name: 'Hồ sơ',     path: profilePath  },
   ];
 
   const navLinks = isLoggedIn ? authLinks : publicLinks;
