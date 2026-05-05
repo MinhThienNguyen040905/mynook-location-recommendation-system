@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Review, ReviewReport, ReportStatus } from '@mynook/database';
 import { CreateReviewReportDto } from './dto/review-report.dto.js';
+import { ReviewService } from '../review/review.service.js';
 
 export interface ListReviewReportsQuery {
   status?: ReportStatus;
@@ -21,6 +22,7 @@ export class ReviewReportService {
     private readonly reportRepo: Repository<ReviewReport>,
     @InjectRepository(Review)
     private readonly reviewRepo: Repository<Review>,
+    private readonly reviewService: ReviewService,
   ) {}
 
   async createReport(reporterId: string, dto: CreateReviewReportDto) {
@@ -107,7 +109,7 @@ export class ReviewReportService {
     }
 
     if (action === 'delete') {
-      await this.reviewRepo.delete(report.review_id);
+      await this.reviewService.delete(report.review_id);
 
       await this.reportRepo
         .createQueryBuilder()

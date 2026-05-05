@@ -7,10 +7,20 @@ import { Venue } from '@mynook/database';
 const EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
 const EMBEDDING_DIM = 384;
 /**
- * 5 second embed call cap. HF cold-start can take ~2-3s; a longer cap
- * would stall the venue create/update response if HF is slow.
+ * 5 second per-attempt embed call cap. HF cold-start can take ~2-3s; a longer cap
+ * would stall background work if HF is slow. Retries multiply total wall time.
  */
 const EMBED_TIMEOUT_MS = 5_000;
+/**
+ * Retry policy for transient HF failures (timeout, 429, 5xx, network).
+ * Embedding is fire-and-forget so retries don't block the user — the user
+ * already got their CRUD response. Goal: a venue created during HF cold-start
+ * eventually gets its vector instead of going invisible to semantic search.
+ *
+ * Total worst-case wall time: 3 attempts × 5s timeout + 1s + 4s backoff = ~20s.
+ */
+const EMBED_MAX_ATTEMPTS = 3;
+const EMBED_RETRY_BASE_MS = 1_000;
 
 /**
  * Generates and persists `search_document` + `embedding` for venues so the
@@ -70,10 +80,10 @@ export class VenueEmbeddingService implements OnModuleInit {
 
     let vector: number[] | null = null;
     try {
-      vector = await this.embedWithTimeout(doc);
+      vector = await this.embedWithRetry(doc, venueId);
     } catch (err) {
       this.logger.warn(
-        `HF embed failed for venue ${venueId}, saving doc without vector: ${err}`,
+        `HF embed failed for venue ${venueId} after ${EMBED_MAX_ATTEMPTS} attempts, saving doc without vector: ${err}`,
       );
     }
 
@@ -125,6 +135,49 @@ export class VenueEmbeddingService implements OnModuleInit {
       ),
     ]);
     return this.flatten(result);
+  }
+
+  /**
+   * Wrap `embedWithTimeout` with exponential backoff. Retries only on transient
+   * errors (timeout, 429, 5xx, network); 4xx (auth, bad input) fails fast since
+   * retrying won't help. Backoff: 1s after attempt 1, 4s after attempt 2.
+   */
+  private async embedWithRetry(
+    text: string,
+    venueId: string,
+  ): Promise<number[]> {
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= EMBED_MAX_ATTEMPTS; attempt++) {
+      try {
+        return await this.embedWithTimeout(text);
+      } catch (err) {
+        lastErr = err;
+        if (!this.isRetryableError(err) || attempt === EMBED_MAX_ATTEMPTS) {
+          throw err;
+        }
+        const delay = EMBED_RETRY_BASE_MS * Math.pow(2, attempt - 1);
+        this.logger.warn(
+          `HF embed attempt ${attempt}/${EMBED_MAX_ATTEMPTS} failed for venue ${venueId}: ${err}. Retrying in ${delay}ms`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    throw lastErr;
+  }
+
+  /**
+   * Treat timeouts, rate-limits (429), server errors (5xx), and undifferentiated
+   * fetch failures as retryable. Auth (401/403) and bad input (400) fail fast.
+   */
+  private isRetryableError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/timeout/i.test(msg)) return true;
+    if (/\b(429|5\d{2})\b/.test(msg)) return true;
+    if (/network|fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND/i.test(msg))
+      return true;
+    if (/\b(400|401|403|404)\b/.test(msg)) return false;
+    // Unknown errors → retry once rather than silently dropping the embedding
+    return true;
   }
 
   private flatten(data: unknown): number[] {

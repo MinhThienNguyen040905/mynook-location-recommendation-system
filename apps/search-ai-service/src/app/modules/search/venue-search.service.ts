@@ -65,6 +65,13 @@ interface SearchStrategy {
   applyCategoryHardFilter: boolean;
   applyRatingHardFilter: boolean;
   minNameScore: number | null;
+  /**
+   * When false, the city/district FK filter and `ST_DWithin` bounding box are
+   * dropped from the WHERE clause. Used by the relaxation fallback so a
+   * geo-specific query that yields zero results in the resolved area still
+   * surfaces nearby alternatives (proximity is preserved via locationW boost).
+   */
+  applyLocationHardFilter: boolean;
 }
 
 export interface HybridSearchOptions {
@@ -159,20 +166,27 @@ export class VenueSearchService {
       debug,
     });
 
+    const hasGeoFilter =
+      !!resolvedLocation.city_id ||
+      !!resolvedLocation.district_id ||
+      maxDistanceM !== undefined;
+
     if (
       results.length < this.MIN_RESULTS_BEFORE_FALLBACK &&
       (strategy.applyCategoryHardFilter ||
         strategy.applyRatingHardFilter ||
-        strategy.minNameScore !== null)
+        strategy.minNameScore !== null ||
+        hasGeoFilter)
     ) {
       this.logger.log(
-        `Only ${results.length} results with strict strategy; relaxing filters`,
+        `Only ${results.length} results with strict strategy; relaxing filters (geo=${hasGeoFilter})`,
       );
       const relaxed: SearchStrategy = {
         ...strategy,
         applyCategoryHardFilter: false,
         applyRatingHardFilter: false,
         minNameScore: null,
+        applyLocationHardFilter: false,
       };
       results = await this.executeHybridQuery({
         cleanQuery: parsed.cleanQuery || trimmed,
@@ -225,6 +239,7 @@ export class VenueSearchService {
           applyCategoryHardFilter: false,
           applyRatingHardFilter: ext.require_high_rating,
           minNameScore: 0.3,
+          applyLocationHardFilter: true,
         };
       case 'attribute':
         return {
@@ -239,6 +254,7 @@ export class VenueSearchService {
             ext.confidence === 'high' && ext.categories.length > 0,
           applyRatingHardFilter: ext.require_high_rating,
           minNameScore: null,
+          applyLocationHardFilter: true,
         };
       case 'mixed':
         return {
@@ -252,6 +268,7 @@ export class VenueSearchService {
           applyCategoryHardFilter: false,
           applyRatingHardFilter: ext.require_high_rating,
           minNameScore: null,
+          applyLocationHardFilter: true,
         };
       case 'unclear':
       default:
@@ -266,6 +283,7 @@ export class VenueSearchService {
           applyCategoryHardFilter: false,
           applyRatingHardFilter: false,
           minNameScore: null,
+          applyLocationHardFilter: true,
         };
     }
   }
@@ -448,9 +466,14 @@ export class VenueSearchService {
     ];
     if (minCapacity) where.push(`v.max_group_size >= ${p(minCapacity)}`);
 
-    // Location hard filters — EXACT match via FK now that we resolved IDs
-    if (cityId) where.push(`v.city_id = ${p(cityId)}`);
-    if (districtId) where.push(`v.district_id = ${p(districtId)}`);
+    // Location hard filters — EXACT match via FK now that we resolved IDs.
+    // Skipped when the relaxation fallback turned `applyLocationHardFilter` off
+    // so a geo-specific query that returned 0 results in the strict pass can
+    // surface nearby alternatives. Proximity is still preserved via locationW.
+    if (strategy.applyLocationHardFilter) {
+      if (cityId) where.push(`v.city_id = ${p(cityId)}`);
+      if (districtId) where.push(`v.district_id = ${p(districtId)}`);
+    }
 
     if (strategy.applyCategoryHardFilter && matchedCategoryIds.length > 0) {
       const catIdsHard = p(matchedCategoryIds);
@@ -474,8 +497,9 @@ export class VenueSearchService {
       );
     }
 
-    // Bounding-box max distance filter
+    // Bounding-box max distance filter — also dropped during relaxation.
     if (
+      strategy.applyLocationHardFilter &&
       userLat !== undefined &&
       userLng !== undefined &&
       maxDistanceM !== undefined

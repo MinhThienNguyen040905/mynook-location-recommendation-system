@@ -39,15 +39,30 @@ export class SearchController {
   })
   @ApiQuery({ name: 'q', required: true, description: 'Search query' })
   @ApiQuery({ name: 'limit', required: false, description: 'Max results (default 20)' })
+  @ApiQuery({ name: 'offset', required: false, description: 'Pagination offset (default 0)' })
+  @ApiQuery({ name: 'debug', required: false, description: 'Set to 1 to include score_breakdown' })
+  @ApiQuery({ name: 'lat', required: false, description: 'User latitude for distance ranking' })
+  @ApiQuery({ name: 'lng', required: false, description: 'User longitude for distance ranking' })
+  @ApiQuery({ name: 'max_distance_m', required: false, description: 'Bounding-box ST_DWithin radius in meters' })
   @ApiResponse({ status: 200, description: 'Search results' })
   async search(
     @Request() req: { authHeaders?: Record<string, string> },
     @Query('q') q: string,
     @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('debug') debug?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('max_distance_m') maxDistanceM?: string,
   ) {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (limit) params.set('limit', limit);
+    if (offset) params.set('offset', offset);
+    if (debug) params.set('debug', debug);
+    if (lat) params.set('lat', lat);
+    if (lng) params.set('lng', lng);
+    if (maxDistanceM) params.set('max_distance_m', maxDistanceM);
 
     const { data } = await firstValueFrom(
       this.http.get(
@@ -91,14 +106,29 @@ export class SearchController {
   @ApiOperation({ summary: 'Public venue search (no auth required)' })
   @ApiQuery({ name: 'q', required: true })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'offset', required: false })
+  @ApiQuery({ name: 'debug', required: false })
+  @ApiQuery({ name: 'lat', required: false })
+  @ApiQuery({ name: 'lng', required: false })
+  @ApiQuery({ name: 'max_distance_m', required: false })
   @ApiResponse({ status: 200, description: 'Search results' })
   async publicSearch(
     @Query('q') q: string,
     @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('debug') debug?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('max_distance_m') maxDistanceM?: string,
   ) {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (limit) params.set('limit', limit);
+    if (offset) params.set('offset', offset);
+    if (debug) params.set('debug', debug);
+    if (lat) params.set('lat', lat);
+    if (lng) params.set('lng', lng);
+    if (maxDistanceM) params.set('max_distance_m', maxDistanceM);
 
     const { data } = await firstValueFrom(
       this.http.get(`${SEARCH_AI_SERVICE_URL}/search?${params.toString()}`),

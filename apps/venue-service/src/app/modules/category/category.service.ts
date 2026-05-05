@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { DataSource, Repository, In } from 'typeorm';
 import { Category, VenueCategory } from '@mynook/database';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto.js';
 
@@ -15,6 +15,7 @@ export class CategoryService {
     private readonly categoryRepo: Repository<Category>,
     @InjectRepository(VenueCategory)
     private readonly venueCategoryRepo: Repository<VenueCategory>,
+    private readonly dataSource: DataSource,
   ) {}
 
   /** Public: list active categories sorted by display_order */
@@ -100,6 +101,10 @@ export class CategoryService {
    * Replace the venue's categories with the given list.
    * First id in `categoryIds` becomes primary unless `primaryId` is provided.
    * Invalid ids are silently dropped.
+   *
+   * Wrapped in a SERIALIZABLE-friendly transaction with `SELECT ... FOR UPDATE`
+   * row lock on existing links, so two concurrent edits can't interleave the
+   * DELETE / INSERT and corrupt the `is_primary` partial-unique constraint.
    */
   async setCategoriesForVenue(
     venueId: string,
@@ -109,21 +114,41 @@ export class CategoryService {
     const validCategories = await this.findByIds(categoryIds);
     const validIds = validCategories.map((c) => c.id);
 
-    await this.venueCategoryRepo.delete({ venue_id: venueId });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      // Lock current rows for this venue so concurrent writers wait for us
+      // (or see our committed state). No rows yet → no-op.
+      await queryRunner.manager
+        .createQueryBuilder(VenueCategory, 'vc')
+        .setLock('pessimistic_write')
+        .where('vc.venue_id = :venueId', { venueId })
+        .getMany();
 
-    if (validIds.length === 0) return [];
+      await queryRunner.manager.delete(VenueCategory, { venue_id: venueId });
 
-    const resolvedPrimary =
-      primaryId && validIds.includes(primaryId) ? primaryId : validIds[0];
+      if (validIds.length > 0) {
+        const resolvedPrimary =
+          primaryId && validIds.includes(primaryId) ? primaryId : validIds[0];
 
-    const rows = validIds.map((categoryId) =>
-      this.venueCategoryRepo.create({
-        venue_id: venueId,
-        category_id: categoryId,
-        is_primary: categoryId === resolvedPrimary,
-      }),
-    );
-    await this.venueCategoryRepo.save(rows);
-    return validCategories;
+        const rows = validIds.map((categoryId) =>
+          queryRunner.manager.create(VenueCategory, {
+            venue_id: venueId,
+            category_id: categoryId,
+            is_primary: categoryId === resolvedPrimary,
+          }),
+        );
+        await queryRunner.manager.save(VenueCategory, rows);
+      }
+
+      await queryRunner.commitTransaction();
+      return validCategories;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

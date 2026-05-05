@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
 import {
@@ -11,6 +8,7 @@ import {
   UserFavorite,
 } from '@mynook/database';
 import { BroadcastNotificationDto } from './dto/broadcast.dto.js';
+import { ReviewService } from '../review/review.service.js';
 
 export interface ListReviewsQuery {
   venue_id?: string;
@@ -28,6 +26,7 @@ export class AdminInteractionService {
     private readonly notifRepo: Repository<Notification>,
     @InjectRepository(UserFavorite)
     private readonly favRepo: Repository<UserFavorite>,
+    private readonly reviewService: ReviewService,
   ) {}
 
   /* ── Review moderation ── */
@@ -52,8 +51,7 @@ export class AdminInteractionService {
   }
 
   async deleteReview(reviewId: string) {
-    const res = await this.reviewRepo.delete(reviewId);
-    if (!res.affected) throw new NotFoundException('Review not found');
+    await this.reviewService.delete(reviewId);
     return { message: 'Review deleted' };
   }
 

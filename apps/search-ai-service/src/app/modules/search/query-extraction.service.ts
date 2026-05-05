@@ -206,14 +206,31 @@ JSON schema bắt buộc:
 
     const loc = (obj['location'] ?? {}) as Record<string, unknown>;
 
+    // Dedup tags: positive list wins over excluded list. If Groq emits the same
+    // key in both `tags` and `excluded_tags`, scoring it twice (once as boost,
+    // once as penalty) skews ranking. Drop overlap from `excluded_tags`.
+    const positiveTags = Array.from(
+      new Set(asArray(obj['tags']).filter((k) => tagKeys.has(k))),
+    );
+    const positiveSet = new Set(positiveTags);
+    const excludedTags = Array.from(
+      new Set(
+        asArray(obj['excluded_tags']).filter(
+          (k) => tagKeys.has(k) && !positiveSet.has(k),
+        ),
+      ),
+    );
+
     return {
       intent: validIntents.includes(obj['intent'] as SearchIntent)
         ? (obj['intent'] as SearchIntent)
         : 'unclear',
       possible_name: asStrOrNull(obj['possible_name']),
-      categories: asArray(obj['categories']).filter((k) => categoryKeys.has(k)),
-      tags: asArray(obj['tags']).filter((k) => tagKeys.has(k)),
-      excluded_tags: asArray(obj['excluded_tags']).filter((k) => tagKeys.has(k)),
+      categories: Array.from(
+        new Set(asArray(obj['categories']).filter((k) => categoryKeys.has(k))),
+      ),
+      tags: positiveTags,
+      excluded_tags: excludedTags,
       location: {
         city: asStrOrNull(loc['city']),
         district: asStrOrNull(loc['district']),
