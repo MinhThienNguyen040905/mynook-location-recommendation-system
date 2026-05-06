@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>MyNook — Hệ thống Tìm kiếm và Gợi ý Địa điểm</title>
+<style>
+  body { font-family: 'Segoe UI', 'Calibri', sans-serif; font-size: 12pt; line-height: 1.65; color: #1f2937; }
+  h1 { color: #1e3a8a; font-size: 24pt; margin-top: 26pt; margin-bottom: 8pt; border-bottom: 3px solid #1e3a8a; padding-bottom: 4pt; }
+  h2 { color: #1d4ed8; font-size: 17pt; margin-top: 22pt; margin-bottom: 6pt; }
+  h3 { color: #2563eb; font-size: 13.5pt; margin-top: 14pt; margin-bottom: 4pt; }
+  p  { margin: 6pt 0; text-align: justify; }
+  ul, ol { margin: 6pt 0 6pt 22pt; }
+  li { margin: 4pt 0; }
+  table { border-collapse: collapse; width: 100%; margin: 10pt 0; font-size: 11pt; }
+  th { background: #1e3a8a; color: white; text-align: left; padding: 7pt 10pt; font-weight: 600; border: 1px solid #1e3a8a; }
+  td { border: 1px solid #cbd5e1; padding: 6pt 10pt; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .cover { text-align: center; margin: 70pt 0 50pt 0; }
+  .cover-title { font-size: 34pt; color: #1e3a8a; font-weight: 700; }
+  .cover-subtitle { font-size: 17pt; color: #64748b; margin-top: 10pt; }
+  .cover-tag { font-size: 13pt; color: #475569; margin-top: 30pt; font-style: italic; }
+  .quote { background: #eff6ff; border-left: 5pt solid #2563eb; padding: 10pt 14pt; margin: 10pt 0; font-style: italic; color: #1e3a8a; }
+  .analogy { background: #fef3c7; border-left: 5pt solid #f59e0b; padding: 10pt 14pt; margin: 10pt 0; }
+  .analogy b { color: #92400e; }
+  .example { background: #dcfce7; border-left: 5pt solid #16a34a; padding: 10pt 14pt; margin: 10pt 0; }
+  .example b { color: #166534; }
+  .step { background: #f1f5f9; border-radius: 6pt; padding: 10pt 14pt; margin: 8pt 0; border-left: 4pt solid #94a3b8; }
+  .step-num { display: inline-block; background: #2563eb; color: white; width: 26pt; height: 26pt; line-height: 26pt; text-align: center; border-radius: 50%; font-weight: 700; margin-right: 8pt; }
+  .toc-item { margin: 5pt 0; font-size: 12pt; }
+  .toc-num { color: #2563eb; font-weight: 700; display: inline-block; width: 32pt; }
+  .big-q { font-size: 15pt; color: #1e3a8a; font-weight: 600; margin: 12pt 0 4pt 0; }
+  .ribbon { background: linear-gradient(90deg, #1e3a8a, #2563eb); color: white; padding: 8pt 14pt; border-radius: 4pt; margin: 14pt 0 8pt 0; font-weight: 600; font-size: 13pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-title">MyNook</div>
+  <div class="cover-subtitle">Hệ thống Tìm kiếm &amp; Gợi ý Địa điểm</div>
+  <p style="margin-top: 30pt;">Cách hệ thống <b>"hiểu"</b> câu nói tự nhiên của người dùng,<br>và làm sao nó chọn đúng những quán phù hợp nhất.</p>
+  <div class="cover-tag">Tài liệu giải thích bằng ngôn ngữ dễ hiểu — không cần am hiểu IT</div>
+</div>
+
+<h1>Mục lục</h1>
+<div class="toc-item"><span class="toc-num">1.</span> MyNook làm gì? — câu chuyện một phút</div>
+<div class="toc-item"><span class="toc-num">2.</span> Bài toán: vì sao tìm địa điểm lại khó?</div>
+<div class="toc-item"><span class="toc-num">3.</span> Ý tưởng cốt lõi: trộn nhiều "giác quan" để hiểu câu hỏi</div>
+<div class="toc-item"><span class="toc-num">4.</span> Tìm kiếm hoạt động ra sao? (đi qua 7 bước)</div>
+<div class="toc-item"><span class="toc-num">5.</span> Hệ thống cho điểm và xếp hạng kết quả thế nào?</div>
+<div class="toc-item"><span class="toc-num">6.</span> Tuỳ kiểu câu hỏi mà ưu tiên khác nhau</div>
+<div class="toc-item"><span class="toc-num">7.</span> Gợi ý cá nhân — "biết gu" của từng người</div>
+<div class="toc-item"><span class="toc-num">8.</span> Mỗi review đóng góp gì cho hệ thống?</div>
+<div class="toc-item"><span class="toc-num">9.</span> Khi có sự cố — hệ thống tự xoay xở thế nào?</div>
+<div class="toc-item"><span class="toc-num">10.</span> Một ví dụ trọn vẹn từ đầu đến cuối</div>
+<div class="toc-item"><span class="toc-num">11.</span> Tóm tắt — vì sao MyNook khác với "tìm kiếm thông thường"</div>
+
+<h1>1. MyNook làm gì? — câu chuyện một phút</h1>
+
+<p>Hãy tưởng tượng tối thứ Bảy, bạn muốn tìm <b>"một quán cà phê yên tĩnh ở quận 1 cho 4 người, gặp nhau buổi tối"</b>. Bạn mở Google, gõ vài từ khoá, nhận về một danh sách dài. Hầu hết các kết quả đầu là quảng cáo, các kết quả sau thì có quán đông như chợ vỡ, có quán đã đóng cửa từ năm ngoái.</p>
+
+<p>MyNook giải bài toán này: thay vì để bạn cuộn 50 trang Google, hệ thống <b>"hiểu"</b> câu bạn nói, lọc ra <b>đúng kiểu quán</b> bạn cần, ở <b>đúng khu vực</b> bạn muốn, vào <b>đúng khung giờ</b> bạn đến, có <b>đủ chỗ</b> cho nhóm bạn — rồi xếp hạng lại theo <b>cảm nhận thực sự của khách đã đến</b>.</p>
+
+<div class="quote">
+"Bạn nói tự nhiên như nói với một người bạn rành ăn chơi.<br>
+Hệ thống nghe, hiểu, và đề xuất."
+</div>
+
+<h1>2. Bài toán: vì sao tìm địa điểm lại khó?</h1>
+
+<p>Tìm địa điểm khó hơn tìm sản phẩm trên một sàn thương mại điện tử. Lý do:</p>
+
+<ul>
+  <li><b>Người dùng không nói chuẩn từ khoá.</b> Họ nói "quán nước", "tiệm trà chanh", "cà phê chill" — đều ám chỉ cùng một loại nơi nhưng từ khác nhau.</li>
+  <li><b>Cùng một quán nhưng "tính cách" khác nhau theo giờ.</b> Một quán cà phê có thể yên tĩnh buổi sáng và ồn ào buổi tối. Nếu bạn hỏi "yên tĩnh buổi tối" mà hệ thống không phân biệt được giờ thì sẽ giới thiệu sai.</li>
+  <li><b>Tên địa điểm hay viết sai.</b> "Quận 1", "q1", "q.1", "quan 1", "district 1" — đều là một nơi.</li>
+  <li><b>Có khi user đánh máy lỗi.</b> "huu duyên" thay vì "Hữu Duyên".</li>
+  <li><b>Khoảng cách quan trọng.</b> Quán hợp ý nhưng cách 30 km thì cũng vô nghĩa.</li>
+  <li><b>Đánh giá không phải lúc nào cũng đáng tin.</b> Một quán mới có 1 review 5 sao chưa chắc tốt hơn một quán có 200 review 4.5 sao.</li>
+</ul>
+
+<p>MyNook xử lý từng vấn đề một, bằng cách kết hợp nhiều cách "nhìn" khác nhau về cùng một câu hỏi.</p>
+
+<h1>3. Ý tưởng cốt lõi: trộn nhiều "giác quan" để hiểu câu hỏi</h1>
+
+<div class="analogy">
+<b>Ví dụ đời thường:</b> Hình dung bạn đang nhờ một <i>người thủ thư</i> giúp tìm sách. Người thủ thư giỏi không chỉ làm <i>một</i> việc — anh ấy làm nhiều việc cùng lúc:
+<ul>
+  <li>Nghe bạn nói rồi đoán <b>chủ đề</b> bạn quan tâm (đây là <b>"hiểu nghĩa"</b>).</li>
+  <li>Hỏi lại bạn có muốn tác giả cụ thể không (đây là <b>"so tên"</b>).</li>
+  <li>Nhớ rằng kệ bạn quan tâm nằm ở <b>tầng 2 phía Đông</b> (đây là <b>"vị trí"</b>).</li>
+  <li>Biết cuốn nào được nhiều người đọc đánh giá cao (đây là <b>"uy tín"</b>).</li>
+</ul>
+Thủ thư <i>tổ hợp</i> cả 4 nguồn thông tin để chọn ra cuốn sách phù hợp nhất, không chỉ dựa vào một tiêu chí.
+</div>
+
+<p>MyNook làm <i>đúng như vậy</i>. Khi bạn gõ một câu, hệ thống đồng thời:</p>
+
+<table>
+  <thead><tr><th>Giác quan</th><th>Trả lời câu hỏi</th><th>Ví dụ</th></tr></thead>
+  <tbody>
+    <tr><td><b>Hiểu nghĩa</b></td><td>Câu này nói về <i>kiểu</i> nơi nào?</td><td>"yên tĩnh chill" → ám chỉ không gian thư giãn</td></tr>
+    <tr><td><b>So tên</b></td><td>Có thương hiệu/tên quán cụ thể không?</td><td>"Highlands Bitexco" → tên cụ thể</td></tr>
+    <tr><td><b>Loại quán</b></td><td>Cà phê, lẩu, bar, nhà hàng…?</td><td>"quán cà phê" → loại "cafe"</td></tr>
+    <tr><td><b>Đặc điểm</b></td><td>Quán có những "tính cách" gì?</td><td>"yên tĩnh", "view đẹp", "phù hợp nhóm"</td></tr>
+    <tr><td><b>Khu vực</b></td><td>Ở đâu? Cách user bao xa?</td><td>"quận 1", và GPS user gửi lên</td></tr>
+    <tr><td><b>Thời gian</b></td><td>Buổi nào trong ngày?</td><td>"buổi tối"</td></tr>
+    <tr><td><b>Uy tín</b></td><td>Cộng đồng đánh giá quán này thế nào?</td><td>điểm review trung bình</td></tr>
+    <tr><td><b>Tránh điều gì?</b></td><td>User <i>không</i> muốn gì?</td><td>"không ồn", "không đông"</td></tr>
+  </tbody>
+</table>
+
+<p>Mỗi quán trong cơ sở dữ liệu sẽ được chấm điểm bởi <i>tất cả</i> các giác quan này, sau đó tổng hợp lại thành một điểm "phù hợp" duy nhất, rồi xếp hạng từ cao xuống thấp.</p>
+
+<h1>4. Tìm kiếm hoạt động ra sao? (đi qua 7 bước)</h1>
+
+<p>Khi bạn nhấn Enter trên thanh tìm kiếm, đây là hành trình câu chữ của bạn — chỉ mất chưa đầy 1 giây:</p>
+
+<div class="step">
+<span class="step-num">1</span><b>Bóc nhanh các thông tin "rõ rành rành"</b><br>
+Hệ thống dùng các quy tắc đơn giản để rút ra các con số/từ khoá hiển nhiên trước. <i>"4 người"</i> → quán phải đủ chỗ cho 4 người. <i>"buổi tối"</i> → khung giờ tối. Việc này làm bằng "công cụ thông thường", không cần đến AI — vừa nhanh vừa đỡ tốn tài nguyên.
+</div>
+
+<div class="step">
+<span class="step-num">2</span><b>Hỏi AI: câu này thực sự muốn nói gì?</b><br>
+Phần còn lại của câu được gửi đến một <b>mô hình AI ngôn ngữ</b> (Llama, do Groq cung cấp). AI đọc câu và trả về một bảng tóm tắt: kiểu câu hỏi (đang tìm tên cụ thể, hay chỉ tả tính chất?), loại quán nào, có nhắc đến địa điểm cụ thể không, có yêu cầu chất lượng cao không, có muốn tránh điều gì không…
+<div class="analogy" style="margin-top:6pt;"><b>Đồng thời</b>, song song với AI, hệ thống còn làm thêm một việc: biến câu chữ thành <b>"dấu vân tay ngữ nghĩa"</b> — một dãy số 384 phần tử đại diện cho <i>ý nghĩa</i> của câu. Hai câu nói khác nhau nhưng cùng ý sẽ có dấu vân tay gần giống nhau. Đây là cách máy "hiểu" được "quán nước" và "tiệm trà chanh" thực ra cùng nói về một thứ.</div>
+</div>
+
+<div class="step">
+<span class="step-num">3</span><b>Khớp các từ user nói với "danh sách chuẩn" trong cơ sở dữ liệu</b><br>
+Ví dụ: AI trả về <i>"quận 1"</i>. Hệ thống tra cứu, biết "Quận 1" trong câu này là Quận 1 của <i>thành phố</i> nào (nếu user đã nhắc), rồi chuyển thành mã định danh chuẩn. Tương tự với loại quán ("cafe"), tag ("yên tĩnh")…
+<div class="analogy" style="margin-top:6pt;"><b>Vì sao cần bước này?</b> Vì user có thể viết "q1", "Quận Một", "district 1" — đều phải về cùng một mã. Mỗi địa điểm/category trong hệ thống có sẵn một <b>danh sách biệt danh</b> (do quản trị viên định nghĩa), giúp việc khớp diễn ra chính xác.</div>
+</div>
+
+<div class="step">
+<span class="step-num">4</span><b>Chọn "chiến thuật" phù hợp với kiểu câu hỏi</b><br>
+Không phải câu hỏi nào cũng giống câu hỏi nào — xem chi tiết ở mục 6. Đại ý: nếu bạn đang tìm <i>tên</i> quán cụ thể, hệ thống sẽ ưu tiên so tên hơn so nghĩa. Nếu bạn chỉ tả tính chất, hệ thống tin vào "hiểu nghĩa" + "đặc điểm" hơn.
+</div>
+
+<div class="step">
+<span class="step-num">5</span><b>Chấm điểm tất cả các quán phù hợp</b><br>
+Hệ thống đi qua các quán <i>còn hoạt động</i>, không quá đông, đủ chỗ cho nhóm bạn, ở đúng khu vực bạn nhắc — rồi cho mỗi quán một <b>điểm phù hợp</b> bằng cách cộng/trừ các "giác quan" đã nói ở mục 3. Sau đó sắp xếp từ điểm cao xuống thấp và lấy ra top kết quả.
+</div>
+
+<div class="step">
+<span class="step-num">6</span><b>Nếu kết quả quá ít — nới lỏng và thử lại</b><br>
+Đôi khi điều kiện quá chặt khiến chỉ có 1–2 quán đạt yêu cầu. Khi đó hệ thống <i>tự động</i> nới một số tiêu chí khắt khe (ví dụ bỏ giới hạn "phải ở Quận 1") và chạy lại để bạn vẫn có 5–10 lựa chọn. Quán gần bạn vẫn được ưu tiên hiển thị trước.
+</div>
+
+<div class="step">
+<span class="step-num">7</span><b>Ghi nhật ký</b><br>
+Câu hỏi của bạn được lưu lại (kèm các tham số đã hiểu được) để đội ngũ phát triển phân tích, tinh chỉnh hệ thống tốt hơn theo thời gian.
+</div>
+
+<h1>5. Hệ thống cho điểm và xếp hạng kết quả thế nào?</h1>
+
+<p>Mỗi quán nhận một <b>điểm tổng</b>, là tổng hợp có trọng số của nhiều "giác quan". Hãy tưởng tượng:</p>
+
+<div class="analogy">
+<b>Ví dụ:</b> bạn đi xem nhà với 5 tiêu chí — diện tích, giá, vị trí, hàng xóm, ánh sáng. Mỗi căn nhà bạn cho điểm trên thang 10 cho từng tiêu chí. Nhưng bạn <i>quan tâm vị trí gấp đôi</i> các thứ khác. Vậy điểm cuối cùng:
+<p style="margin-top:6pt;"><b>Tổng điểm</b> = 1·diện tích + 1·giá + <b>2·vị trí</b> + 1·hàng xóm + 1·ánh sáng</p>
+<p>Căn nào tổng điểm cao nhất là căn bạn chọn. MyNook làm chính xác như thế — chỉ là với 7 tiêu chí và trọng số được điều chỉnh tự động theo kiểu câu hỏi.</p>
+</div>
+
+<p><b>Bảy tiêu chí đó là:</b></p>
+
+<table>
+  <thead><tr><th>Tiêu chí</th><th>Ý nghĩa</th><th>Lấy giá trị từ đâu?</th></tr></thead>
+  <tbody>
+    <tr><td><b>Hiểu nghĩa</b></td><td>Quán này có "ý nghĩa" gần với câu hỏi không?</td><td>So sánh dấu vân tay ngữ nghĩa của câu hỏi và mô tả quán</td></tr>
+    <tr><td><b>Khớp đặc điểm</b></td><td>Quán có những "tính cách" mà user yêu cầu?</td><td>Tổng điểm các tag (yên tĩnh, view đẹp…) đã được khách đánh giá</td></tr>
+    <tr><td><b>Khớp tên</b></td><td>Tên quán có giống chuỗi user gõ không?</td><td>So chuỗi ký tự, chấp nhận sai chính tả nhẹ và bỏ dấu</td></tr>
+    <tr><td><b>Khớp loại quán</b></td><td>Quán có thuộc loại user nói (cafe, lẩu, bar…) không?</td><td>Tra junction "quán × loại"</td></tr>
+    <tr><td><b>Đánh giá</b></td><td>Cộng đồng cho quán này mấy sao?</td><td>Trung bình điểm review</td></tr>
+    <tr><td><b>Khoảng cách</b></td><td>Quán cách user bao xa?</td><td>Tính từ GPS của user (nếu có)</td></tr>
+    <tr><td><b>Tránh điều gì</b></td><td>Quán có dính những điểm user <i>không</i> muốn?</td><td>Trừ điểm theo tag "ồn", "đông"… nếu user phủ định</td></tr>
+  </tbody>
+</table>
+
+<h3>Một số chi tiết cần nhấn mạnh</h3>
+
+<ul>
+  <li><b>Tag được tính theo khung giờ.</b> Nếu user nói "yên tĩnh <i>buổi tối</i>", hệ thống chỉ cộng điểm yên tĩnh được khách review về <i>buổi tối</i> hoặc "cả ngày", chứ không cộng điểm yên tĩnh "buổi sáng". Một quán "yên tĩnh ban ngày, ồn ban đêm" sẽ <i>không</i> match câu hỏi đó.</li>
+  <li><b>Khoảng cách dùng đường cong giảm dần.</b> 0m = 1 điểm. 1.5km = 0.5 điểm. 5km ≈ 0.23 điểm. Càng xa càng nhanh chóng mất giá.</li>
+  <li><b>Tránh điều user không muốn được trừ thẳng.</b> Ví dụ user nói "không ồn", quán nào có nhiều review chê ồn sẽ bị trừ điểm — nhưng không bị loại hẳn (nếu các tiêu chí khác đủ tốt vẫn lọt top).</li>
+</ul>
+
+<h1>6. Tuỳ kiểu câu hỏi mà ưu tiên khác nhau</h1>
+
+<p>AI phân loại câu hỏi của bạn vào một trong bốn nhóm. Mỗi nhóm có <b>"công thức trộn"</b> khác nhau:</p>
+
+<table>
+  <thead><tr><th>Kiểu câu hỏi</th><th>Đặc điểm</th><th>Ví dụ</th><th>Hệ thống ưu tiên gì?</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Tìm tên</b></td>
+      <td>Có tên/thương hiệu cụ thể</td>
+      <td>"Highlands Bitexco", "Hữu Duyên"</td>
+      <td>So tên là <b>chủ yếu</b> (70%). Tin pg_trgm hơn AI hiểu nghĩa.</td>
+    </tr>
+    <tr>
+      <td><b>Tả đặc điểm</b></td>
+      <td>Chỉ mô tả tính chất, không có tên</td>
+      <td>"quán cà phê yên tĩnh"</td>
+      <td>Hiểu nghĩa + khớp đặc điểm chia đều (40% + 40%). Áp lọc cứng theo loại quán nếu AI <i>tự tin</i>.</td>
+    </tr>
+    <tr>
+      <td><b>Vừa tên vừa tả</b></td>
+      <td>Pha trộn cả hai</td>
+      <td>"Phúc Long có wifi mạnh"</td>
+      <td>Chia đều — không nghiêng hẳn về phía nào.</td>
+    </tr>
+    <tr>
+      <td><b>Mơ hồ</b></td>
+      <td>Khó phân loại, không rõ ý</td>
+      <td>"buồn quá đi đâu"</td>
+      <td>Tin <b>"hiểu nghĩa"</b> nhất (50%). Vì không có tín hiệu khác đáng tin.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="quote">
+Đây là điểm khác biệt quan trọng: <b>không có công thức "vạn năng"</b>. <br>
+"Highlands Bitexco" và "quán yên tĩnh để học bài" cần được xử lý theo hai đường rank khác nhau.
+</div>
+
+<p>Ngoài ra, nếu bạn cho phép trình duyệt gửi <b>vị trí GPS</b>, hệ thống dành thêm 10% trọng số cho khoảng cách — tự động "đánh thuế" 10% từ phần "hiểu nghĩa" để bù vào.</p>
+
+<h1>7. Gợi ý cá nhân — "biết gu" của từng người</h1>
+
+<p>Ngoài tìm kiếm, MyNook có một mục <b>"Gợi ý cho bạn"</b>: không cần bạn gõ gì, hệ thống vẫn đề xuất ra các quán hợp ý. Cách hoạt động:</p>
+
+<div class="analogy">
+<b>Ví dụ đời thường:</b> Bạn có 10 cuốn sách yêu thích, đặt lên bàn. Người bạn của bạn nhìn vào, ước lượng ra <i>"điểm trung tâm"</i> của 10 cuốn — tức là cái "gu đọc" tổng hợp của bạn — rồi tìm những cuốn sách khác trong thư viện <b>nằm gần điểm trung tâm đó</b>.
+</div>
+
+<p>MyNook cũng vậy. Hệ thống làm 3 bước:</p>
+
+<ol>
+  <li><b>Thu thập "tín hiệu yêu thích" của user</b>: tất cả các quán bạn đã ❤️ (favorite) + các quán bạn đã review từ 4 sao trở lên. Đây là tập "seed" — những quán bạn thực sự thích.</li>
+  <li><b>Tính "gu trung tâm"</b>: lấy <i>trung bình</i> các "dấu vân tay ngữ nghĩa" của các quán trong seed. Kết quả là một dãy số đại diện cho "khẩu vị tổng hợp" của bạn.</li>
+  <li><b>Tìm các quán khác gần "gu trung tâm" nhất</b>: hệ thống quét cơ sở dữ liệu, loại trừ những quán bạn <i>đã chạm vào</i> (đã review/favorite — kể cả review thấp), rồi trả về những quán còn lại có dấu vân tay gần "gu trung tâm" nhất. Khi bằng điểm, quán có rating cao thắng.</li>
+</ol>
+
+<div class="example">
+<b>Đặc điểm:</b>
+<ul>
+  <li><b>Phản ứng tức thì</b> — bạn vừa thả tim một quán mới, gợi ý lần kế tiếp đã đổi theo. Không phải đợi job chạy đêm.</li>
+  <li><b>Không spam</b> — nếu bạn là user mới, chưa có favorite/review nào, hệ thống trả về danh sách rỗng. Giao diện sẽ ẩn mục "Gợi ý cho bạn" thay vì hiển thị một mớ kết quả ngẫu nhiên gây phiền.</li>
+  <li><b>Không lặp</b> — quán bạn đã từng tương tác sẽ bị loại khỏi gợi ý, để mỗi lần bạn vào là một danh sách mới mẻ.</li>
+</ul>
+</div>
+
+<h1>8. Mỗi review đóng góp gì cho hệ thống?</h1>
+
+<p>Khi bạn viết một review cho một quán, đằng sau hậu trường có cả một dây chuyền diễn ra <i>tự động</i>:</p>
+
+<div class="step">
+<span class="step-num">1</span><b>Review của bạn được gửi sang một AI khác — chuyên phân tích cảm xúc.</b><br>
+AI này (mô hình Llama mạnh hơn) đọc nội dung review, rồi rút ra: review này tích cực hay tiêu cực, khen điều gì, chê điều gì, có nhắc khung giờ nào không, có ý kiến tổng quát gì không.
+</div>
+
+<div class="step">
+<span class="step-num">2</span><b>Các "tính cách" được rút ra sẽ làm giàu hồ sơ quán.</b><br>
+Ví dụ AI thấy bạn khen <i>"không gian yên tĩnh, view đẹp, phù hợp đọc sách"</i>. Quán đó sẽ được cộng điểm cho các tag tương ứng (<i>yên tĩnh, view đẹp, phù hợp làm việc</i>), kèm khung giờ bạn đến.
+</div>
+
+<div class="step">
+<span class="step-num">3</span><b>Review từ khách đã xác minh có trọng số gấp đôi.</b><br>
+Nếu bạn từng đến quán thật (ví dụ check-in, đặt bàn qua app), review của bạn được tính ×2 so với khách thường. Lý do đơn giản: ý kiến của người đã trải nghiệm thực đáng tin hơn.
+</div>
+
+<div class="step">
+<span class="step-num">4</span><b>Tag mới được tạo nếu cần.</b><br>
+Nếu AI nghĩ ra một "tính cách" chưa từng có (ví dụ <i>"có không gian cho thú cưng"</i>), tag mới sẽ được tạo và bắt đầu xuất hiện trong kho tag của hệ thống.
+</div>
+
+<p><b>Hệ quả:</b> hệ thống tự "đầu tư" vào kho dữ liệu của chính nó. Càng nhiều review, các quán càng có hồ sơ tag chi tiết hơn, và tìm kiếm càng chính xác hơn theo thời gian. Đây là <b>vòng lặp tự cải thiện</b>.</p>
+
+<div class="example">
+<b>Khi xoá review:</b> nếu bạn xoá một review (hoặc admin xoá vì vi phạm), hệ thống <i>tự động hoàn lại</i> các điểm tag đã được cộng/trừ trước đó. Nghĩa là dữ liệu luôn nhất quán — không có chuyện "xoá review nhưng quán vẫn giữ điểm tốt từ review đó".
+</div>
+
+<h1>9. Khi có sự cố — hệ thống tự xoay xở thế nào?</h1>
+
+<p>Một hệ thống tốt không phải hệ thống không bao giờ hỏng — mà là hệ thống <b>biết cách tiếp tục phục vụ kể cả khi một phần bị hỏng</b>. MyNook được thiết kế với tinh thần này:</p>
+
+<table>
+  <thead><tr><th>Tình huống bất thường</th><th>Hệ thống làm gì?</th></tr></thead>
+  <tbody>
+    <tr><td>AI hiểu câu (Groq) bị quá tải/thời gian quá lâu</td><td>Bỏ qua phần hiểu sâu, chuyển sang dùng "hiểu nghĩa" thuần — vẫn trả kết quả, chỉ là kém tinh tế hơn.</td></tr>
+    <tr><td>Dịch vụ tạo "dấu vân tay" (HuggingFace) gặp lỗi</td><td>Bỏ qua phần ngữ nghĩa, các tiêu chí khác (khớp tên, đặc điểm, đánh giá, vị trí) gánh vác.</td></tr>
+    <tr><td>Một quán mới chưa kịp được tạo "dấu vân tay"</td><td>Vẫn được tham gia xếp hạng — chỉ là phần ngữ nghĩa của nó tính 0 điểm. Quản trị viên có nút bấm "tạo lại dấu vân tay hàng loạt" để bù về sau.</td></tr>
+    <tr><td>Lọc cứng quá → kết quả trả về quá ít</td><td>Tự động nới lỏng các điều kiện và chạy lại. Người dùng không bao giờ thấy "0 kết quả" trừ khi cơ sở dữ liệu thật sự rỗng.</td></tr>
+    <tr><td>User mới, chưa có hành vi nào</td><td>Mục "Gợi ý cho bạn" tự ẩn, thay vì show danh sách lỗi/ngẫu nhiên gây phiền.</td></tr>
+    <tr><td>AI bịa ra một loại quán không tồn tại</td><td>Hệ thống <i>kiểm tra chéo</i> với danh sách thật trong DB và bỏ qua bất kỳ key nào "lạ" — tránh kết quả nhiễu do AI hallucinate.</td></tr>
+    <tr><td>AI vừa nói "thích yên tĩnh" vừa nói "không yên tĩnh"</td><td>Tin vế tích cực, bỏ vế phủ định trùng — tránh việc một quán vừa được cộng vừa bị trừ về cùng một thuộc tính.</td></tr>
+  </tbody>
+</table>
+
+<div class="quote">
+Triết lý: <b>"thà trả kết quả không hoàn hảo còn hơn không trả gì cả"</b>. <br>
+Mọi nhánh xử lý đều có phương án dự phòng.
+</div>
+
+<h1>10. Một ví dụ trọn vẹn từ đầu đến cuối</h1>
+
+<p class="big-q">Câu hỏi của user:</p>
+<div class="quote" style="font-style:normal; font-size: 13.5pt;">"<b>quán cà phê yên tĩnh quận 1 cho 4 người buổi tối</b>" <br><span style="font-size:11pt; color:#64748b;">— gửi kèm vị trí GPS hiện tại: gần Bến Thành.</span></div>
+
+<p class="big-q">Hệ thống xử lý:</p>
+
+<div class="step"><span class="step-num">1</span>
+<b>Bóc nhanh:</b> "4 người" → cần đủ chỗ cho 4. "buổi tối" → khung giờ <i>tối</i>. Phần còn lại đưa đi xử lý sâu: <i>"quán cà phê yên tĩnh quận 1"</i>.
+</div>
+
+<div class="step"><span class="step-num">2</span>
+<b>AI phân tích:</b> "đây là kiểu câu <i>tả đặc điểm</i>, không có tên cụ thể, loại quán = cafe, tính cách = yên tĩnh, khu vực = Quận 1, không yêu cầu tránh điều gì, độ tự tin = cao".
+<br>Đồng thời, "dấu vân tay ngữ nghĩa" (384 con số) của câu được tạo ra.
+</div>
+
+<div class="step"><span class="step-num">3</span>
+<b>Tra danh sách chuẩn:</b>
+<ul>
+  <li>"cafe" → khớp loại quán "cafe" trong hệ thống.</li>
+  <li>"yên tĩnh" → khớp tag "yen-tinh".</li>
+  <li>"Quận 1" → khớp địa danh Quận 1, TP.HCM (vì AI không nói thành phố nào, hệ thống vẫn tìm được vì biệt danh "quận 1" là duy nhất).</li>
+</ul>
+</div>
+
+<div class="step"><span class="step-num">4</span>
+<b>Chọn chiến thuật "tả đặc điểm" + có GPS:</b> trộn theo công thức 30% hiểu nghĩa, 40% khớp đặc điểm (yên tĩnh), 10% loại quán, 10% rating, 10% khoảng cách. Áp lọc cứng: <i>chỉ hiển thị quán thuộc loại cafe</i> (vì AI rất tự tin).
+</div>
+
+<div class="step"><span class="step-num">5</span>
+<b>Lọc và chấm điểm:</b>
+<ul>
+  <li>Chỉ xét quán đang hoạt động, không quá đông, sức chứa ≥ 4 người, ở Quận 1, thuộc loại cafe.</li>
+  <li>Cộng điểm cho mỗi quán: hiểu nghĩa + khớp tag yên tĩnh (<i>chỉ tính review buổi tối hoặc cả ngày</i>) + thưởng vì là cafe + rating + điểm khoảng cách (gần Bến Thành thắng).</li>
+</ul>
+</div>
+
+<div class="step"><span class="step-num">6</span>
+<b>Sắp xếp và trả về top 20.</b> Mỗi quán hiển thị kèm: tên, ảnh, địa chỉ, đánh giá, <i>khoảng cách (ví dụ "cách 320m")</i>, các loại quán nó thuộc về.
+</div>
+
+<div class="example" style="margin-top:14pt;">
+<b>Kết quả thực tế người dùng thấy:</b> một danh sách 6–10 quán cà phê ở Quận 1, mỗi quán có không gian yên tĩnh được nhiều khách review về buổi tối, đủ chỗ cho 4 người, sắp xếp ưu tiên các quán gần Bến Thành. Toàn bộ quá trình trên: <b>khoảng 0.5–1 giây</b>.
+</div>
+
+<h1>11. Tóm tắt — vì sao MyNook khác với "tìm kiếm thông thường"</h1>
+
+<table>
+  <thead><tr><th>Tìm kiếm thông thường</th><th>MyNook</th></tr></thead>
+  <tbody>
+    <tr><td>Khớp từ khoá "đúng nguyên văn"</td><td>"Hiểu nghĩa" + khớp từ khoá + khớp tên + khớp tag — <b>kết hợp 7 giác quan</b></td></tr>
+    <tr><td>Một công thức chung cho mọi câu hỏi</td><td><b>4 chiến thuật khác nhau</b> tuỳ kiểu câu (tìm tên / tả đặc điểm / vừa tên vừa tả / mơ hồ)</td></tr>
+    <tr><td>Bỏ qua khung giờ — quán "yên tĩnh" lúc nào cũng "yên tĩnh"</td><td>Phân biệt <b>buổi sáng / trưa / tối / cả ngày</b> theo từng tag</td></tr>
+    <tr><td>Sai chính tả → 0 kết quả</td><td>Chấp nhận sai chính tả nhẹ và thiếu dấu</td></tr>
+    <tr><td>Không cá nhân hoá</td><td>Có mục <b>"Gợi ý cho bạn"</b> dựa trên gu từng người, cập nhật ngay sau mỗi favorite/review</td></tr>
+    <tr><td>Reviews chỉ để hiển thị sao</td><td>Mỗi review được AI phân tích, làm giàu hồ sơ quán theo từng tag và khung giờ</td></tr>
+    <tr><td>Lỗi → kết quả trống</td><td>Có <b>nhiều lớp dự phòng</b> — luôn cố trả ra ít nhất vài kết quả hợp lý</td></tr>
+  </tbody>
+</table>
+
+<div class="ribbon">Tóm gọn trong một câu</div>
+
+<p style="font-size: 13pt; line-height: 1.7;">
+MyNook không phải một bộ máy tìm kiếm "tra từ khoá", mà là một <b>người trợ lý hiểu ngôn ngữ tự nhiên</b>: nó <b>nghe</b> bạn nói (qua AI hiểu câu), <b>nhìn</b> bạn ở đâu (qua GPS), <b>nhớ</b> gu của bạn (qua favorite + review), <b>học</b> từ trải nghiệm của hàng nghìn khách khác (qua AI phân tích review), và <b>luôn cố gắng đưa ra câu trả lời tốt nhất có thể</b> — kể cả khi một phần hệ thống gặp sự cố.
+</p>
+
+<p style="margin-top: 30pt; text-align: center; color: #64748b; font-style: italic;">— Hết tài liệu —</p>
+
+</body>
+</html>
