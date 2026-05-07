@@ -1,0 +1,11 @@
+[1m[33mNX Daemon is not running. Node process will not restart automatically after file changes.[39m[22m
+[1m[31mStarting inspector on localhost:9229 failed: address already in use
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 8:02:00 PM [31m  ERROR[31m [31mDuplicate DTO detected: "CreateCategoryDto" is defined multiple times with different schemas.
+Consider using unique class names or applying @ApiExtraModels() decorator with custom schema names.
+Note: This will throw an error in the next major version.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 8:02:00 PM [31m  ERROR[31m [31mDuplicate DTO detected: "UpdateCategoryDto" is defined multiple times with different schemas.
+Consider using unique class names or applying @ApiExtraModels() decorator with custom schema names.
+Note: This will throw an error in the next major version.[31m
+[39m[22m

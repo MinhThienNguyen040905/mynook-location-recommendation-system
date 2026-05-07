@@ -8,6 +8,7 @@ import { AdminNotificationController } from './admin-notification.controller.js'
 import { AdminDashboardController } from './admin-dashboard.controller.js';
 import { AdminCategoryController } from './admin-category.controller.js';
 import { AdminLocationController } from './admin-location.controller.js';
+import { AdminImportController } from './admin-import.controller.js';
 
 @Module({
   imports: [HttpModule],
@@ -20,6 +21,7 @@ import { AdminLocationController } from './admin-location.controller.js';
     AdminDashboardController,
     AdminCategoryController,
     AdminLocationController,
+    AdminImportController,
   ],
 })
 export class AdminModule {}

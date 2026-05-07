@@ -1,0 +1,5 @@
+[1m[33mNX Daemon is not running. Node process will not restart automatically after file changes.[39m[22m
+[1m[31mDebugger listening on ws://localhost:9229/0dfb40a5-9632-459e-a444-11019ac60936
+Debugger listening on ws://localhost:9229/0dfb40a5-9632-459e-a444-11019ac60936
+For help, see: https://nodejs.org/en/docs/inspector
+[39m[22m

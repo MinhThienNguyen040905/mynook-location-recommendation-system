@@ -9,6 +9,8 @@ import {
   VenueCategory,
   City,
   District,
+  VenueImport,
+  VenueImportReviewSource,
 } from '@mynook/database';
 import { VenueModule } from './modules/venue/venue.module.js';
 import { MenuModule } from './modules/menu/menu.module.js';
@@ -16,6 +18,7 @@ import { UploadModule } from './modules/upload/upload.module.js';
 import { AdminVenueModule } from './modules/admin/admin.module.js';
 import { CategoryModule } from './modules/category/category.module.js';
 import { LocationModule } from './modules/location/location.module.js';
+import { GoogleMapsImportModule } from './modules/imports/google-maps-import.module.js';
 
 @Module({
   imports: [
@@ -29,6 +32,8 @@ import { LocationModule } from './modules/location/location.module.js';
         VenueCategory,
         City,
         District,
+        VenueImport,
+        VenueImportReviewSource,
       ],
     }),
     VenueModule,
@@ -37,6 +42,7 @@ import { LocationModule } from './modules/location/location.module.js';
     AdminVenueModule,
     CategoryModule,
     LocationModule,
+    GoogleMapsImportModule,
   ],
 })
 export class AppModule {}

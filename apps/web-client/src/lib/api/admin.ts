@@ -443,3 +443,168 @@ export async function adminReindexEmbeddings(opts?: {
   );
   return data;
 }
+
+// ─── Google Maps imports ─────────────────────────────────────────────
+
+export interface GoogleMapsReviewSnippet {
+  source_review_id?: string | null;
+  author_name?: string | null;
+  rating: number;
+  content: string;
+  published_at?: string | null;
+}
+
+export interface GoogleMapsImportNormalizedPayload {
+  name: string;
+  branch_name: string | null;
+  description: string | null;
+  address_line: string | null;
+  ward: string | null;
+  city_id: string | null;
+  district_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  website: string | null;
+  phone_number: string | null;
+  opening_hours: unknown | null;
+  media: string[];
+  menu_image_url: string | null;
+  rating_avg: number | null;
+  review_count: number | null;
+  category_ids: string[];
+  primary_category_id: string | null;
+  selected_reviews: GoogleMapsReviewSnippet[];
+}
+
+export interface GoogleMapsImportDraft {
+  id: string;
+  source: string;
+  source_place_id: string | null;
+  source_url: string | null;
+  raw_payload: Record<string, unknown>;
+  normalized_payload: GoogleMapsImportNormalizedPayload;
+  status: 'draft' | 'enriched' | 'ready' | 'published' | 'rejected' | 'duplicate';
+  matched_venue_id: string | null;
+  published_venue_id: string | null;
+  confidence: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  venue?: Venue | null;
+}
+
+export interface GoogleMapsImportResolveInput {
+  input: string;
+  source_url?: string;
+  source_place_id?: string;
+  name?: string;
+  branch_name?: string;
+  description?: string;
+  address_line?: string;
+  ward?: string;
+  city_id?: string;
+  district_id?: string;
+  latitude?: number;
+  longitude?: number;
+  website?: string;
+  phone_number?: string;
+  opening_hours?: unknown;
+  media?: unknown;
+  menu_image_url?: string;
+  rating_avg?: number;
+  review_count?: number;
+  reviews?: GoogleMapsReviewSnippet[];
+  category_ids?: string[];
+  primary_category_id?: string;
+  raw_payload?: Record<string, unknown>;
+  normalized_payload?: Partial<GoogleMapsImportNormalizedPayload>;
+}
+
+export async function resolveGoogleMapsImport(
+  body: GoogleMapsImportResolveInput,
+): Promise<GoogleMapsImportNormalizedPayload & {
+  source: string;
+  source_place_id: string | null;
+  source_url: string | null;
+  input: string;
+  confidence: number;
+  matched_venue_id: string | null;
+  duplicate_reason: string | null;
+}> {
+  const { data } = await apiClient.post(API_ENDPOINTS.ADMIN.IMPORT_RESOLVE, body);
+  return data;
+}
+
+export async function listGoogleMapsDrafts(
+  status?: GoogleMapsImportDraft['status'] | 'all',
+): Promise<GoogleMapsImportDraft[]> {
+  const { data } = await apiClient.get<GoogleMapsImportDraft[]>(
+    API_ENDPOINTS.ADMIN.IMPORTS,
+    { params: status ? { status } : undefined },
+  );
+  return data;
+}
+
+export async function getGoogleMapsDraft(id: string): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.get<GoogleMapsImportDraft>(
+    API_ENDPOINTS.ADMIN.IMPORT_DETAIL(id),
+  );
+  return data;
+}
+
+export async function createGoogleMapsDraft(
+  body: GoogleMapsImportResolveInput,
+): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.ADMIN.IMPORTS,
+    body,
+  );
+  return data;
+}
+
+export async function updateGoogleMapsDraft(
+  id: string,
+  body: Partial<GoogleMapsImportNormalizedPayload>,
+): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.patch<GoogleMapsImportDraft>(
+    API_ENDPOINTS.ADMIN.IMPORT_DETAIL(id),
+    body,
+  );
+  return data;
+}
+
+export async function enrichGoogleMapsDraft(id: string): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.ADMIN.IMPORT_ENRICH(id),
+    {},
+  );
+  return data;
+}
+
+export async function selectGoogleMapsDraftReviews(
+  id: string,
+  reviews: GoogleMapsReviewSnippet[],
+): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.ADMIN.IMPORT_REVIEWS(id),
+    { reviews },
+  );
+  return data;
+}
+
+export async function publishGoogleMapsDraft(id: string): Promise<{
+  draft: GoogleMapsImportDraft;
+  venue: Venue;
+  seeded_reviews: number;
+}> {
+  const { data } = await apiClient.post(API_ENDPOINTS.ADMIN.IMPORT_PUBLISH(id), {});
+  return data;
+}
+
+export async function rejectGoogleMapsDraft(id: string): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.ADMIN.IMPORT_REJECT(id),
+    {},
+  );
+  return data;
+}

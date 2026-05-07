@@ -27,8 +27,26 @@ export class ReviewController {
     return this.reviewService.create(user.id, dto);
   }
 
+  @Post('seed/google-maps')
+  @ApiOperation({ summary: 'Seed Google Maps review snippets (internal)' })
+  seedGoogleMapsReviews(
+    @Body()
+    body: {
+      venue_id: string;
+      reviews: Array<{
+        source_review_id?: string | null;
+        author_name?: string | null;
+        rating: number;
+        content: string;
+        published_at?: string | null;
+      }>;
+    },
+  ) {
+    return this.reviewService.seedGoogleMapsReviews(body);
+  }
+
   /**
-   * Internal endpoint — called by search-ai-service to save AI analysis result.
+   * Internal endpoint â€” called by search-ai-service to save AI analysis result.
    * NOT exposed via api-gateway (internal service-to-service only).
    */
   @Patch(':reviewId/ai-analysis')

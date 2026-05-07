@@ -89,6 +89,14 @@ export const API_ENDPOINTS = {
     VENUE_DETAIL: (id: string) => `/admin/venues/${id}`,
     VENUE_RESTORE: (id: string) => `/admin/venues/${id}/restore`,
     VENUE_HARD_DELETE: (id: string) => `/admin/venues/${id}/hard`,
+    // Google Maps imports
+    IMPORTS: '/admin/imports/google-maps/drafts',
+    IMPORT_RESOLVE: '/admin/imports/google-maps/resolve',
+    IMPORT_DETAIL: (id: string) => `/admin/imports/google-maps/drafts/${id}`,
+    IMPORT_ENRICH: (id: string) => `/admin/imports/google-maps/drafts/${id}/enrich`,
+    IMPORT_REVIEWS: (id: string) => `/admin/imports/google-maps/drafts/${id}/import-reviews`,
+    IMPORT_PUBLISH: (id: string) => `/admin/imports/google-maps/drafts/${id}/publish`,
+    IMPORT_REJECT: (id: string) => `/admin/imports/google-maps/drafts/${id}/reject`,
     // Reviews
     REVIEWS: '/admin/reviews',
     REVIEW_DETAIL: (id: string) => `/admin/reviews/${id}`,
