@@ -14,6 +14,7 @@ import {
 } from '@mynook/database';
 import { SearchModule } from './modules/search/search.module.js';
 import { ReviewProcessingModule } from './modules/review-processing/review-processing.module.js';
+import { DescriptionTaggingModule } from './modules/description-tagging/description-tagging.module.js';
 import { TagModule } from './modules/tag/tag.module.js';
 
 @Module({
@@ -34,6 +35,7 @@ import { TagModule } from './modules/tag/tag.module.js';
     }),
     SearchModule,
     ReviewProcessingModule,
+    DescriptionTaggingModule,
     TagModule,
   ],
 })

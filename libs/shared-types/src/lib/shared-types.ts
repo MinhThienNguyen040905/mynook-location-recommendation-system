@@ -105,6 +105,21 @@ export interface VenueReviewDeletedEvent {
   } | null;
 }
 
+/**
+ * Emitted by venue-service after a venue is created or updated with a non-empty
+ * description. Consumed by search-ai-service to seed `venue_tags` from the
+ * owner-supplied description so brand-new venues aren't penalised for having
+ * zero review-derived tags. Seeds use a small floor score that real reviews
+ * can override.
+ */
+export interface VenueDescribedEvent {
+  venueId: string;
+  name: string;
+  branchName: string | null;
+  /** Trimmed description text — guaranteed non-empty by the publisher. */
+  description: string;
+}
+
 // ---- Service URLs (HTTP) ----
 
 export const AUTH_SERVICE_URL =

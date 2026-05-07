@@ -6,10 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Venue, Category } from '@mynook/database';
+import { RMQ_EVENTS } from '@mynook/shared-types';
 import { CreateVenueDto } from './dto/create-venue.dto.js';
 import { UpdateVenueDto } from './dto/update-venue.dto.js';
 import { CategoryService } from '../category/category.service.js';
 import { VenueEmbeddingService } from './embedding.service.js';
+import { VenueEventsService } from './venue-events.service.js';
 
 export type VenueWithCategories = Venue & {
   categories: Array<Category & { is_primary: boolean }>;
@@ -32,6 +34,7 @@ export class VenueService {
     private readonly venueRepo: Repository<Venue>,
     private readonly categoryService: CategoryService,
     private readonly embeddingService: VenueEmbeddingService,
+    private readonly events: VenueEventsService,
   ) {}
 
   /**
@@ -180,6 +183,12 @@ export class VenueService {
       );
     }
     this.embeddingService.regenerateInBackground(saved.id);
+    this.events.emitDescribed(RMQ_EVENTS.VENUE_CREATED, {
+      venueId: saved.id,
+      name: saved.name,
+      branchName: saved.branch_name ?? null,
+      description: saved.description ?? null,
+    });
     return saved;
   }
 
@@ -203,6 +212,12 @@ export class VenueService {
       );
     }
     this.embeddingService.regenerateInBackground(saved.id);
+    this.events.emitDescribed(RMQ_EVENTS.VENUE_CREATED, {
+      venueId: saved.id,
+      name: saved.name,
+      branchName: saved.branch_name ?? null,
+      description: saved.description ?? null,
+    });
     return saved;
   }
 
@@ -232,6 +247,18 @@ export class VenueService {
     // Only re-embed when fields that affect search_document actually changed.
     if (this.isSearchRelevantChange(dto)) {
       this.embeddingService.regenerateInBackground(saved.id);
+    }
+    // Re-seed description tags only when the owner actually edited the
+    // description field. The consumer's upsert is idempotent so over-emitting
+    // is safe, but skipping unrelated PATCHes (e.g. opening_hours) avoids
+    // burning Groq quota.
+    if (dto.description !== undefined) {
+      this.events.emitDescribed(RMQ_EVENTS.VENUE_UPDATED, {
+        venueId: saved.id,
+        name: saved.name,
+        branchName: saved.branch_name ?? null,
+        description: saved.description ?? null,
+      });
     }
     return saved;
   }

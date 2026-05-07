@@ -5,10 +5,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Venue } from '@mynook/database';
+import { RMQ_EVENTS } from '@mynook/shared-types';
 import { CreateVenueDto } from '../venue/dto/create-venue.dto.js';
 import { UpdateVenueDto } from '../venue/dto/update-venue.dto.js';
 import { CategoryService } from '../category/category.service.js';
 import { VenueEmbeddingService } from '../venue/embedding.service.js';
+import { VenueEventsService } from '../venue/venue-events.service.js';
 
 export interface ListVenuesQuery {
   is_active?: boolean;
@@ -27,6 +29,7 @@ export class AdminVenueService {
     private readonly venueRepo: Repository<Venue>,
     private readonly categoryService: CategoryService,
     private readonly embeddingService: VenueEmbeddingService,
+    private readonly events: VenueEventsService,
   ) {}
 
   async list(query: ListVenuesQuery) {
@@ -80,6 +83,12 @@ export class AdminVenueService {
       );
     }
     this.embeddingService.regenerateInBackground(saved.id);
+    this.events.emitDescribed(RMQ_EVENTS.VENUE_CREATED, {
+      venueId: saved.id,
+      name: saved.name,
+      branchName: saved.branch_name ?? null,
+      description: saved.description ?? null,
+    });
     return saved;
   }
 
@@ -98,6 +107,14 @@ export class AdminVenueService {
     }
     // Admin may tweak anything; always re-embed on admin update
     this.embeddingService.regenerateInBackground(saved.id);
+    if (dto.description !== undefined) {
+      this.events.emitDescribed(RMQ_EVENTS.VENUE_UPDATED, {
+        venueId: saved.id,
+        name: saved.name,
+        branchName: saved.branch_name ?? null,
+        description: saved.description ?? null,
+      });
+    }
     return saved;
   }
 
