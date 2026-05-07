@@ -12,6 +12,7 @@ NestJS HTTP microservice chạy ở **port 3005**. Xử lý logic tìm kiếm hy
 - **CategoryTagProvider**: Cache 5 phút cho danh sách active categories + top-100 tags theo `usage_count` — dùng để dựng prompt cho Groq và validate key khi Groq trả kết quả (filter out key không tồn tại trong DB).
 - **Graceful Degradation**: Nếu Groq fail/timeout → FALLBACK_EXTRACTION (intent='unclear') → search vẫn chạy bằng semantic-only. Nếu search với strict filters < 5 kết quả → auto retry với relaxed filters (bỏ hard category/rating, bỏ minNameScore).
 - **AI Review Processing**: Nhận event `venue.reviewed` từ interaction-service qua RabbitMQ, phân tích review bằng Groq AI (sentiment, tag extraction), upsert VenueTag scores
+- **AI Description Seed Tagging**: Nhận event `venue.created` / `venue.updated` từ venue-service (chỉ khi description non-empty), gọi Groq Llama 3.1 để rút tag keys từ top-100 candidate list, upsert seed rows vào `venue_tags` với `time_frame=all_day`, `score=0.5`, `positive_count=0`. Idempotent qua `ON CONFLICT ... DO UPDATE SET score = GREATEST(...)` — không cộng dồn khi owner edit/save lại, không hạ điểm tag mà review đã đẩy lên cao hơn floor. Mục đích: cho quán mới có signal tag trước khi có review thật.
 - **Embedding Generation**: Sử dụng HuggingFace API (all-MiniLM-L6-v2, 384 dimensions) để tạo vector embeddings
 - Quản lý tags và search logs
 
@@ -37,6 +38,11 @@ NestJS HTTP microservice chạy ở **port 3005**. Xử lý logic tìm kiếm hy
 | `src/app/modules/review-processing/review-processing.controller.ts` | RMQ handler for `venue.reviewed` event |
 | `src/app/modules/review-processing/review-processing.service.ts` | Process review: Groq AI analysis → upsert VenueTag scores (transaction) |
 | `src/app/modules/review-processing/groq-ai.service.ts` | Groq SDK integration (Llama 3.3) — sentiment, tag extraction, time context |
+| **Description Tagging Module** | |
+| `src/app/modules/description-tagging/description-tagging.module.ts` | Module imports SearchModule để dùng `CategoryTagProviderService` (candidate tag list + key→id resolver) |
+| `src/app/modules/description-tagging/description-tagging.controller.ts` | RMQ handlers cho `venue.created` + `venue.updated`. Manual ACK / NACK retry vì upsert idempotent. |
+| `src/app/modules/description-tagging/description-tagging.service.ts` | Cross-schema lookup categories của venue → gọi Groq → resolve keys → upsert venue_tags với `score=0.5`, `time_frame=all_day`, `positive_count=0`. `ON CONFLICT ... DO UPDATE SET score = GREATEST(...)` đảm bảo idempotency. |
+| `src/app/modules/description-tagging/description-groq.service.ts` | Groq SDK (Llama 3.1, 4s timeout). Prompt khác review: trung tính, chỉ rút "tính cách" quan sát được, không sentiment, không positive/negative. Cap 8 tags/lần. |
 
 ## Endpoints
 
@@ -50,9 +56,14 @@ NestJS HTTP microservice chạy ở **port 3005**. Xử lý logic tìm kiếm hy
 | Event | Direction | Mô tả |
 |-------|-----------|-------|
 | `venue.reviewed` | **Consumes** (from interaction-service) | Triggers AI analysis of new review |
+| `venue.review.deleted` | **Consumes** (from interaction-service) | Reverse venue_tag deltas using AI analysis snapshot |
+| `venue.created` | **Consumes** (from venue-service) | Triggers description-based seed tagging for new venue |
+| `venue.updated` | **Consumes** (from venue-service) | Re-runs description seed tagging when owner edits description |
 
 After processing a review, search-ai-service calls back to interaction-service via HTTP:
-`PATCH /reviews/:reviewId/ai-analysis` to save the AI analysis JSON.
+`PATCH /reviews/:reviewId/ai-analysis` to save the AI analysis JSON. Description-tagging has no callback — seed rows live entirely in `search_schema.venue_tags`.
+
+The consumer subscribes to routing key `venue.*` (main.ts), so all four events land in the same `search_ai_queue` and dispatch by `@EventPattern()` to the appropriate controller.
 
 ## Database Entities
 
@@ -109,12 +120,13 @@ HUGGINGFACE_API_TOKEN=hf_...      # HuggingFace cho embeddings (optional, hoạt
 INTERACTION_SERVICE_URL=http://localhost:3004  # cho AI analysis callback
 ```
 
-## Groq Usage (2 nơi)
+## Groq Usage (3 nơi)
 
 | Use case | Model | Module | Trigger |
 |---|---|---|---|
 | Query extraction | `llama-3.1-8b-instant` | search/query-extraction.service.ts | Mỗi search request (cache miss) |
 | Review analysis | `llama-3.3-70b-versatile` | review-processing/groq-ai.service.ts | Event RMQ `venue.reviewed` |
+| Description tagging | `llama-3.1-8b-instant` | description-tagging/description-groq.service.ts | Event RMQ `venue.created` / `venue.updated` (description non-empty) |
 
 ## Conventions
 
