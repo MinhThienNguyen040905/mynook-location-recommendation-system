@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MyNook · Google Maps Importer
 // @namespace    https://mynook.local/
-// @version      0.2.0
+// @version      0.2.4
 // @description  Quét data từ Google Maps place page (info + ảnh + reviews) và đẩy thành draft import vào MyNook
 // @match        https://www.google.com/maps/*
 // @match        https://www.google.com/maps
@@ -127,11 +127,52 @@
     return m ? m[1] : null;
   }
 
+  function isGooglePhotoUrl(url) {
+    return Boolean(url && (url.includes('googleusercontent.com') || url.includes('streetviewpixels')));
+  }
+
+  function normalizeLabel(value) {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   // Resize Google CDN photo URL to wW-hH
   function upsizePhotoUrl(url, size) {
     if (!url) return url;
-    return url.replace(/=w\d+-h\d+(-[a-zA-Z-]+)?$/, `=w${size}-h${size}-k-no`)
-              .replace(/=s\d+(-[a-zA-Z-]+)?$/, `=s${size}-k-no`);
+    const match = String(url).match(/^([^?#]+)([?#].*)?$/);
+    const base = match?.[1] ?? String(url);
+    const suffix = match?.[2] ?? '';
+    const resized = base.replace(
+      /=(?:w\d+(?:-h\d+)?|h\d+|s\d+)(?:-[^=/?#&]+)*$/,
+      `=w${size}-h${size}-k-no`,
+    );
+    return resized + suffix;
+  }
+
+  function photoUrlKey(url) {
+    return String(url).replace(/=(?:w\d+(?:-h\d+)?|h\d+|s\d+)(?:-[^=/?#&]+)*(?=($|[?#]))/, '');
+  }
+
+  function photoUrlMaxDimension(url) {
+    const text = String(url);
+    const wh = text.match(/=w(\d+)-h(\d+)/);
+    if (wh) return Math.max(parseInt(wh[1], 10), parseInt(wh[2], 10));
+    const one = text.match(/=(?:w|h|s)(\d+)/);
+    return one ? parseInt(one[1], 10) : 0;
+  }
+
+  function isLikelyAvatarUrl(url) {
+    const text = String(url);
+    return (
+      /\/a[-/]/.test(text) ||
+      /\/AAAAAAAAAAI\//.test(text) ||
+      /[=/]s\d{1,2}-c/.test(text) ||
+      /[=/]w\d{1,2}-h\d{1,2}/.test(text)
+    );
   }
 
   // Pull background-image URL from a style attr
@@ -194,6 +235,22 @@
   }
 
   // ---- Tab navigation -----------------------------------------------------
+  function scoreTabCandidate(el, labelKeywords) {
+    const text = normalizeLabel(`${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`);
+    if (!text) return -1;
+
+    let score = 0;
+    if (el.getAttribute('role') === 'tab') score += 100;
+    if (text.startsWith('reviews for')) score += 80;
+    if (text.startsWith('review')) score += 50;
+    if (text.includes('review')) score += 30;
+    if (labelKeywords.some((k) => text.includes(normalizeLabel(k)))) score += 40;
+    if (labelKeywords.some((k) => text.startsWith(normalizeLabel(k)))) score += 20;
+    if (/^\d/.test(text) && text.includes('review')) score -= 40;
+    if (/^\d/.test(text) && text.includes('photo')) score -= 40;
+    return score;
+  }
+
   function findTabButton(labelKeywords) {
     // Tabs in current Google Maps may be button/role=tab OR div with aria-label
     const candidates = [
@@ -202,12 +259,16 @@
       ...$$('button[aria-label]'),
       ...$$('a[aria-label]'),
     ];
+    let best = null;
+    let bestScore = -1;
     for (const t of candidates) {
-      const text = (t.getAttribute('aria-label') || t.textContent || '').toLowerCase().trim();
-      if (!text) continue;
-      if (labelKeywords.some((k) => text.includes(k.toLowerCase()))) return t;
+      const score = scoreTabCandidate(t, labelKeywords);
+      if (score > bestScore) {
+        bestScore = score;
+        best = t;
+      }
     }
-    return null;
+    return bestScore > 0 ? best : null;
   }
 
   async function clickTab(keywords) {
@@ -220,6 +281,93 @@
     btn.click();
     await sleep(1500);
     return true;
+  }
+
+  function findOmniboxBackButton() {
+    const candidates = [
+      ...$$('button[jsaction*="omnibox.back"]'),
+      ...$$('div[role="button"][jsaction*="omnibox.back"]'),
+      ...$$('a[jsaction*="omnibox.back"]'),
+      ...$$('button[aria-label="Back"]'),
+      ...$$('div[role="button"][aria-label="Back"]'),
+      ...$$('a[aria-label="Back"]'),
+    ];
+    return candidates.find((el) => el && el.offsetParent !== null) || null;
+  }
+
+  async function clickOmniboxBack() {
+    const btn = findOmniboxBackButton();
+    if (!btn) {
+      log('Không thấy nút Back của omnibox');
+      return false;
+    }
+    const label = (btn.getAttribute('aria-label') || btn.textContent || '').trim().slice(0, 60);
+    log(`Click omnibox back: "${label}"`);
+    try {
+      btn.click();
+      await sleep(1500);
+      return true;
+    } catch (e) {
+      warn('Click back fail:', e.message);
+      return false;
+    }
+  }
+
+  async function dismissTransientOverlay() {
+    const buttons = $$('button, div[role="button"], a[role="button"]').filter((el) => {
+      if (!el || el.offsetParent === null) return false;
+      const text = normalizeLabel(`${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`);
+      return (
+        text === 'close' ||
+        text.includes('close') ||
+        text.includes('dismiss') ||
+        text === 'x' ||
+        text === 'cancel'
+      );
+    });
+
+    for (const btn of buttons.slice(0, 3)) {
+      try {
+        btn.click();
+        await sleep(250);
+      } catch { /* ignore */ }
+    }
+
+    try {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    } catch { /* ignore */ }
+    await sleep(250);
+  }
+
+  function collectReviewCards(root = document) {
+    const candidates = [
+      ...$$('div.jftiEf[data-review-id]', root),
+      ...$$('div[data-review-id]', root),
+    ];
+    const seen = new Set();
+    return candidates.filter((card) => {
+      const reviewId = card.getAttribute('data-review-id');
+      if (!reviewId || seen.has(reviewId)) return false;
+      if (!card.querySelector('span.wiI7pd, div.MyEned, div.d4r55')) return false;
+      seen.add(reviewId);
+      return true;
+    });
+  }
+
+  async function clickMoreReviewsButton() {
+    const btn = [
+      ...$$('button[aria-label^="More reviews"]'),
+      ...$$('button.M77dve'),
+    ].find((el) => el && el.offsetParent !== null);
+    if (!btn) return false;
+    log(`Click more reviews: "${(btn.getAttribute('aria-label') || btn.textContent || '').trim()}"`);
+    try {
+      btn.click();
+      await sleep(1200);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Find ALL scrollable side panels (Google Maps has many nested scrollers)
@@ -254,7 +402,9 @@
         } catch { /* ignore */ }
       });
       // Force last visible photo tile into view to trigger virtualization
-      const lastTile = $$('a[data-photo-index], button[jsaction*="photo"], [role="img"][style*="background-image"]').pop();
+      const lastTile = $$(
+        'a[data-photo-index], button[data-carousel-index], button[jsaction*="photo"], [role="img"][style*="background-image"], [style*="background-image"]',
+      ).pop();
       if (lastTile) {
         try { lastTile.scrollIntoView({ block: 'end' }); } catch { /* ignore */ }
       }
@@ -271,7 +421,7 @@
     const attrs = ['src', 'data-src', 'data-image-url', 'data-thumbnail', 'data-large-image-url'];
     for (const a of attrs) {
       const v = el.getAttribute && el.getAttribute(a);
-      if (v && (v.includes('googleusercontent.com') || v.includes('streetviewpixels'))) {
+      if (isGooglePhotoUrl(v)) {
         out.push(v);
       }
     }
@@ -280,13 +430,13 @@
     if (srcset) {
       srcset.split(',').forEach((part) => {
         const url = part.trim().split(/\s+/)[0];
-        if (url && (url.includes('googleusercontent.com') || url.includes('streetviewpixels'))) {
+        if (isGooglePhotoUrl(url)) {
           out.push(url);
         }
       });
     }
     // currentSrc (modern browsers)
-    if (el.currentSrc && (el.currentSrc.includes('googleusercontent.com') || el.currentSrc.includes('streetviewpixels'))) {
+    if (isGooglePhotoUrl(el.currentSrc)) {
       out.push(el.currentSrc);
     }
     return out;
@@ -294,16 +444,26 @@
 
   // Get every Google CDN image currently in the DOM
   function harvestImages({ container = document } = {}) {
-    const out = new Set();
+    const out = new Map();
+
+    function addPhoto(url, el) {
+      if (!isGooglePhotoUrl(url)) return;
+      if (isLikelyAvatarUrl(url)) return;
+
+      const dim = photoUrlMaxDimension(url);
+      if (dim > 0 && dim < 96) return;
+
+      const w = el?.naturalWidth || 0;
+      if (w > 0 && w < 80) return;
+
+      const resized = upsizePhotoUrl(url, DEFAULTS.photoSize);
+      out.set(photoUrlKey(resized), resized);
+    }
 
     // Strategy 1: <img> tags
     container.querySelectorAll('img').forEach((img) => {
       urlsFromElement(img).forEach((url) => {
-        if (/=s\d{1,2}-c/.test(url)) return; // skip small avatars
-        // Skip natural width < 80 (likely avatar) — but only if naturalWidth is reliable
-        const w = img.naturalWidth || 0;
-        if (w > 0 && w < 80) return;
-        out.add(upsizePhotoUrl(url, DEFAULTS.photoSize));
+        addPhoto(url, img);
       });
     });
 
@@ -311,24 +471,81 @@
     container.querySelectorAll('[style*="background-image"]').forEach((el) => {
       const u = bgUrl(el);
       if (!u) return;
-      if (!u.includes('googleusercontent.com') && !u.includes('streetviewpixels')) return;
-      if (/=s\d{1,2}-c/.test(u)) return;
-      out.add(upsizePhotoUrl(u, DEFAULTS.photoSize));
+      addPhoto(u, el);
     });
 
     // Strategy 3: photo tile buttons/anchors that may not have inline style yet
-    container.querySelectorAll('a[data-photo-index], button[jsaction*="photo"]').forEach((el) => {
+    container.querySelectorAll(
+      'a[data-photo-index], button[data-carousel-index], button[jsaction*="photo"], button[jsaction*="heroHeaderImage"], button[aria-label^="Photo of"]',
+    ).forEach((el) => {
       // their inner divs often hold the bg image
       el.querySelectorAll('[style*="background-image"], img').forEach((inner) => {
         const u = bgUrl(inner) || inner.src;
-        if (!u) return;
-        if (!u.includes('googleusercontent.com') && !u.includes('streetviewpixels')) return;
-        if (/=s\d{1,2}-c/.test(u)) return;
-        out.add(upsizePhotoUrl(u, DEFAULTS.photoSize));
+        addPhoto(u, inner);
       });
     });
 
-    return out;
+    return new Set(out.values());
+  }
+
+  function photoButtonScore(el) {
+    const label = normalizeLabel(`${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`);
+    let score = 0;
+    if (label.includes('see photos') || label.includes('xem anh') || label.includes('xem hinh')) score += 100;
+    if (label.startsWith('photo of')) score += 80;
+    if ((el.getAttribute('jsaction') || '').includes('heroHeaderImage')) score += 70;
+    if (el.matches('button[role="tab"], div[role="tab"]') && label.includes('photo')) score += 50;
+    if (el.querySelector('img[src*="googleusercontent"], [style*="googleusercontent"]')) score += 20;
+    return score;
+  }
+
+  function findPhotoEntryButton() {
+    const candidates = [
+      ...$$('button[jsaction*="heroHeaderImage"]'),
+      ...$$('button[aria-label^="Photo of"]'),
+      ...$$('button, a, div[role="button"]').filter((el) => {
+        const text = normalizeLabel(`${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`);
+        return (
+          text.includes('see photos') ||
+          text.includes('xem anh') ||
+          text.includes('xem hinh') ||
+          text === 'photos' ||
+          text === 'photo' ||
+          text === 'anh' ||
+          text === 'hinh'
+        );
+      }),
+    ];
+
+    const unique = Array.from(new Set(candidates)).filter((el) => {
+      if (!el || el.offsetParent === null) return false;
+      const text = normalizeLabel(`${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`);
+      return (
+        text.includes('photo') ||
+        text.includes('anh') ||
+        text.includes('hinh') ||
+        el.querySelector('img, [style*="background-image"]')
+      );
+    });
+
+    unique.sort((a, b) => photoButtonScore(b) - photoButtonScore(a));
+    return unique[0] || null;
+  }
+
+  async function openPhotoGallery() {
+    const entry = findPhotoEntryButton();
+    if (entry) {
+      const label = (entry.getAttribute('aria-label') || entry.textContent || '').trim().slice(0, 60);
+      log(`Click photo gallery: "${label}"`);
+      entry.click();
+      await sleep(1800);
+      return true;
+    }
+
+    const ok = await clickTab(['ảnh', 'anh', 'photo', 'photos', 'hình', 'hinh']);
+    if (!ok) return false;
+    await sleep(800);
+    return true;
   }
 
   // Diagnostic: dump everything we find to console for debugging
@@ -360,8 +577,9 @@
     const beforeTab = harvestImages();
     log(`Trước khi click tab Ảnh: thấy ${beforeTab.size} ảnh trong DOM`);
 
-    // Try multiple keyword variants — Google Maps i18n changes
-    const ok = await clickTab(['ảnh', 'photo', 'photos', 'hình']);
+    // Google Maps exposes photos through the hero/See photos button on many layouts,
+    // not as a normal role=tab button.
+    const ok = await openPhotoGallery();
     if (!ok) {
       log('Bỏ qua tab Ảnh — dùng ảnh đã thấy trên hero');
       return Array.from(beforeTab).slice(0, max);
@@ -434,7 +652,16 @@
     await scrollFeed(8, 700);
     await sleep(500);
 
-    const cards = $$('div[data-review-id]');
+    let cards = collectReviewCards();
+    if (cards.length < maxReviews) {
+      await clickMoreReviewsButton();
+      await scrollFeed(4, 700);
+      await sleep(500);
+      cards = collectReviewCards();
+    }
+    if (cards.length === 0) {
+      cards = collectReviewCards();
+    }
     log(`Tìm thấy ${cards.length} review card trong DOM`);
     const out = [];
     for (const card of cards.slice(0, maxReviews)) {
@@ -591,6 +818,10 @@
       const menuPhotoUrl = await extractMenuImage();
       log(`Menu image: ${menuPhotoUrl ? 'có' : 'không tìm thấy'}`);
 
+      setStatus('Quay lại overview để vào reviews…');
+      const wentBack = await clickOmniboxBack();
+      log(`Quay lại overview: ${wentBack ? 'ok' : 'không thấy nút Back'}`);
+
       setStatus('Mở tab Đánh giá + scroll…');
       const reviews = await extractReviews(DEFAULTS.maxReviews, DEFAULTS.maxPhotosPerReview);
       log(`Lấy được ${reviews.length} reviews`);
@@ -675,7 +906,7 @@
     `;
     panelEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
-        <strong style="color:#0f172a">📥 MyNook Importer <span style="font-weight:normal;color:#94a3b8;font-size:10px;">v0.2</span></strong>
+        <strong style="color:#0f172a">📥 MyNook Importer <span style="font-weight:normal;color:#94a3b8;font-size:10px;">v0.2.4</span></strong>
         <button id="mynook-reset" title="Reset config" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px;">⚙</button>
       </div>
       <div style="margin-top:8px;display:flex;gap:6px;">
@@ -704,11 +935,11 @@
     setStatus('Diagnose: scan DOM hiện tại…');
     const before = diagnose();
     setStatus('Diagnose: click tab Ảnh + scroll…');
-    await clickTab(['ảnh', 'photo', 'photos', 'hình']);
+    await openPhotoGallery();
     await sleep(1500);
     await scrollFeed(6, 600);
     const after = diagnose();
-    const reviewCards = $$('div[data-review-id]').length;
+    const reviewCards = collectReviewCards().length;
     setStatus(
       `Test xong: ${before} ảnh trước tab + ${after} sau scroll + ${reviewCards} review cards. Mở DevTools Console xem chi tiết.`,
       after > 0 ? 'ok' : 'err',
