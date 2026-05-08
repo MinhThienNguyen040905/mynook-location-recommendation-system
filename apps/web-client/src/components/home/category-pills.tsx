@@ -11,7 +11,7 @@ const SCROLL_STEP = 240;
 export function CategoryPills() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTag = searchParams.get("tag");
+  const activeQuery = searchParams.get("q");
 
   const { data, isLoading } = useQuery({
     queryKey: ["tags"],
@@ -47,7 +47,7 @@ export function CategoryPills() {
   };
 
   const handleClick = (tag: Tag) => {
-    router.push(`/search?tag=${encodeURIComponent(tag.key)}`);
+    router.push(`/search?q=${encodeURIComponent(tag.display_name)}`);
   };
 
   const tags = data?.tags ?? [];
@@ -96,7 +96,7 @@ export function CategoryPills() {
 
           {!isLoading &&
             tags.map((tag) => {
-              const active = activeTag === tag.key;
+              const active = activeQuery === tag.display_name;
               return (
                 <button
                   key={tag.id}
