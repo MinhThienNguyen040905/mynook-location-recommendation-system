@@ -256,3 +256,27 @@ Note: This will throw an error in the next major version.[31m
   }
 }
 [39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:39:08 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findTopRated [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:115:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:39:08 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m

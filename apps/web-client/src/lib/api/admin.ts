@@ -452,6 +452,7 @@ export interface GoogleMapsReviewSnippet {
   rating: number;
   content: string;
   published_at?: string | null;
+  media?: string[];
 }
 
 export interface GoogleMapsImportNormalizedPayload {

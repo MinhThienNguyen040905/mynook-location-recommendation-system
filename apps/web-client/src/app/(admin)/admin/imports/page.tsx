@@ -3,21 +3,38 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   AlertTriangle,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  ImageIcon,
+  Info,
+  Link2,
   Loader2,
   MapPin,
   MessageSquareText,
+  Plus,
   RefreshCcw,
-  Save,
   Send,
-  Sparkles,
   Star,
+  Tag,
   Trash2,
+  X,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,57 +50,39 @@ import {
   publishGoogleMapsDraft,
   rejectGoogleMapsDraft,
   resolveGoogleMapsImport,
-  selectGoogleMapsDraftReviews,
   updateGoogleMapsDraft,
   type GoogleMapsImportDraft,
   type GoogleMapsImportNormalizedPayload,
   type GoogleMapsReviewSnippet,
 } from '@/lib/api/admin';
 
-type DraftForm = Partial<GoogleMapsImportNormalizedPayload> & {
-  input?: string | null;
-  source_url?: string | null;
-  source_place_id?: string | null;
-};
+type DraftForm = Partial<GoogleMapsImportNormalizedPayload>;
 
-const EMPTY_FORM: DraftForm = {
-  name: '',
-  branch_name: '',
-  description: '',
-  address_line: '',
-  ward: '',
-  city_id: '',
-  district_id: '',
-  latitude: null,
-  longitude: null,
-  website: '',
-  phone_number: '',
-  opening_hours: null,
-  media: [],
-  menu_image_url: '',
-  rating_avg: null,
-  review_count: null,
-  category_ids: [],
-  primary_category_id: '',
-  selected_reviews: [],
-};
+const STATUS_FILTERS: Array<{ value: GoogleMapsImportDraft['status'] | 'all'; label: string }> = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'enriched', label: 'Đã enrich' },
+  { value: 'ready', label: 'Sẵn sàng' },
+  { value: 'published', label: 'Đã publish' },
+  { value: 'duplicate', label: 'Trùng lặp' },
+  { value: 'rejected', label: 'Đã từ chối' },
+];
 
 export default function AdminImportsPage() {
   const qc = useQueryClient();
-  const [sourceInput, setSourceInput] = useState('');
-  const [preview, setPreview] = useState<GoogleMapsImportDraft | null>(null);
+  const [statusFilter, setStatusFilter] = useState<GoogleMapsImportDraft['status'] | 'all'>('all');
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
-  const [form, setForm] = useState<DraftForm>(EMPTY_FORM);
-  const [reviewText, setReviewText] = useState('');
+  const [form, setForm] = useState<DraftForm>({});
+  const [pasteOpen, setPasteOpen] = useState(false);
 
   const draftsQuery = useQuery({
-    queryKey: ['admin', 'imports', 'google-maps'],
-    queryFn: () => listGoogleMapsDrafts(),
+    queryKey: ['admin', 'imports', 'google-maps', statusFilter],
+    queryFn: () => listGoogleMapsDrafts(statusFilter === 'all' ? undefined : statusFilter),
     refetchOnWindowFocus: false,
   });
 
   const draftDetailQuery = useQuery({
-    queryKey: ['admin', 'imports', 'google-maps', selectedDraftId],
+    queryKey: ['admin', 'imports', 'google-maps', 'detail', selectedDraftId],
     queryFn: () => getGoogleMapsDraft(selectedDraftId as string),
     enabled: Boolean(selectedDraftId),
     refetchOnWindowFocus: false,
@@ -101,105 +100,46 @@ export default function AdminImportsPage() {
     refetchOnWindowFocus: false,
   });
 
+  const cityIdForDistricts =
+    form.city_id ?? draftDetailQuery.data?.normalized_payload.city_id ?? '';
   const districtsQuery = useQuery({
-    queryKey: ['admin', 'districts', form.city_id ?? draftDetailQuery.data?.normalized_payload.city_id ?? ''],
-    queryFn: () => adminListDistricts((form.city_id ?? draftDetailQuery.data?.normalized_payload.city_id ?? '') || undefined),
-    enabled: Boolean(form.city_id ?? draftDetailQuery.data?.normalized_payload.city_id),
+    queryKey: ['admin', 'districts', cityIdForDistricts],
+    queryFn: () => adminListDistricts(cityIdForDistricts || undefined),
+    enabled: Boolean(cityIdForDistricts),
     refetchOnWindowFocus: false,
   });
 
+  // Auto-select first draft on load
   useEffect(() => {
     if (!selectedDraftId && draftsQuery.data?.length) {
       setSelectedDraftId(draftsQuery.data[0].id);
     }
   }, [draftsQuery.data, selectedDraftId]);
 
+  // Sync form when draft detail loads
   useEffect(() => {
     const detail = draftDetailQuery.data;
     if (!detail) return;
-    setForm({
-      ...EMPTY_FORM,
-      ...detail.normalized_payload,
-      input: detail.raw_payload?.input as string | undefined,
-      source_url: detail.source_url ?? undefined,
-      source_place_id: detail.source_place_id ?? undefined,
-    });
-    setReviewText(reviewsToText(detail.normalized_payload.selected_reviews ?? []));
+    setForm(detail.normalized_payload);
   }, [draftDetailQuery.data?.id]);
 
-  const previewMutation = useMutation({
-    mutationFn: () =>
-      resolveGoogleMapsImport({
-        input: sourceInput.trim(),
-        source_url: sourceInput.trim(),
-      }),
-    onSuccess: (data) => {
-      setPreview({
-        id: 'preview',
-        source: data.source,
-        source_place_id: data.source_place_id,
-        source_url: data.source_url,
-        raw_payload: {},
-        normalized_payload: {
-          ...data,
-          selected_reviews: [],
-        } as GoogleMapsImportNormalizedPayload,
-        status: 'draft',
-        matched_venue_id: data.matched_venue_id,
-        published_venue_id: null,
-        confidence: data.confidence,
-        created_by: '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-      setForm((prev) => ({
-        ...prev,
-        ...data,
-        selected_reviews: prev.selected_reviews ?? [],
-      }));
-      toast.success('Đã phân tích nguồn nhập');
-    },
-    onError: () => toast.error('Không phân tích được nguồn nhập'),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      createGoogleMapsDraft({
-        input: sourceInput.trim(),
-        source_url: sourceInput.trim(),
-        normalized_payload: {
-          ...form,
-          selected_reviews: parseReviewText(reviewText),
-        } as Partial<GoogleMapsImportNormalizedPayload>,
-        reviews: parseReviewText(reviewText),
-      }),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
-      setSelectedDraftId(data.id);
-      setForm({
-        ...EMPTY_FORM,
-        ...data.normalized_payload,
-      });
-      setReviewText(reviewsToText(data.normalized_payload.selected_reviews ?? []));
-      toast.success('Đã tạo draft import');
-    },
-    onError: () => toast.error('Tạo draft thất bại'),
-  });
+  const drafts = draftsQuery.data ?? [];
+  const selectedDraft = draftDetailQuery.data ?? drafts.find((d) => d.id === selectedDraftId) ?? null;
+  const categories = categoriesQuery.data ?? [];
+  const cities = citiesQuery.data ?? [];
+  const districts = districtsQuery.data ?? [];
+  const currentCategoryIds = form.category_ids ?? [];
+  const currentReviews = form.selected_reviews ?? [];
+  const currentMedia = form.media ?? [];
+  const isPublished = selectedDraft?.status === 'published';
+  const isRejected = selectedDraft?.status === 'rejected';
+  const isReadOnly = isPublished || isRejected;
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      updateGoogleMapsDraft(selectedDraftId as string, {
-        ...form,
-        selected_reviews: parseReviewText(reviewText),
-      }),
+    mutationFn: () => updateGoogleMapsDraft(selectedDraftId as string, form),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps', data.id] });
-      setForm({
-        ...EMPTY_FORM,
-        ...data.normalized_payload,
-      });
-      setReviewText(reviewsToText(data.normalized_payload.selected_reviews ?? []));
+      setForm(data.normalized_payload);
       toast.success('Đã lưu draft');
     },
     onError: () => toast.error('Lưu draft thất bại'),
@@ -209,598 +149,961 @@ export default function AdminImportsPage() {
     mutationFn: () => enrichGoogleMapsDraft(selectedDraftId as string),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps', data.id] });
-      setSelectedDraftId(data.id);
-      setForm({
-        ...EMPTY_FORM,
-        ...data.normalized_payload,
-      });
-      toast.success('Đã làm giàu draft');
+      setForm(data.normalized_payload);
+      toast.success('Đã chạy enrichment');
     },
     onError: () => toast.error('Enrich thất bại'),
   });
 
-  const selectReviewsMutation = useMutation({
-    mutationFn: () => selectGoogleMapsDraftReviews(selectedDraftId as string, parseReviewText(reviewText)),
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps', data.id] });
-      setForm({
-        ...EMPTY_FORM,
-        ...data.normalized_payload,
-      });
-      setReviewText(reviewsToText(data.normalized_payload.selected_reviews ?? []));
-      toast.success('Đã cập nhật review snippets');
-    },
-    onError: () => toast.error('Cập nhật review snippets thất bại'),
-  });
-
   const publishMutation = useMutation({
     mutationFn: async () => {
-      await updateGoogleMapsDraft(selectedDraftId as string, {
-        ...form,
-        selected_reviews: parseReviewText(reviewText),
-      });
+      await updateGoogleMapsDraft(selectedDraftId as string, form);
       return publishGoogleMapsDraft(selectedDraftId as string);
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps', data.draft.id] });
-      toast.success(`Đã publish venue với ${data.seeded_reviews} review seed`);
-      setSelectedDraftId(data.draft.id);
-      setForm({
-        ...EMPTY_FORM,
-        ...data.draft.normalized_payload,
-      });
-      setReviewText(reviewsToText(data.draft.normalized_payload.selected_reviews ?? []));
+      toast.success(`Đã publish — ${data.seeded_reviews} review được seed`);
     },
-    onError: () => toast.error('Publish thất bại'),
+    onError: (err: Error) => toast.error(err.message || 'Publish thất bại'),
   });
 
   const rejectMutation = useMutation({
     mutationFn: () => rejectGoogleMapsDraft(selectedDraftId as string),
-    onSuccess: (data) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
-      qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps', data.id] });
       toast.success('Đã từ chối draft');
     },
     onError: () => toast.error('Reject thất bại'),
   });
 
-  const drafts = draftsQuery.data ?? [];
-  const selectedDraft = draftDetailQuery.data ?? drafts.find((item) => item.id === selectedDraftId) ?? null;
-  const selectedCityId = form.city_id || selectedDraft?.normalized_payload.city_id || '';
-  const districts = districtsQuery.data ?? [];
-  const categories = categoriesQuery.data ?? [];
-  const cities = citiesQuery.data ?? [];
-  const currentCategoryIds = form.category_ids ?? [];
-
-  const mapSrc = useMemo(() => {
-    const lat = form.latitude ?? selectedDraft?.normalized_payload.latitude;
-    const lng = form.longitude ?? selectedDraft?.normalized_payload.longitude;
-    if (typeof lat !== 'number' || typeof lng !== 'number') return null;
-    return `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
-  }, [form.latitude, form.longitude, selectedDraft?.normalized_payload.latitude, selectedDraft?.normalized_payload.longitude]);
-
   const isBusy =
-    previewMutation.isPending ||
-    createMutation.isPending ||
     saveMutation.isPending ||
     enrichMutation.isPending ||
-    selectReviewsMutation.isPending ||
     publishMutation.isPending ||
     rejectMutation.isPending;
 
+  function setField<K extends keyof GoogleMapsImportNormalizedPayload>(
+    key: K,
+    value: GoogleMapsImportNormalizedPayload[K],
+  ) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleCategory(id: string) {
+    const next = new Set(currentCategoryIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    const ids = Array.from(next);
+    setForm((prev) => ({
+      ...prev,
+      category_ids: ids,
+      primary_category_id:
+        prev.primary_category_id && next.has(prev.primary_category_id)
+          ? prev.primary_category_id
+          : ids[0] ?? null,
+    }));
+  }
+
+  function removeMedia(index: number) {
+    const next = currentMedia.filter((_, i) => i !== index);
+    setField('media', next);
+  }
+
+  function removeReview(index: number) {
+    const next = currentReviews.filter((_, i) => i !== index);
+    setField('selected_reviews', next);
+  }
+
+  function removeReviewMedia(reviewIndex: number, mediaIndex: number) {
+    const next = currentReviews.map((r, i) => {
+      if (i !== reviewIndex) return r;
+      return {
+        ...r,
+        media: (r.media ?? []).filter((_, mi) => mi !== mediaIndex),
+      };
+    });
+    setField('selected_reviews', next);
+  }
+
   return (
-    <div className="space-y-6 p-6 lg:p-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Google Maps Import</h1>
-        <p className="max-w-3xl text-sm text-slate-500">
-          Dán nguồn Google Maps, chỉnh dữ liệu draft, chọn review snippets và publish vào pipeline venue hiện có.
-        </p>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Nguồn nhập</p>
-                <p className="text-xs text-slate-500">URL, place id hoặc text đã copy từ Maps.</p>
-              </div>
-              <Badge variant="outline">{drafts.length} drafts</Badge>
-            </div>
-            <Textarea
-              value={sourceInput}
-              onChange={(e) => setSourceInput(e.target.value)}
-              className="mt-3 min-h-32"
-              placeholder="https://www.google.com/maps/place/..."
-            />
-            <div className="mt-3 flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => previewMutation.mutate()}
-                disabled={!sourceInput.trim() || previewMutation.isPending}
-              >
-                {previewMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                Xem trước
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                onClick={() => createMutation.mutate()}
-                disabled={!sourceInput.trim() || createMutation.isPending}
-              >
-                {createMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                Tạo draft
-              </Button>
-            </div>
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl space-y-6 p-6 lg:p-8">
+        {/* Header */}
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+              Google Maps Imports
+            </h1>
+            <p className="max-w-2xl text-sm text-slate-500">
+              Drafts được tạo từ Tampermonkey userscript hoặc paste URL trực tiếp. Xem lại data,
+              sửa nếu cần, rồi publish vào hệ thống.
+            </p>
           </div>
+          <PasteUrlDialog
+            open={pasteOpen}
+            onOpenChange={setPasteOpen}
+            onCreated={(draftId) => {
+              qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
+              setSelectedDraftId(draftId);
+            }}
+          />
+        </header>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">Drafts</p>
-              {(draftsQuery.isFetching || draftDetailQuery.isFetching) && (
-                <Loader2 className="size-4 animate-spin text-slate-400" />
-              )}
-            </div>
-            <div className="mt-3 space-y-2">
+        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          {/* Sidebar: drafts list */}
+          <aside className="space-y-3">
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Lọc theo trạng thái
+                </span>
+                {draftsQuery.isFetching && <Loader2 className="size-3 animate-spin text-slate-400" />}
+              </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+              >
+                <SelectTrigger className="mt-2 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_FILTERS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Card>
+
+            <div className="space-y-2">
               {drafts.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-xs text-slate-400">
+                <Card className="border-dashed p-6 text-center text-xs text-slate-400">
                   Chưa có draft nào.
-                </div>
+                  <br />
+                  Dùng userscript hoặc paste URL để tạo.
+                </Card>
               ) : (
-                drafts.map((draft) => (
-                  <button
-                    key={draft.id}
-                    type="button"
-                    onClick={() => setSelectedDraftId(draft.id)}
-                    className={cn(
-                      'w-full rounded-xl border px-3 py-3 text-left transition-colors',
-                      selectedDraftId === draft.id
-                        ? 'border-nook-olive bg-nook-olive/5'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50',
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="line-clamp-1 text-sm font-medium text-slate-900">
-                        {draft.normalized_payload?.name || 'Untitled draft'}
+                drafts.map((draft) => {
+                  const active = selectedDraftId === draft.id;
+                  return (
+                    <button
+                      key={draft.id}
+                      type="button"
+                      onClick={() => setSelectedDraftId(draft.id)}
+                      className={cn(
+                        'w-full rounded-xl border bg-white px-4 py-3 text-left transition-all',
+                        active
+                          ? 'border-slate-900 shadow-sm ring-1 ring-slate-900'
+                          : 'border-slate-200 hover:border-slate-300 hover:shadow-sm',
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="line-clamp-1 text-sm font-medium text-slate-900">
+                          {draft.normalized_payload?.name || 'Untitled'}
+                        </p>
+                        <StatusPill status={draft.status} compact />
+                      </div>
+                      <p className="mt-1 truncate text-[11px] text-slate-400">
+                        {draft.normalized_payload?.address_line || draft.source_url || '—'}
                       </p>
-                      <Badge variant={statusVariant(draft.status)}>{draft.status}</Badge>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-                      <span className="truncate">{draft.source_place_id || draft.source_url || 'Google Maps'}</span>
-                      <span>{Math.round((draft.confidence || 0) * 100)}%</span>
-                    </div>
-                  </button>
-                ))
+                      <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
+                          {Math.round((draft.confidence || 0) * 100)}%
+                        </span>
+                        <span>{(draft.normalized_payload?.media?.length ?? 0)} ảnh</span>
+                        <span>·</span>
+                        <span>
+                          {(draft.normalized_payload?.selected_reviews?.length ?? 0)} reviews
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
-          </div>
+          </aside>
 
-          {preview && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-slate-900">Preview</p>
-                <Badge variant={preview.matched_venue_id ? 'destructive' : 'outline'}>
-                  {preview.matched_venue_id ? 'Duplicate' : 'Fresh'}
-                </Badge>
-              </div>
-              <div className="mt-3 space-y-2 text-sm text-slate-600">
-                <Row label="Tên" value={preview.normalized_payload.name} />
-                <Row label="Địa chỉ" value={formatAddress(preview.normalized_payload)} />
-                <Row label="Confidence" value={`${Math.round((preview.confidence || 0) * 100)}%`} />
-                <Row label="Match" value={preview.matched_venue_id || 'none'} />
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">
-                  {selectedDraft?.normalized_payload?.name || 'Draft detail'}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {selectedDraft ? `Status: ${selectedDraft.status}` : 'Chọn một draft để chỉnh sửa.'}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => enrichMutation.mutate()} disabled={!selectedDraftId || isBusy}>
-                  <RefreshCcw className="size-4" />
-                  Enrich
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => selectReviewsMutation.mutate()} disabled={!selectedDraftId || isBusy}>
-                  <MessageSquareText className="size-4" />
-                  Reviews
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => saveMutation.mutate()} disabled={!selectedDraftId || isBusy}>
-                  <Save className="size-4" />
-                  Lưu
-                </Button>
-                <Button size="sm" onClick={() => publishMutation.mutate()} disabled={!selectedDraftId || isBusy}>
-                  <Send className="size-4" />
-                  Publish
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => rejectMutation.mutate()} disabled={!selectedDraftId || isBusy}>
-                  <Trash2 className="size-4" />
-                  Reject
-                </Button>
-              </div>
-            </div>
-
+          {/* Main: draft detail */}
+          <main className="space-y-4">
             {!selectedDraft ? (
-              <div className="px-5 py-10 text-sm text-slate-500">
-                Chọn draft bên trái để chỉnh sửa.
-              </div>
+              <Card className="flex h-96 items-center justify-center text-sm text-slate-400">
+                Chọn 1 draft bên trái để xem chi tiết.
+              </Card>
             ) : (
-              <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="space-y-5 px-5 py-5">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="Tên">
-                      <Input value={form.name ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
-                    </Field>
-                    <Field label="Chi nhánh">
-                      <Input value={form.branch_name ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, branch_name: e.target.value }))} />
-                    </Field>
-                  </div>
-
-                  <Field label="Mô tả">
-                    <Textarea
-                      value={form.description ?? ''}
-                      onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-                      className="min-h-28"
-                    />
-                  </Field>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="Địa chỉ">
-                      <Input value={form.address_line ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, address_line: e.target.value }))} />
-                    </Field>
-                    <Field label="Phường / xã">
-                      <Input value={form.ward ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, ward: e.target.value }))} />
-                    </Field>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <Field label="Thành phố">
-                      <Select
-                        value={selectedCityId || undefined}
-                        onValueChange={(value) => setForm((prev) => ({ ...prev, city_id: value, district_id: '' }))}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Chọn city" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cities.map((city) => (
-                            <SelectItem key={city.id} value={city.id}>
-                              {city.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="Quận / huyện">
-                      <Select
-                        value={form.district_id || undefined}
-                        onValueChange={(value) => setForm((prev) => ({ ...prev, district_id: value }))}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Chọn district" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {districts.map((district) => (
-                            <SelectItem key={district.id} value={district.id}>
-                              {district.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field label="Nguồn">
-                      <Input value={selectedDraft.source_place_id || selectedDraft.source_url || 'google_maps'} readOnly />
-                    </Field>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-4">
-                    <Field label="Latitude">
-                      <Input
-                        type="number"
-                        value={numberField(form.latitude)}
-                        onChange={(e) => setForm((prev) => ({ ...prev, latitude: parseNullableNumber(e.target.value) }))}
-                      />
-                    </Field>
-                    <Field label="Longitude">
-                      <Input
-                        type="number"
-                        value={numberField(form.longitude)}
-                        onChange={(e) => setForm((prev) => ({ ...prev, longitude: parseNullableNumber(e.target.value) }))}
-                      />
-                    </Field>
-                    <Field label="Rating avg">
-                      <Input
-                        type="number"
-                        value={numberField(form.rating_avg)}
-                        onChange={(e) => setForm((prev) => ({ ...prev, rating_avg: parseNullableNumber(e.target.value) }))}
-                      />
-                    </Field>
-                    <Field label="Review count">
-                      <Input
-                        type="number"
-                        value={numberField(form.review_count)}
-                        onChange={(e) => setForm((prev) => ({ ...prev, review_count: parseNullableNumber(e.target.value) }))}
-                      />
-                    </Field>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="Website">
-                      <Input value={form.website ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, website: e.target.value }))} />
-                    </Field>
-                    <Field label="Phone">
-                      <Input value={form.phone_number ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, phone_number: e.target.value }))} />
-                    </Field>
-                  </div>
-
-                  <Field label="Ảnh menu">
-                    <Input value={form.menu_image_url ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, menu_image_url: e.target.value }))} />
-                  </Field>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-semibold text-slate-900">Categories</Label>
-                      <span className="text-xs text-slate-400">
-                        {currentCategoryIds.length} selected
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {categories.map((category) => {
-                        const active = currentCategoryIds.includes(category.id);
-                        const primary = form.primary_category_id === category.id;
-                        return (
-                          <button
-                            key={category.id}
-                            type="button"
-                            onClick={() =>
-                              setForm((prev) => {
-                                const ids = new Set(prev.category_ids ?? []);
-                                if (ids.has(category.id)) ids.delete(category.id);
-                                else ids.add(category.id);
-                                return {
-                                  ...prev,
-                                  category_ids: Array.from(ids),
-                                  primary_category_id:
-                                    primary ? Array.from(ids)[0] ?? '' : prev.primary_category_id || category.id,
-                                };
-                              })
-                            }
-                            className={cn(
-                              'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                              active
-                                ? 'border-nook-olive bg-nook-olive/10 text-nook-olive'
-                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
-                            )}
-                          >
-                            {category.display_name}
-                            {primary && <span className="ml-1 text-[10px] uppercase">primary</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <Field label="Primary category">
-                      <Select
-                        value={form.primary_category_id || undefined}
-                        onValueChange={(value) => setForm((prev) => ({ ...prev, primary_category_id: value }))}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Chọn primary" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories
-                            .filter((category) => currentCategoryIds.includes(category.id))
-                            .map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.display_name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </div>
-
-                  <Field label="Review snippets">
-                    <Textarea
-                      value={reviewText}
-                      onChange={(e) => setReviewText(e.target.value)}
-                      className="min-h-40"
-                      placeholder="5|Minh|Không gian yên tĩnh, phù hợp làm việc"
-                    />
-                  </Field>
-
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedDraft.status}</Badge>
-                    <Badge variant={selectedDraft.matched_venue_id ? 'destructive' : 'secondary'}>
-                      {selectedDraft.matched_venue_id ? 'Duplicate warning' : 'No duplicate'}
-                    </Badge>
-                    <Badge variant="outline">{Math.round((selectedDraft.confidence || 0) * 100)}%</Badge>
-                  </div>
-                </div>
-
-                <div className="border-t border-slate-100 bg-slate-50/60 p-5 lg:border-l lg:border-t-0">
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                        <MapPin className="size-4" />
-                        Map preview
+              <>
+                {/* Action bar */}
+                <Card className="p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-xl font-semibold text-slate-900">
+                          {form.name || selectedDraft.normalized_payload.name || 'Untitled'}
+                        </h2>
+                        <StatusPill status={selectedDraft.status} />
+                        {selectedDraft.matched_venue_id && (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertTriangle className="size-3" />
+                            Trùng venue
+                          </Badge>
+                        )}
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatAddress(form) || 'Thiếu tọa độ'}
-                      </p>
-                      {mapSrc ? (
-                        <iframe
-                          title="map preview"
-                          src={mapSrc}
-                          className="mt-3 h-56 w-full rounded-lg border border-slate-200"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="mt-3 flex h-56 items-center justify-center rounded-lg border border-dashed border-slate-200 text-xs text-slate-400">
-                          Chưa có tọa độ
-                        </div>
+                      {selectedDraft.source_url && (
+                        <a
+                          href={selectedDraft.source_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"
+                        >
+                          <Link2 className="size-3" />
+                          Mở trên Google Maps
+                          <ExternalLink className="size-3" />
+                        </a>
                       )}
                     </div>
 
-                    <div className="rounded-xl border border-slate-200 bg-white p-3">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                        <Star className="size-4" />
-                        Review preview
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!isReadOnly && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => enrichMutation.mutate()}
+                            disabled={isBusy}
+                          >
+                            {enrichMutation.isPending ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <RefreshCcw className="size-4" />
+                            )}
+                            Enrich
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => rejectMutation.mutate()}
+                            disabled={isBusy}
+                          >
+                            <Trash2 className="size-4" />
+                            Reject
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => saveMutation.mutate()}
+                            disabled={isBusy}
+                          >
+                            {saveMutation.isPending ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : null}
+                            Lưu nháp
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => publishMutation.mutate()}
+                            disabled={isBusy}
+                          >
+                            {publishMutation.isPending ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <Send className="size-4" />
+                            )}
+                            Publish
+                          </Button>
+                        </>
+                      )}
+                      {isPublished && selectedDraft.published_venue_id && (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={`/venues/${selectedDraft.published_venue_id}`} target="_blank" rel="noreferrer">
+                            <ExternalLink className="size-4" />
+                            Xem venue
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Duplicate warning */}
+                {selectedDraft.matched_venue_id && (
+                  <Card className="border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="size-5 shrink-0 text-amber-600" />
+                      <div className="space-y-1 text-sm">
+                        <p className="font-semibold text-amber-900">
+                          Có thể trùng venue đã tồn tại (confidence {Math.round((selectedDraft.confidence || 0) * 100)}%)
+                        </p>
+                        <p className="text-amber-700">
+                          Venue match: <code className="rounded bg-amber-100 px-1.5 py-0.5 text-xs">{selectedDraft.matched_venue_id}</code>.
+                          Cân nhắc Reject draft này thay vì Publish để tránh tạo bản sao.
+                        </p>
                       </div>
-                      <div className="mt-3 space-y-2">
-                        {parseReviewText(reviewText).length === 0 ? (
-                          <div className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-xs text-slate-400">
-                            Chưa có review snippets.
-                          </div>
-                        ) : (
-                          parseReviewText(reviewText).map((review, index) => (
-                            <div
-                              key={`${review.content}-${index}`}
-                              className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600"
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-semibold text-slate-900">
-                                  {review.rating}/5 {review.author_name ? `· ${review.author_name}` : ''}
-                                </span>
-                                <Badge variant="outline" className="rounded-full">
-                                  seed
-                                </Badge>
-                              </div>
-                              <p className="mt-1 leading-relaxed">{review.content}</p>
-                            </div>
-                          ))
-                        )}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Section: Basic info */}
+                <Section icon={<Info className="size-4" />} title="Thông tin cơ bản">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Tên venue" required>
+                      <Input
+                        value={form.name ?? ''}
+                        onChange={(e) => setField('name', e.target.value)}
+                        disabled={isReadOnly}
+                      />
+                    </Field>
+                    <Field label="Chi nhánh">
+                      <Input
+                        value={form.branch_name ?? ''}
+                        onChange={(e) => setField('branch_name', e.target.value || null)}
+                        disabled={isReadOnly}
+                      />
+                    </Field>
+                  </div>
+                  <Field label="Mô tả">
+                    <Textarea
+                      value={form.description ?? ''}
+                      onChange={(e) => setField('description', e.target.value || null)}
+                      placeholder="Tự sinh từ name + address nếu để trống"
+                      rows={3}
+                      disabled={isReadOnly}
+                    />
+                  </Field>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Field label="Website">
+                      <Input
+                        value={form.website ?? ''}
+                        onChange={(e) => setField('website', e.target.value || null)}
+                        disabled={isReadOnly}
+                      />
+                    </Field>
+                    <Field label="Số điện thoại">
+                      <Input
+                        value={form.phone_number ?? ''}
+                        onChange={(e) => setField('phone_number', e.target.value || null)}
+                        disabled={isReadOnly}
+                      />
+                    </Field>
+                    <Field label="Ảnh menu (URL)">
+                      <Input
+                        value={form.menu_image_url ?? ''}
+                        onChange={(e) => setField('menu_image_url', e.target.value || null)}
+                        disabled={isReadOnly}
+                      />
+                    </Field>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="Rating từ Google">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={numField(form.rating_avg)}
+                        onChange={(e) => setField('rating_avg', parseNullableNumber(e.target.value))}
+                        disabled={isReadOnly}
+                      />
+                    </Field>
+                    <Field label="Số review từ Google">
+                      <Input
+                        type="number"
+                        value={numField(form.review_count)}
+                        onChange={(e) => setField('review_count', parseNullableNumber(e.target.value))}
+                        disabled={isReadOnly}
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                {/* Section: Location */}
+                <Section icon={<MapPin className="size-4" />} title="Vị trí">
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Field label="Địa chỉ" className="md:col-span-2">
+                          <Input
+                            value={form.address_line ?? ''}
+                            onChange={(e) => setField('address_line', e.target.value || null)}
+                            disabled={isReadOnly}
+                          />
+                        </Field>
+                        <Field label="Phường / xã">
+                          <Input
+                            value={form.ward ?? ''}
+                            onChange={(e) => setField('ward', e.target.value || null)}
+                            disabled={isReadOnly}
+                          />
+                        </Field>
+                        <Field label="Thành phố">
+                          <Select
+                            value={form.city_id || undefined}
+                            onValueChange={(v) =>
+                              setForm((prev) => ({ ...prev, city_id: v, district_id: null }))
+                            }
+                            disabled={isReadOnly}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn city" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cities.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="Quận / huyện">
+                          <Select
+                            value={form.district_id || undefined}
+                            onValueChange={(v) => setField('district_id', v)}
+                            disabled={isReadOnly || !form.city_id}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn district" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {districts.map((d) => (
+                                <SelectItem key={d.id} value={d.id}>
+                                  {d.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="Latitude">
+                          <Input
+                            type="number"
+                            step="any"
+                            value={numField(form.latitude)}
+                            onChange={(e) => setField('latitude', parseNullableNumber(e.target.value))}
+                            disabled={isReadOnly}
+                          />
+                        </Field>
+                        <Field label="Longitude">
+                          <Input
+                            type="number"
+                            step="any"
+                            value={numField(form.longitude)}
+                            onChange={(e) => setField('longitude', parseNullableNumber(e.target.value))}
+                            disabled={isReadOnly}
+                          />
+                        </Field>
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500">
-                      <div className="flex items-center gap-2 font-semibold text-slate-900">
-                        <AlertTriangle className="size-4 text-amber-500" />
-                        Duplicate trace
-                      </div>
-                      <p className="mt-2">
-                        {selectedDraft.matched_venue_id
-                          ? `Draft này gần như trùng venue ${selectedDraft.matched_venue_id}.`
-                          : 'Chưa thấy trùng rõ ràng.'}
-                      </p>
-                    </div>
+                    <MapPreview latitude={form.latitude} longitude={form.longitude} />
                   </div>
-                </div>
-              </div>
+                </Section>
+
+                {/* Section: Categories */}
+                <Section
+                  icon={<Tag className="size-4" />}
+                  title="Phân loại"
+                  hint={`${currentCategoryIds.length} đã chọn · click để toggle`}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => {
+                      const active = currentCategoryIds.includes(category.id);
+                      const isPrimary = form.primary_category_id === category.id;
+                      return (
+                        <div key={category.id} className="flex items-center">
+                          <button
+                            type="button"
+                            disabled={isReadOnly}
+                            onClick={() => toggleCategory(category.id)}
+                            className={cn(
+                              'rounded-l-full border border-r-0 px-3 py-1.5 text-xs font-medium transition-colors',
+                              active
+                                ? 'border-slate-900 bg-slate-900 text-white'
+                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+                              isReadOnly && 'cursor-not-allowed opacity-60',
+                            )}
+                          >
+                            {category.display_name}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isReadOnly || !active}
+                            title="Đặt làm primary"
+                            onClick={() => setField('primary_category_id', category.id)}
+                            className={cn(
+                              'rounded-r-full border border-l-0 px-2 py-1.5 transition-colors',
+                              active
+                                ? 'border-slate-900 bg-slate-900 text-white hover:bg-slate-800'
+                                : 'border-slate-200 bg-white text-slate-300',
+                              isReadOnly && 'cursor-not-allowed opacity-60',
+                            )}
+                          >
+                            <Star
+                              className={cn(
+                                'size-3.5',
+                                isPrimary && 'fill-amber-300 text-amber-300',
+                              )}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {currentCategoryIds.length > 0 && form.primary_category_id && (
+                    <p className="mt-3 text-xs text-slate-500">
+                      Primary:{' '}
+                      <span className="font-semibold text-slate-700">
+                        {categories.find((c) => c.id === form.primary_category_id)?.display_name ?? '—'}
+                      </span>
+                    </p>
+                  )}
+                </Section>
+
+                {/* Section: Media */}
+                <Section
+                  icon={<ImageIcon className="size-4" />}
+                  title="Hình ảnh venue"
+                  hint={`${currentMedia.length} ảnh`}
+                >
+                  {currentMedia.length === 0 ? (
+                    <EmptyHint text="Chưa có ảnh — userscript chưa upload hoặc bị fail. Có thể paste URL ảnh thủ công bên dưới." />
+                  ) : (
+                    <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+                      {currentMedia.map((url, i) => (
+                        <MediaTile
+                          key={`${url}-${i}`}
+                          url={url}
+                          onRemove={isReadOnly ? undefined : () => removeMedia(i)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {!isReadOnly && (
+                    <UrlAdderInput
+                      placeholder="Paste URL ảnh để thêm thủ công…"
+                      onAdd={(url) => setField('media', [...currentMedia, url])}
+                    />
+                  )}
+                </Section>
+
+                {/* Section: Reviews */}
+                <Section
+                  icon={<MessageSquareText className="size-4" />}
+                  title="Reviews đã import"
+                  hint={`${currentReviews.length} review · publish sẽ seed vào DB với random user`}
+                >
+                  {currentReviews.length === 0 ? (
+                    <EmptyHint text="Không có review nào — venue mới sẽ thiếu cold-start tags từ Groq review analysis." />
+                  ) : (
+                    <div className="space-y-3">
+                      {currentReviews.map((review, i) => (
+                        <ReviewSnippetCard
+                          key={`${review.source_review_id ?? ''}-${i}`}
+                          review={review}
+                          readOnly={isReadOnly}
+                          onRemove={() => removeReview(i)}
+                          onRemoveMedia={(mi) => removeReviewMedia(i, mi)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </Section>
+
+                {/* Section: Source metadata */}
+                <Section icon={<Clock className="size-4" />} title="Metadata">
+                  <dl className="grid gap-3 text-xs sm:grid-cols-2">
+                    <Meta label="Source" value={selectedDraft.source} />
+                    <Meta label="Place ID" value={selectedDraft.source_place_id || '—'} mono />
+                    <Meta label="Confidence" value={`${Math.round((selectedDraft.confidence || 0) * 100)}%`} />
+                    <Meta label="Tạo lúc" value={new Date(selectedDraft.created_at).toLocaleString('vi-VN')} />
+                    <Meta label="Cập nhật" value={new Date(selectedDraft.updated_at).toLocaleString('vi-VN')} />
+                    {selectedDraft.published_venue_id && (
+                      <Meta label="Venue ID" value={selectedDraft.published_venue_id} mono />
+                    )}
+                  </dl>
+                </Section>
+              </>
             )}
-          </div>
-        </section>
+          </main>
+        </div>
       </div>
     </div>
+  );
+}
+
+// ===== Subcomponents =====================================================
+
+function Section({
+  icon,
+  title,
+  hint,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="flex size-7 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+            {icon}
+          </span>
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        </div>
+        {hint && <span className="text-xs text-slate-400">{hint}</span>}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </Card>
   );
 }
 
 function Field({
   label,
+  required,
+  className,
   children,
 }: {
   label: string;
+  required?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</Label>
+    <div className={cn('space-y-1.5', className)}>
+      <Label className="text-xs font-medium text-slate-600">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </Label>
       {children}
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function StatusPill({
+  status,
+  compact,
+}: {
+  status: GoogleMapsImportDraft['status'];
+  compact?: boolean;
+}) {
+  const map: Record<GoogleMapsImportDraft['status'], { label: string; className: string; icon?: ReactNode }> = {
+    draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
+    enriched: { label: 'Enriched', className: 'bg-blue-50 text-blue-700' },
+    ready: { label: 'Sẵn sàng', className: 'bg-green-50 text-green-700' },
+    published: {
+      label: 'Đã publish',
+      className: 'bg-emerald-100 text-emerald-700',
+      icon: <CheckCircle2 className="size-3" />,
+    },
+    duplicate: {
+      label: 'Trùng',
+      className: 'bg-amber-100 text-amber-700',
+      icon: <AlertTriangle className="size-3" />,
+    },
+    rejected: { label: 'Đã từ chối', className: 'bg-red-50 text-red-700' },
+  };
+  const m = map[status];
   return (
-    <div className="flex items-start justify-between gap-3">
-      <span className="text-xs uppercase tracking-wide text-slate-400">{label}</span>
-      <span className="max-w-[70%] text-right text-sm text-slate-800">{value || '—'}</span>
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+        m.className,
+        compact && 'shrink-0',
+      )}
+    >
+      {m.icon}
+      {m.label}
+    </span>
+  );
+}
+
+function MediaTile({ url, onRemove }: { url: string; onRemove?: () => void }) {
+  return (
+    <div className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+      <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+          title="Xóa ảnh"
+        >
+          <X className="size-3.5" />
+        </button>
+      )}
     </div>
   );
 }
 
-function statusVariant(status: GoogleMapsImportDraft['status']) {
-  switch (status) {
-    case 'published':
-      return 'default';
-    case 'duplicate':
-      return 'destructive';
-    case 'rejected':
-      return 'secondary';
-    default:
-      return 'outline';
-  }
+function ReviewSnippetCard({
+  review,
+  readOnly,
+  onRemove,
+  onRemoveMedia,
+}: {
+  review: GoogleMapsReviewSnippet;
+  readOnly: boolean;
+  onRemove: () => void;
+  onRemoveMedia: (mediaIndex: number) => void;
+}) {
+  const stars = Math.max(1, Math.min(5, Math.round(review.rating)));
+  const media = review.media ?? [];
+  return (
+    <div className="group relative rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="flex">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={cn(
+                    'size-4',
+                    i < stars ? 'fill-amber-400 text-amber-400' : 'text-slate-200',
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-sm font-medium text-slate-900">
+              {review.author_name || 'Ẩn danh'}
+            </span>
+            {review.published_at && (
+              <span className="text-xs text-slate-400">· {review.published_at}</span>
+            )}
+          </div>
+          <p className="text-sm leading-relaxed text-slate-700">{review.content}</p>
+        </div>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+            title="Xóa review"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        )}
+      </div>
+      {media.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {media.map((url, i) => (
+            <div
+              key={`${url}-${i}`}
+              className="group/img relative size-16 overflow-hidden rounded-md border border-slate-200"
+            >
+              <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => onRemoveMedia(i)}
+                  className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover/img:opacity-100"
+                >
+                  <X className="size-2.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
+
+function MapPreview({
+  latitude,
+  longitude,
+}: {
+  latitude: number | null | undefined;
+  longitude: number | null | undefined;
+}) {
+  const src = useMemo(() => {
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
+    return `https://www.google.com/maps?q=${latitude},${longitude}&z=15&output=embed`;
+  }, [latitude, longitude]);
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs font-medium text-slate-600">Map preview</Label>
+      {src ? (
+        <iframe
+          title="map preview"
+          src={src}
+          className="h-56 w-full rounded-lg border border-slate-200"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-slate-200 text-xs text-slate-400">
+          Chưa có tọa độ
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyHint({ text }: { text: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-xs text-slate-400">
+      {text}
+    </div>
+  );
+}
+
+function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-dashed border-slate-100 pb-2 last:border-none last:pb-0">
+      <dt className="text-slate-500">{label}</dt>
+      <dd
+        className={cn(
+          'max-w-[60%] truncate text-right text-slate-800',
+          mono && 'font-mono text-[11px]',
+        )}
+        title={value}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function UrlAdderInput({
+  placeholder,
+  onAdd,
+}: {
+  placeholder: string;
+  onAdd: (url: string) => void;
+}) {
+  const [value, setValue] = useState('');
+  return (
+    <div className="flex gap-2">
+      <Input
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && value.trim()) {
+            onAdd(value.trim());
+            setValue('');
+          }
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={!value.trim()}
+        onClick={() => {
+          onAdd(value.trim());
+          setValue('');
+        }}
+      >
+        <Plus className="size-4" />
+        Thêm
+      </Button>
+    </div>
+  );
+}
+
+function PasteUrlDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (draftId: string) => void;
+}) {
+  const [input, setInput] = useState('');
+  const [previewing, setPreviewing] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  async function handlePreview() {
+    if (!input.trim()) return;
+    setPreviewing(true);
+    try {
+      const result = await resolveGoogleMapsImport({
+        input: input.trim(),
+        source_url: input.trim(),
+      });
+      toast.success(
+        `Preview: ${result.name}${result.matched_venue_id ? ' (cảnh báo trùng)' : ''}`,
+      );
+    } catch {
+      toast.error('Không phân tích được nguồn');
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  async function handleCreate() {
+    if (!input.trim()) return;
+    setCreating(true);
+    try {
+      const draft = await createGoogleMapsDraft({
+        input: input.trim(),
+        source_url: input.trim(),
+      });
+      toast.success('Đã tạo draft');
+      onCreated(draft.id);
+      onOpenChange(false);
+      setInput('');
+    } catch {
+      toast.error('Tạo draft thất bại');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="size-4" />
+          Paste URL
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Tạo draft từ URL Google Maps</DialogTitle>
+          <DialogDescription>
+            Cách nhanh nhất là dùng userscript Tampermonkey. Nếu cần tạo nhanh chỉ với URL,
+            paste vào đây — backend sẽ parse lat/lng + tên, các trường khác sẽ rỗng và bạn
+            tự sửa trong form.
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="https://www.google.com/maps/place/..."
+          rows={4}
+          className="font-mono text-xs"
+        />
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={handlePreview}
+            disabled={!input.trim() || previewing}
+          >
+            {previewing && <Loader2 className="size-4 animate-spin" />}
+            Preview
+          </Button>
+          <Button onClick={handleCreate} disabled={!input.trim() || creating}>
+            {creating && <Loader2 className="size-4 animate-spin" />}
+            Tạo draft
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ===== Helpers ===========================================================
 
 function parseNullableNumber(value: string): number | null {
   if (!value.trim()) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
-function numberField(value: number | null | undefined): string {
+function numField(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return '';
   return String(value);
-}
-
-function parseReviewText(text: string): GoogleMapsReviewSnippet[] {
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const parts = line.split('|').map((part) => part.trim()).filter(Boolean);
-      const rating = Number(parts[0]);
-      if (!Number.isFinite(rating)) {
-        return {
-          rating: 5,
-          content: line,
-          author_name: null,
-          source_review_id: null,
-          published_at: null,
-        } as GoogleMapsReviewSnippet;
-      }
-      if (parts.length >= 3) {
-        return {
-          rating: Math.max(1, Math.min(5, rating)),
-          author_name: parts[1] || null,
-          content: parts.slice(2).join(' | '),
-          source_review_id: null,
-          published_at: null,
-        } as GoogleMapsReviewSnippet;
-      }
-      return {
-        rating: Math.max(1, Math.min(5, rating)),
-        author_name: null,
-        content: parts.slice(1).join(' | ') || line,
-        source_review_id: null,
-        published_at: null,
-      } as GoogleMapsReviewSnippet;
-    });
-}
-
-function reviewsToText(reviews: GoogleMapsReviewSnippet[]): string {
-  return reviews
-    .map((review) =>
-      review.author_name
-        ? `${review.rating}|${review.author_name}|${review.content}`
-        : `${review.rating}|${review.content}`,
-    )
-    .join('\n');
-}
-
-function formatAddress(payload: Partial<GoogleMapsImportNormalizedPayload>): string {
-  return [payload.address_line, payload.ward].filter(Boolean).join(', ');
 }
