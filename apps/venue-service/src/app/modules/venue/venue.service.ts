@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Venue, Category } from '@mynook/database';
+import { Venue, Category, VenueCategory } from '@mynook/database';
 import { RMQ_EVENTS } from '@mynook/shared-types';
 import { CreateVenueDto } from './dto/create-venue.dto.js';
 import { UpdateVenueDto } from './dto/update-venue.dto.js';
@@ -46,15 +46,14 @@ export class VenueService {
     if (venues.length === 0) return venues;
     const ids = venues.map((v) => v.id);
     const links = await this.venueRepo.manager
-      .createQueryBuilder()
+      .createQueryBuilder(VenueCategory, 'vc')
       .select('vc.venue_id', 'venue_id')
       .addSelect('vc.is_primary', 'is_primary')
       .addSelect('c.id', 'id')
       .addSelect('c.key', 'key')
       .addSelect('c.display_name', 'display_name')
       .addSelect('c.display_order', 'display_order')
-      .from('venue_schema.venue_categories', 'vc')
-      .innerJoin('venue_schema.categories', 'c', 'c.id = vc.category_id')
+      .innerJoin(Category, 'c', 'c.id = vc.category_id')
       .where('vc.venue_id = ANY(:ids)', { ids })
       .orderBy('vc.is_primary', 'DESC')
       .addOrderBy('c.display_order', 'ASC')

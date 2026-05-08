@@ -25,34 +25,41 @@
 
 ## 2. Chon huong trien khai
 
-### Huong de khuyen nghi
-1. **Backend import core** trong `venue-service`
-2. **Web import studio** trong `web-client`
-3. **Chrome extension** lam tang toc capture sau khi MVP on dinh
+### Huong de khuyen nghi (final)
+1. **Backend import core** trong `venue-service` — owner cua draft + publish flow
+2. **Internal seed endpoint** trong `interaction-service` — random user + emit `venue.reviewed`
+3. **Tampermonkey userscript** o `tools/google-maps-importer/` — capture data tu Google Maps page
+4. **Web import studio** o `/admin/imports` trong `web-client` — review/sua/publish draft
 
 ### Ly do
 - `venue-service` dang la owner cua city/district/category va create/update venue.
 - `search-ai-service` chi nen nhan event sau khi venue da co du thong tin.
 - `web-client` co san UI dashboard, form venue, map picker, category picker.
-- Extension chi nen la lop capture, khong nen la source of truth.
+- **Userscript** thay vi Chrome extension vi: free, khong can publish, chay trong session browser that nen Google kho phat hien, install bang Tampermonkey 1 click.
+- **Khong dung Google Places API** vi tinh phi (~$17/1000 request Place Details). Userscript scrape DOM la solution mien phi cho project sinh vien.
 
 ---
 
 ## 3. Kien truc de xay
 
-### Lop 1: Capture
-- Nguoi dung mo Google Maps.
-- Extension hoac web import page lay thong tin hien thi:
-  - place name
-  - place id
-  - lat/lng
-  - address
-  - hours
-  - phone
-  - website
-  - photos
-  - rating/review count
-  - review snippets / review authors / review timestamps neu source co cho phep
+### Lop 1: Capture (Tampermonkey userscript)
+File: `tools/google-maps-importer/mynook-importer.user.js`
+
+- Nguoi dung mo trang Google Maps place trong Chrome (da cai Tampermonkey + userscript).
+- Userscript inject panel "📥 MyNook Importer" o goc phai tren.
+- Khi user bam **Import to MyNook**, script:
+  - Doc DOM lay: name, place_id, lat/lng (parse tu URL), address, phone, website, rating, review count
+  - Click tab Anh → scroll → grab tu URL CDN googleusercontent.com (resize ve 1200px)
+  - Click tab Danh gia → scroll → grab cards: rating, author, content, anh review (max 3/review)
+  - Download tung anh qua `GM_xmlhttpRequest` (bypass CORS) → POST `/api/upload` → nhan URL Cloudinary
+  - POST `/api/admin/imports/google-maps/drafts` voi normalized_payload day du (info + media[] cua venue + selected_reviews[] kem media[])
+- Selectors quan trong (de update khi Google doi UI):
+  - `h1.DUwDvf` — name
+  - `button[data-item-id="address"]` — address
+  - `div.F7nice` — rating + review count
+  - `a[data-photo-index]` — photo grid
+  - `div[data-review-id]` — review card
+  - `span.wiI7pd` — review content
 
 ### Lop 2: Normalize
 - Chuan hoa du lieu raw thanh draft venue.
@@ -213,7 +220,7 @@ Neu Google Maps data qua it:
 Vi day la do an/demo, review lay tu Google Maps se duoc seed vao `interaction_schema.reviews` nhu review that cua user.
 
 Flow de seed:
-- Lay top N review snippets co chat luong tot nhat.
+- Lay top N review snippets co chat luong tot nhat (userscript da grab san khi capture).
 - Random `account_id` tu account that dang active trong he thong.
 - Mac dinh random account active co type `customer`/`owner`; neu muon demo don gian thi co the random bat ky account active nao.
 - Tao review voi:
@@ -221,11 +228,13 @@ Flow de seed:
   - `account_id` = random user
   - `rating` = rating cua Google review
   - `content` = text review tu Google Maps
-  - `media` = [] hoac anh review neu co
+  - `media` = mang URL Cloudinary cua anh trong review (userscript da upload truoc khi tao draft)
   - `is_verified_visit` = false
 - Emit `venue.reviewed` cho tung review de `search-ai-service` phan tich AI va upsert `venue_tags`.
 - Recalculate `venue_schema.venues.rating_avg` va `review_count` sau khi seed xong.
 - Optional: luu mapping `review_id` -> raw Google review vao `venue_import_review_sources` de debug.
+
+> **Implementation note (2026-05):** `SeedGoogleMapsReviewInput` trong `interaction-service` da co field `media?: string[]`. `GoogleMapsReviewSnippet` trong `venue-service` cung da co field `media?: string[]`. Ca `normalizeReviews()` va `seedReviews()` deu forward field nay nguyen ven.
 
 ### 6.7 Publish
 Khi user bam publish:
@@ -269,13 +278,23 @@ UI can co:
 5. User bam "Save draft" hoac "Publish".
 6. Venue chay qua pipeline hien co, review snippets duoc gan random user that.
 
-### 7.3 Extension sau
-Chrome extension chi can:
-- doc place URL/place id
-- gui ve import API
-- mo popover nho de confirm
+### 7.3 Tampermonkey userscript (DA TRIEN KHAI)
+Thay vi Chrome extension, dung Tampermonkey userscript — don gian va free hoan toan.
 
-Khong can lam day du logic business trong extension.
+File: `tools/google-maps-importer/mynook-importer.user.js`
+
+Userscript chi can:
+- Doc place URL/place id + DOM info + photos + reviews
+- Upload anh qua `/api/upload` (Cloudinary)
+- POST draft sang `/api/admin/imports/google-maps/drafts`
+
+Config qua `GM_setValue`:
+- `mynook_jwt` — JWT cua admin (lay tu localStorage cua web-client)
+- `mynook_api_base` — mac dinh `http://localhost:3001/api`
+
+CORS: `apps/api-gateway/src/main.ts` allow origin pattern `https://(www\.)?google\.[a-z.]+` de userscript fetch duoc tu Google Maps page.
+
+Khong can lam day du logic business trong userscript — chi capture + upload + tao draft. Toan bo enrichment/dedup/publish van o backend.
 
 ---
 
@@ -339,10 +358,11 @@ Khong can lam day du logic business trong extension.
 - completeness scoring
 - review snippet selection + random user assignment
 
-### Phase 5 - Extension
-- Capture current place
-- send to backend
-- open draft in web app
+### Phase 5 - Tampermonkey userscript (DONE)
+- `tools/google-maps-importer/mynook-importer.user.js` — capture + upload + create draft
+- `tools/google-maps-importer/README.md` — install + usage guide
+- CORS update trong `apps/api-gateway/src/main.ts` cho phep origin Google Maps
+- `media[]` field forwarded qua toan bo flow: userscript → /upload → draft → seed reviews
 
 ### Phase 6 - QA
 - test search behavior
@@ -375,6 +395,10 @@ Khong can lam day du logic business trong extension.
 - `apps/web-client/src/components/...`
 - `apps/web-client/src/lib/api/...`
 
+### Userscript (capture layer)
+- `tools/google-maps-importer/mynook-importer.user.js`
+- `tools/google-maps-importer/README.md`
+
 ### Shared types
 - `libs/shared-types/src/lib/shared-types.ts`
 - `libs/database/src/lib/entities/*`
@@ -397,12 +421,14 @@ He thong duoc xem la xong khi:
 
 ## 12. Risk va luu y
 
-- Phai can nhac Terms of Service cua Google Maps/Google Places.
-- Khong nen phu thuoc vao scraping mong manh neu co the dung Places API.
-- Extension chi nen la tool capture, khong nen la noi xu ly business.
+- Phai can nhac Terms of Service cua Google Maps/Google Places. Userscript scraping ve ky thuat vi pham ToS — chi dung cho demo/project sinh vien, khong deploy public va khong scrape >50 venue/ngay (Google flag IP).
+- Selectors DOM Google Maps thuong xuyen doi (A/B test). Khi userscript dung lam viec → mo DevTools inspect lai class name va update file `.user.js`.
+- Userscript va extension chi la tool capture, khong nen la noi xu ly business — toan bo enrichment/dedup van phai o backend.
 - Neu data source thieu description, search quality se kem neu khong enrich.
 - Neu import qua nhanh ma khong co dedup, search se bi reu.
 - Che do random user that cho Google Maps reviews chi nen dung cho demo/do an mon hoc, khong dung cho product thuc te.
+- JWT cua admin store trong `GM_setValue` cua Tampermonkey — trong Tampermonkey isolated storage, chi accessible boi userscript day. Khi het han phai reset bang nut ⚙ trong panel.
+- Anh tu Google download qua `GM_xmlhttpRequest` (browser session that) → upload Cloudinary cua project → URL ben vung, khong phu thuoc Google CDN nua.
 
 ---
 

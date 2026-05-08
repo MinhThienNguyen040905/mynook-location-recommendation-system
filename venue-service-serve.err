@@ -9,3 +9,250 @@ Note: This will throw an error in the next major version.[31m
 Consider using unique class names or applying @ApiExtraModels() decorator with custom schema names.
 Note: This will throw an error in the next major version.[31m
 [39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 9:28:50 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 9:28:50 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 10:18:37 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 10:18:37 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 10:57:53 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 10:57:53 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 11:14:51 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/07/2026, 11:14:51 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 12:37:53 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 12:37:53 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 12:53:36 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 12:53:36 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 1:15:25 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[31m[Nest] 12104  - [31m05/08/2026, 1:15:25 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 1:31:41 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 1:31:41 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 1:33:31 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 3:35:46 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[31m[Nest] 12104  - [31m05/08/2026, 3:35:46 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 7:46:55 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 7:46:55 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 7:54:54 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 7:55:20 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 8:43:31 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 8:43:31 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 9:13:48 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 9:13:48 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 9:21:09 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[31m[Nest] 12104  - [31m05/08/2026, 9:21:09 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 9:56:41 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:02:47 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:03:29 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:04:46 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:04:49 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:25:09 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:25:09 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m

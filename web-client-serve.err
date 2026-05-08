@@ -1,1 +1,2 @@
 [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Warning: command "next dev --port 3000" exited with non-zero status codeTask "@mynook/web-client:serve" is continuous but exited with code 4294967295

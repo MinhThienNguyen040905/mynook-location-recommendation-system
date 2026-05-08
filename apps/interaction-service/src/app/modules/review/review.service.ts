@@ -18,6 +18,7 @@ interface SeedGoogleMapsReviewInput {
   rating: number;
   content: string;
   published_at?: string | null;
+  media?: string[] | null;
 }
 
 interface SeedGoogleMapsReviewsDto {
@@ -84,12 +85,15 @@ export class ReviewService implements OnModuleInit {
     for (let index = 0; index < reviews.length; index++) {
       const review = reviews[index];
       const accountId = accounts[index % accounts.length];
+      const reviewMedia = Array.isArray(review.media)
+        ? review.media.filter((url): url is string => typeof url === 'string' && url.length > 0)
+        : [];
       const saved = await this.saveAndEmitReview({
         accountId,
         venueId: dto.venue_id,
         rating: review.rating,
         content: review.content,
-        media: [],
+        media: reviewMedia,
         isVerifiedVisit: false,
       });
       created.push({

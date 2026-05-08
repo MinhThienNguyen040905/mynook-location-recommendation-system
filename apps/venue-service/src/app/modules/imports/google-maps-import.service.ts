@@ -27,6 +27,7 @@ interface GoogleMapsReviewSnippet {
   rating: number;
   content: string;
   published_at?: string | null;
+  media?: string[];
 }
 
 interface GoogleMapsNormalizedPayload {
@@ -432,6 +433,7 @@ export class GoogleMapsImportService {
         source_review_id: review.source_review_id ?? null,
         author_name: review.author_name ?? null,
         published_at: review.published_at ?? null,
+        media: review.media ?? [],
       })),
     };
     const { data } = await firstValueFrom(
@@ -915,12 +917,18 @@ export class GoogleMapsImportService {
         const content = this.pickString(value.content) ?? this.pickString(value.text) ?? '';
         if (!content) return null;
         const rating = this.pickNumber(value.rating) ?? 0;
+        const media = Array.isArray(value.media)
+          ? value.media
+              .map((item) => (typeof item === 'string' ? item.trim() : ''))
+              .filter((item): item is string => item.length > 0)
+          : [];
         return {
           source_review_id: this.pickString(value.source_review_id) ?? null,
           author_name: this.pickString(value.author_name) ?? null,
           rating: Math.max(1, Math.min(5, rating || 0)),
           content,
           published_at: this.pickString(value.published_at) ?? null,
+          media,
         } satisfies GoogleMapsReviewSnippet;
       })
       .filter(Boolean) as GoogleMapsReviewSnippet[];
