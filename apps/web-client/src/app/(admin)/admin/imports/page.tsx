@@ -187,7 +187,12 @@ export default function AdminImportsPage() {
         throw new Error(`Thieu thong tin bat buoc de publish: ${missing.join(', ')}`);
       }
       if (selectedDraft?.status === 'duplicate' && selectedDraft.matched_venue_id) {
-        throw new Error('Draft dang bi danh dau trung venue. Kiem tra matched venue truoc khi publish.');
+        const ok = window.confirm(
+          'Draft nay dang duoc danh dau trung venue. Van publish tiep de ghi nhan no la venue moi?',
+        );
+        if (!ok) {
+          throw new Error('__PUBLISH_CANCELLED__');
+        }
       }
       await updateGoogleMapsDraft(selectedDraftId as string, form);
       return publishGoogleMapsDraft(selectedDraftId as string);
@@ -196,7 +201,10 @@ export default function AdminImportsPage() {
       qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
       toast.success(`Đã publish — ${data.seeded_reviews} review được seed`);
     },
-    onError: (err) => toast.error(getApiErrorMessage(err, 'Publish that bai')),
+    onError: (err) => {
+      if (err instanceof Error && err.message === '__PUBLISH_CANCELLED__') return;
+      toast.error(getApiErrorMessage(err, 'Publish that bai'));
+    },
   });
 
   const rejectMutation = useMutation({

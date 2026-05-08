@@ -955,3 +955,199 @@
   }
 }
 [39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:05:58 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31merror: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at parseErrorMessage [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:394:9[90m)[31m
+    at Parser.handlePacket [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:212:19[90m)[31m
+    at Parser.parse [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:105:30[90m)[31m
+    at TLSSocket.<anonymous> [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\index.ts:7:48[90m)[31m
+[90m    at TLSSocket.emit (node:events:508:28)[31m
+[90m    at addChunk (node:internal/streams/readable:559:12)[31m
+[90m    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)[31m
+[90m    at TLSSocket.Readable.push (node:internal/streams/readable:390:5)[31m
+[90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)[31m {
+  length: [33m117[31m,
+  severity: [32m'FATAL'[31m,
+  code: [32m'XX000'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [90mundefined[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [90mundefined[31m,
+  line: [90mundefined[31m,
+  routine: [90mundefined[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:05:58 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31merror: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at parseErrorMessage [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:394:9[90m)[31m
+    at Parser.handlePacket [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:212:19[90m)[31m
+    at Parser.parse [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:105:30[90m)[31m
+    at TLSSocket.<anonymous> [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\index.ts:7:48[90m)[31m
+[90m    at TLSSocket.emit (node:events:508:28)[31m
+[90m    at addChunk (node:internal/streams/readable:559:12)[31m
+[90m    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)[31m
+[90m    at TLSSocket.Readable.push (node:internal/streams/readable:390:5)[31m
+[90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)[31m {
+  length: [33m117[31m,
+  severity: [32m'FATAL'[31m,
+  code: [32m'XX000'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [90mundefined[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [90mundefined[31m,
+  line: [90mundefined[31m,
+  routine: [90mundefined[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:05:58 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31merror: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at parseErrorMessage [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:394:9[90m)[31m
+    at Parser.handlePacket [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:212:19[90m)[31m
+    at Parser.parse [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:105:30[90m)[31m
+    at TLSSocket.<anonymous> [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\index.ts:7:48[90m)[31m
+[90m    at TLSSocket.emit (node:events:508:28)[31m
+[90m    at addChunk (node:internal/streams/readable:559:12)[31m
+[90m    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)[31m
+[90m    at TLSSocket.Readable.push (node:internal/streams/readable:390:5)[31m
+[90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)[31m {
+  length: [33m117[31m,
+  severity: [32m'FATAL'[31m,
+  code: [32m'XX000'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [90mundefined[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [90mundefined[31m,
+  line: [90mundefined[31m,
+  routine: [90mundefined[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:17:22 PM [31m  ERROR[31m [38;5;3m[Server] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:17:22 PM [31m  ERROR[31m [38;5;3m[Server] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:17:22 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:17:22 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:28:44 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31merror: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at parseErrorMessage [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:394:9[90m)[31m
+    at Parser.handlePacket [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:212:19[90m)[31m
+    at Parser.parse [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:105:30[90m)[31m
+    at TLSSocket.<anonymous> [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\index.ts:7:48[90m)[31m
+[90m    at TLSSocket.emit (node:events:508:28)[31m
+[90m    at addChunk (node:internal/streams/readable:559:12)[31m
+[90m    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)[31m
+[90m    at TLSSocket.Readable.push (node:internal/streams/readable:390:5)[31m
+[90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)[31m {
+  length: [33m117[31m,
+  severity: [32m'FATAL'[31m,
+  code: [32m'XX000'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [90mundefined[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [90mundefined[31m,
+  line: [90mundefined[31m,
+  routine: [90mundefined[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:28:44 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31merror: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at parseErrorMessage [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:394:9[90m)[31m
+    at Parser.handlePacket [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:212:19[90m)[31m
+    at Parser.parse [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:105:30[90m)[31m
+    at TLSSocket.<anonymous> [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\index.ts:7:48[90m)[31m
+[90m    at TLSSocket.emit (node:events:508:28)[31m
+[90m    at addChunk (node:internal/streams/readable:559:12)[31m
+[90m    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)[31m
+[90m    at TLSSocket.Readable.push (node:internal/streams/readable:390:5)[31m
+[90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)[31m {
+  length: [33m117[31m,
+  severity: [32m'FATAL'[31m,
+  code: [32m'XX000'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [90mundefined[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [90mundefined[31m,
+  line: [90mundefined[31m,
+  routine: [90mundefined[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 23904  - [31m05/08/2026, 5:28:44 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31merror: (EMAXCONNSESSION) max clients reached in session mode - max clients are limited to pool_size: 15
+    at parseErrorMessage [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:394:9[90m)[31m
+    at Parser.handlePacket [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:212:19[90m)[31m
+    at Parser.parse [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\parser.ts:105:30[90m)[31m
+    at TLSSocket.<anonymous> [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg-protocol[24m\src\index.ts:7:48[90m)[31m
+[90m    at TLSSocket.emit (node:events:508:28)[31m
+[90m    at addChunk (node:internal/streams/readable:559:12)[31m
+[90m    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)[31m
+[90m    at TLSSocket.Readable.push (node:internal/streams/readable:390:5)[31m
+[90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)[31m {
+  length: [33m117[31m,
+  severity: [32m'FATAL'[31m,
+  code: [32m'XX000'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [90mundefined[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [90mundefined[31m,
+  line: [90mundefined[31m,
+  routine: [90mundefined[31m
+}
+[39m[22m

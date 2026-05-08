@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Star, MessageSquarePlus, ThumbsUp, ThumbsDown, Clock, Sparkles, BadgeCheck } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { getVenueReviews } from '@/lib/api/reviews';
@@ -199,6 +199,10 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
       // keep existing reviews on error
     }
   }, [venueId]);
+
+  useEffect(() => {
+    refreshReviews();
+  }, [refreshReviews]);
 
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)

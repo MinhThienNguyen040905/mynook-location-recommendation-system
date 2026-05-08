@@ -67,6 +67,9 @@ export class GoogleMapsImportController {
           rating: Number(review['rating'] ?? 0),
           content: typeof review['content'] === 'string' ? review['content'] : '',
           published_at: typeof review['published_at'] === 'string' ? review['published_at'] : null,
+          media: Array.isArray(review['media'])
+            ? review['media'].filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+            : [],
         }))
       : [];
     return this.importService.selectReviews(id, reviews);

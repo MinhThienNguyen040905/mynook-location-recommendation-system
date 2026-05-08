@@ -284,8 +284,12 @@ export class GoogleMapsImportService {
       ...(draft.normalized_payload as Partial<GoogleMapsNormalizedPayload>),
       ...patch,
     } as GoogleMapsNormalizedPayload;
-    normalized.selected_reviews = this.normalizeReviews(
-      normalized.selected_reviews ?? [],
+    const existingReviews = this.normalizeReviews(
+      (draft.normalized_payload as Partial<GoogleMapsNormalizedPayload>).selected_reviews ?? [],
+    );
+    normalized.selected_reviews = this.mergeReviewMedia(
+      this.normalizeReviews(normalized.selected_reviews ?? []),
+      existingReviews,
     );
     normalized.media = this.normalizeMedia(normalized.media);
     normalized.category_ids = await this.revalidateCategoryIds(normalized.category_ids ?? []);
@@ -381,23 +385,29 @@ export class GoogleMapsImportService {
       };
     }
     if (draft.status === VenueImportStatus.DUPLICATE && draft.matched_venue_id) {
-      throw new ConflictException('This draft matches an existing venue');
+      this.logger.warn(
+        `Publishing duplicate-marked draft ${draft.id} matched to venue ${draft.matched_venue_id}`,
+      );
     }
 
     const normalized = draft.normalized_payload as Partial<GoogleMapsNormalizedPayload>;
     const venueDto = this.toCreateVenueDto(normalized);
     const created = await this.venueService.create(userId, venueDto);
 
+    const selectedReviews = this.mergeReviewMedia(
+      this.normalizeReviews(normalized.selected_reviews ?? []),
+      this.normalizeReviews((draft.normalized_payload as Partial<GoogleMapsNormalizedPayload>).selected_reviews ?? []),
+    );
+
     draft.status = VenueImportStatus.PUBLISHED;
     draft.published_venue_id = created.id;
     draft.matched_venue_id = draft.matched_venue_id ?? null;
     draft.normalized_payload = {
       ...normalized,
-      selected_reviews: this.normalizeReviews(normalized.selected_reviews ?? []),
+      selected_reviews: selectedReviews,
     } as Record<string, unknown>;
     await this.importRepo.save(draft);
 
-    const selectedReviews = this.normalizeReviews(normalized.selected_reviews ?? []);
     let seededReviews: PublishReviewSeedResult[] = [];
     if (selectedReviews.length > 0) {
       try {
@@ -950,6 +960,38 @@ export class GoogleMapsImportService {
       return this.normalizeReviews(rawReviews as unknown[]);
     }
     return [];
+  }
+
+  private mergeReviewMedia(
+    nextReviews: GoogleMapsReviewSnippet[],
+    previousReviews: GoogleMapsReviewSnippet[],
+  ): GoogleMapsReviewSnippet[] {
+    if (previousReviews.length === 0) return nextReviews;
+    const previousByKey = new Map<string, string[]>();
+    previousReviews.forEach((review, index) => {
+      previousByKey.set(this.reviewMatchKey(review, index), this.normalizeMedia(review.media));
+    });
+
+    return nextReviews.map((review, index) => {
+      const existingMedia = previousByKey.get(this.reviewMatchKey(review, index)) ?? [];
+      const nextMedia = this.normalizeMedia(review.media);
+      return {
+        ...review,
+        media: nextMedia.length > 0 ? nextMedia : existingMedia,
+      };
+    });
+  }
+
+  private reviewMatchKey(review: GoogleMapsReviewSnippet, fallbackIndex: number): string {
+    const sourceId = this.pickString(review.source_review_id);
+    if (sourceId) return `source:${sourceId}`;
+    const author = this.normalizeText(review.author_name ?? '');
+    const content = this.normalizeText(review.content ?? '');
+    const publishedAt = this.normalizeText(review.published_at ?? '');
+    if (author || content || publishedAt) {
+      return `text:${author}|${content}|${publishedAt}`;
+    }
+    return `index:${fallbackIndex}`;
   }
 
   private normalizeMedia(media: unknown): string[] {

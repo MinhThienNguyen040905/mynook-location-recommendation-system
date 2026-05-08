@@ -461,8 +461,8 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
 
   const hasMenu = categories.length > 0 && categories.some(c => c.items && c.items.length > 0);
 
-  // Hide section only for non-community venues that have no menu
-  if (!hasMenu && !isCommunityContributed) return null;
+  // Hide section only for non-community venues that have neither menu items nor a menu image.
+  if (!hasMenu && !currentMenuImageUrl && !isCommunityContributed) return null;
 
   return (
     <section>

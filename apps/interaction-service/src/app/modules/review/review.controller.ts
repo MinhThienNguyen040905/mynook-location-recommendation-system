@@ -39,6 +39,7 @@ export class ReviewController {
         rating: number;
         content: string;
         published_at?: string | null;
+        media?: string[] | null;
       }>;
     },
   ) {
