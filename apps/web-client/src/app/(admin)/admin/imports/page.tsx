@@ -469,7 +469,7 @@ export default function AdminImportsPage() {
                       disabled={isReadOnly}
                     />
                   </Field>
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <Field label="Website">
                       <Input
                         value={form.website ?? ''}
@@ -481,13 +481,6 @@ export default function AdminImportsPage() {
                       <Input
                         value={form.phone_number ?? ''}
                         onChange={(e) => setField('phone_number', e.target.value || null)}
-                        disabled={isReadOnly}
-                      />
-                    </Field>
-                    <Field label="Ảnh menu (URL)">
-                      <Input
-                        value={form.menu_image_url ?? ''}
-                        onChange={(e) => setField('menu_image_url', e.target.value || null)}
                         disabled={isReadOnly}
                       />
                     </Field>
@@ -655,14 +648,14 @@ export default function AdminImportsPage() {
                   )}
                 </Section>
 
-                {/* Section: Media */}
+                {/* Section: Venue media */}
                 <Section
                   icon={<ImageIcon className="size-4" />}
-                  title="Hình ảnh venue"
-                  hint={`${currentMedia.length} ảnh`}
+                  title="Ảnh venue"
+                  hint={`${currentMedia.length} ảnh đã import`}
                 >
                   {currentMedia.length === 0 ? (
-                    <EmptyHint text="Chưa có ảnh — userscript chưa upload hoặc bị fail. Có thể paste URL ảnh thủ công bên dưới." />
+                    <EmptyHint text="Chưa có ảnh venue. Userscript có thể chưa extract được — chạy 🔍 Test trong panel Tampermonkey để check, hoặc paste URL bên dưới." />
                   ) : (
                     <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
                       {currentMedia.map((url, i) => (
@@ -676,9 +669,46 @@ export default function AdminImportsPage() {
                   )}
                   {!isReadOnly && (
                     <UrlAdderInput
-                      placeholder="Paste URL ảnh để thêm thủ công…"
+                      placeholder="Paste URL ảnh để thêm thủ công (Cloudinary hoặc bất kỳ HTTPS URL)…"
                       onAdd={(url) => setField('media', [...currentMedia, url])}
                     />
+                  )}
+                </Section>
+
+                {/* Section: Menu image */}
+                <Section
+                  icon={<ImageIcon className="size-4" />}
+                  title="Ảnh menu"
+                  hint={form.menu_image_url ? '1 ảnh' : 'chưa có'}
+                >
+                  {form.menu_image_url ? (
+                    <div className="grid gap-4 sm:grid-cols-[200px_minmax(0,1fr)]">
+                      <MenuImagePreview
+                        url={form.menu_image_url}
+                        onRemove={isReadOnly ? undefined : () => setField('menu_image_url', null)}
+                      />
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium text-slate-600">URL ảnh menu</Label>
+                        <Input
+                          value={form.menu_image_url}
+                          onChange={(e) => setField('menu_image_url', e.target.value || null)}
+                          disabled={isReadOnly}
+                        />
+                        <p className="text-xs text-slate-400">
+                          Sửa URL nếu cần đổi sang ảnh khác. Bấm X trên ảnh để xóa.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <EmptyHint text="Chưa có ảnh menu. Google Maps thường tag photos category 'Menu' / 'Thực đơn' — userscript sẽ tự lấy nếu place có tag đó. Nếu không có, paste URL ảnh menu thủ công bên dưới." />
+                      {!isReadOnly && (
+                        <UrlAdderInput
+                          placeholder="Paste URL ảnh menu…"
+                          onAdd={(url) => setField('menu_image_url', url)}
+                        />
+                      )}
+                    </>
                   )}
                 </Section>
 
@@ -817,9 +847,30 @@ function StatusPill({
 }
 
 function MediaTile({ url, onRemove }: { url: string; onRemove?: () => void }) {
+  const [errored, setErrored] = useState(false);
   return (
     <div className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-      <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+      {errored ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center text-[10px] text-red-500 hover:bg-red-50"
+          title={url}
+        >
+          <ImageIcon className="size-5" />
+          <span>Ảnh hỏng</span>
+          <span className="break-all opacity-60">{url.slice(-30)}</span>
+        </a>
+      ) : (
+        <img
+          src={url}
+          alt=""
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={() => setErrored(true)}
+        />
+      )}
       {onRemove && (
         <button
           type="button"
@@ -828,6 +879,47 @@ function MediaTile({ url, onRemove }: { url: string; onRemove?: () => void }) {
           title="Xóa ảnh"
         >
           <X className="size-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MenuImagePreview({ url, onRemove }: { url: string; onRemove?: () => void }) {
+  const [errored, setErrored] = useState(false);
+  return (
+    <div className="group relative aspect-4/3 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+      {errored ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="flex h-full w-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-red-500 hover:bg-red-50"
+          title={url}
+        >
+          <ImageIcon className="size-8" />
+          <span className="font-medium">Ảnh hỏng — click để mở URL</span>
+          <span className="break-all opacity-60">{url.slice(-50)}</span>
+        </a>
+      ) : (
+        <a href={url} target="_blank" rel="noreferrer" title="Mở ảnh đầy đủ">
+          <img
+            src={url}
+            alt="Menu"
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            loading="lazy"
+            onError={() => setErrored(true)}
+          />
+        </a>
+      )}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+          title="Xóa ảnh menu"
+        >
+          <X className="size-4" />
         </button>
       )}
     </div>

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MyNook · Google Maps Importer
 // @namespace    https://mynook.local/
-// @version      0.1.0
+// @version      0.2.0
 // @description  Quét data từ Google Maps place page (info + ảnh + reviews) và đẩy thành draft import vào MyNook
 // @match        https://www.google.com/maps/*
 // @match        https://www.google.com/maps
@@ -195,61 +195,217 @@
 
   // ---- Tab navigation -----------------------------------------------------
   function findTabButton(labelKeywords) {
-    const tabs = $$('button[role="tab"], div[role="tab"]');
-    for (const t of tabs) {
-      const text = (t.getAttribute('aria-label') || t.textContent || '').toLowerCase();
-      if (labelKeywords.some((k) => text.includes(k))) return t;
+    // Tabs in current Google Maps may be button/role=tab OR div with aria-label
+    const candidates = [
+      ...$$('button[role="tab"]'),
+      ...$$('div[role="tab"]'),
+      ...$$('button[aria-label]'),
+      ...$$('a[aria-label]'),
+    ];
+    for (const t of candidates) {
+      const text = (t.getAttribute('aria-label') || t.textContent || '').toLowerCase().trim();
+      if (!text) continue;
+      if (labelKeywords.some((k) => text.includes(k.toLowerCase()))) return t;
     }
     return null;
   }
 
   async function clickTab(keywords) {
     const btn = findTabButton(keywords);
-    if (!btn) return false;
+    if (!btn) {
+      log(`Không tìm thấy tab cho keywords: ${keywords.join(', ')}`);
+      return false;
+    }
+    log(`Click tab: "${(btn.getAttribute('aria-label') || btn.textContent || '').trim().slice(0, 50)}"`);
     btn.click();
-    await sleep(800);
+    await sleep(1500);
     return true;
   }
 
-  async function scrollFeed(times = 6) {
-    const feed = $('div[role="main"] div[role="region"]') ||
-                 $('div[role="main"]');
-    if (!feed) return;
+  // Find ALL scrollable side panels (Google Maps has many nested scrollers)
+  function findScrollContainers() {
+    const main = $('div[role="main"]') || document.body;
+    const set = new Set([main]);
+    main.querySelectorAll(
+      'div[tabindex="-1"], div[role="region"], div[role="feed"], div.m6QErb, div.DxyBCb, div[jslog]',
+    ).forEach((el) => {
+      // only count truly scrollable (overflow + content > visible)
+      try {
+        const cs = window.getComputedStyle(el);
+        if (
+          (cs.overflowY === 'auto' || cs.overflowY === 'scroll') &&
+          el.scrollHeight > el.clientHeight + 5
+        ) {
+          set.add(el);
+        }
+      } catch { /* ignore */ }
+    });
+    return Array.from(set);
+  }
+
+  async function scrollFeed(times = 8, delayMs = 600) {
+    const containers = findScrollContainers();
+    log(`Scroll: tìm thấy ${containers.length} container scrollable`);
     for (let i = 0; i < times; i++) {
-      const target = feed.querySelector('div[role="region"]') ||
-                     feed.querySelector('.m6QErb[role="region"]') ||
-                     feed;
-      target.scrollBy(0, 1500);
-      await sleep(700);
+      containers.forEach((c) => {
+        try {
+          c.scrollBy(0, 2000);
+          c.scrollTop = (c.scrollTop || 0) + 2000;
+        } catch { /* ignore */ }
+      });
+      // Force last visible photo tile into view to trigger virtualization
+      const lastTile = $$('a[data-photo-index], button[jsaction*="photo"], [role="img"][style*="background-image"]').pop();
+      if (lastTile) {
+        try { lastTile.scrollIntoView({ block: 'end' }); } catch { /* ignore */ }
+      }
+      await sleep(delayMs);
     }
   }
 
-  // ---- Photo extraction ---------------------------------------------------
-  async function extractVenuePhotos(max) {
-    const ok = await clickTab(['ảnh', 'photo']);
-    if (!ok) {
-      log('Không tìm thấy tab ảnh — bỏ qua photos');
-      return [];
+  // ---- Photo extraction (robust) -----------------------------------------
+
+  // Pull every plausible Google CDN URL from an element's attributes
+  function urlsFromElement(el) {
+    const out = [];
+    if (!el) return out;
+    const attrs = ['src', 'data-src', 'data-image-url', 'data-thumbnail', 'data-large-image-url'];
+    for (const a of attrs) {
+      const v = el.getAttribute && el.getAttribute(a);
+      if (v && (v.includes('googleusercontent.com') || v.includes('streetviewpixels'))) {
+        out.push(v);
+      }
     }
-    await sleep(1200);
-    await scrollFeed(4);
+    // srcset: "url 1x, url 2x"
+    const srcset = el.getAttribute && el.getAttribute('srcset');
+    if (srcset) {
+      srcset.split(',').forEach((part) => {
+        const url = part.trim().split(/\s+/)[0];
+        if (url && (url.includes('googleusercontent.com') || url.includes('streetviewpixels'))) {
+          out.push(url);
+        }
+      });
+    }
+    // currentSrc (modern browsers)
+    if (el.currentSrc && (el.currentSrc.includes('googleusercontent.com') || el.currentSrc.includes('streetviewpixels'))) {
+      out.push(el.currentSrc);
+    }
+    return out;
+  }
 
-    const urls = new Set();
+  // Get every Google CDN image currently in the DOM
+  function harvestImages({ container = document } = {}) {
+    const out = new Set();
 
-    $$('a[data-photo-index] img, button[jsaction*="photo"] img').forEach((img) => {
-      if (img.src && img.src.includes('googleusercontent.com')) {
-        urls.add(upsizePhotoUrl(img.src, DEFAULTS.photoSize));
-      }
+    // Strategy 1: <img> tags
+    container.querySelectorAll('img').forEach((img) => {
+      urlsFromElement(img).forEach((url) => {
+        if (/=s\d{1,2}-c/.test(url)) return; // skip small avatars
+        // Skip natural width < 80 (likely avatar) — but only if naturalWidth is reliable
+        const w = img.naturalWidth || 0;
+        if (w > 0 && w < 80) return;
+        out.add(upsizePhotoUrl(url, DEFAULTS.photoSize));
+      });
     });
 
-    $$('a[data-photo-index], button[jsaction*="photo"]').forEach((el) => {
-      const u = bgUrl(el) || bgUrl(el.querySelector('div[style*="background-image"]'));
-      if (u && u.includes('googleusercontent.com')) {
-        urls.add(upsizePhotoUrl(u, DEFAULTS.photoSize));
-      }
+    // Strategy 2: any element with inline background-image
+    container.querySelectorAll('[style*="background-image"]').forEach((el) => {
+      const u = bgUrl(el);
+      if (!u) return;
+      if (!u.includes('googleusercontent.com') && !u.includes('streetviewpixels')) return;
+      if (/=s\d{1,2}-c/.test(u)) return;
+      out.add(upsizePhotoUrl(u, DEFAULTS.photoSize));
     });
+
+    // Strategy 3: photo tile buttons/anchors that may not have inline style yet
+    container.querySelectorAll('a[data-photo-index], button[jsaction*="photo"]').forEach((el) => {
+      // their inner divs often hold the bg image
+      el.querySelectorAll('[style*="background-image"], img').forEach((inner) => {
+        const u = bgUrl(inner) || inner.src;
+        if (!u) return;
+        if (!u.includes('googleusercontent.com') && !u.includes('streetviewpixels')) return;
+        if (/=s\d{1,2}-c/.test(u)) return;
+        out.add(upsizePhotoUrl(u, DEFAULTS.photoSize));
+      });
+    });
+
+    return out;
+  }
+
+  // Diagnostic: dump everything we find to console for debugging
+  function diagnose() {
+    log('=== DIAGNOSE START ===');
+    const allImgs = $$('img').filter((i) => i.src && i.src.includes('googleusercontent.com'));
+    const allBgs = $$('[style*="background-image"]').filter((el) => {
+      const u = bgUrl(el);
+      return u && u.includes('googleusercontent.com');
+    });
+    log(`<img> với googleusercontent: ${allImgs.length}`);
+    log(`bg-image với googleusercontent: ${allBgs.length}`);
+    log(`a[data-photo-index]: ${$$('a[data-photo-index]').length}`);
+    log(`button[jsaction*="photo"]: ${$$('button[jsaction*="photo"]').length}`);
+    log(`div[data-review-id]: ${$$('div[data-review-id]').length}`);
+    log(`Tabs found:`, $$('button[role="tab"], div[role="tab"]').map((t) => t.textContent.trim().slice(0, 30)));
+    log(`Scroll containers:`, findScrollContainers().length);
+    const harvested = harvestImages();
+    log(`harvestImages() trả về: ${harvested.size} URL`);
+    if (harvested.size > 0) {
+      log('Sample URLs:', Array.from(harvested).slice(0, 3));
+    }
+    log('=== DIAGNOSE END ===');
+    return harvested.size;
+  }
+
+  async function extractVenuePhotos(max) {
+    // First harvest from current page (some hero/header images already loaded)
+    const beforeTab = harvestImages();
+    log(`Trước khi click tab Ảnh: thấy ${beforeTab.size} ảnh trong DOM`);
+
+    // Try multiple keyword variants — Google Maps i18n changes
+    const ok = await clickTab(['ảnh', 'photo', 'photos', 'hình']);
+    if (!ok) {
+      log('Bỏ qua tab Ảnh — dùng ảnh đã thấy trên hero');
+      return Array.from(beforeTab).slice(0, max);
+    }
+
+    // Wait for photos to load + scroll to trigger lazy load
+    await sleep(2000);
+    await scrollFeed(6, 700);
+    await sleep(800);
+
+    const urls = harvestImages();
+    log(`Sau khi mở tab Ảnh + scroll: thấy ${urls.size} ảnh`);
+
+    // Merge with hero shots
+    beforeTab.forEach((u) => urls.add(u));
 
     return Array.from(urls).slice(0, max);
+  }
+
+  // Try to extract a menu image. Google Maps may show photos categorized as
+  // "Menu" / "Thực đơn" inside the photos tab. We look for that sub-tab/chip,
+  // click it, harvest, then return first match. Returns null if not found.
+  async function extractMenuImage() {
+    // Sub-categories use chip-like buttons, not role=tab. Search broadly.
+    const chips = $$('button, div[role="button"]').filter((el) => {
+      const text = (el.textContent || '').trim().toLowerCase();
+      return text === 'menu' || text === 'thực đơn' || text === 'thuc don';
+    });
+    if (chips.length === 0) {
+      log('Không thấy chip Menu trong photos tab');
+      return null;
+    }
+    log(`Click chip menu: "${chips[0].textContent.trim()}"`);
+    chips[0].click();
+    await sleep(1500);
+    await scrollFeed(3, 500);
+    const urls = harvestImages();
+    if (urls.size === 0) {
+      log('Menu chip clicked nhưng harvestImages = 0');
+      return null;
+    }
+    const first = Array.from(urls)[0];
+    log(`Menu image: ${first.slice(0, 80)}…`);
+    return first;
   }
 
   // ---- Review extraction --------------------------------------------------
@@ -269,40 +425,36 @@
   }
 
   async function extractReviews(maxReviews, maxPhotosPerReview) {
-    const ok = await clickTab(['đánh giá', 'review']);
+    const ok = await clickTab(['đánh giá', 'review', 'reviews', 'bài đánh giá']);
     if (!ok) {
       log('Không tìm thấy tab reviews');
       return [];
     }
-    await sleep(1200);
-    await scrollFeed(6);
+    await sleep(1500);
+    await scrollFeed(8, 700);
+    await sleep(500);
 
     const cards = $$('div[data-review-id]');
+    log(`Tìm thấy ${cards.length} review card trong DOM`);
     const out = [];
     for (const card of cards.slice(0, maxReviews)) {
       await expandReviewMore(card);
 
       const reviewId = card.getAttribute('data-review-id');
-      const author = pickFirstText(['button div.d4r55', 'div.d4r55'], card);
+      const author = pickFirstText(['button div.d4r55', 'div.d4r55', 'a[href*="/contrib/"]'], card);
       const ratingEl = card.querySelector('span[role="img"][aria-label]');
       const rating = parseRatingFromAriaLabel(ratingEl?.getAttribute('aria-label'));
       const content = pickFirstText(['span.wiI7pd', 'div.MyEned span', 'span[jsname]'], card);
       const publishedAt = pickFirstText(['span.rsqaWe', 'span.xRkPPb'], card);
 
-      if (!content) continue;
+      if (!content) {
+        log(`Skip review (không có content): ${reviewId}`);
+        continue;
+      }
 
-      const photoUrls = new Set();
-      card.querySelectorAll('button[data-photo-index], div[style*="background-image"]').forEach((el) => {
-        const u = bgUrl(el);
-        if (u && u.includes('googleusercontent.com')) {
-          photoUrls.add(upsizePhotoUrl(u, DEFAULTS.photoSize));
-        }
-      });
-      card.querySelectorAll('img').forEach((img) => {
-        if (img.src && img.src.includes('googleusercontent.com') && /=w\d+-h\d+/.test(img.src)) {
-          photoUrls.add(upsizePhotoUrl(img.src, DEFAULTS.photoSize));
-        }
-      });
+      // Use harvestImages scoped to this card — picks up both <img> and bg-image
+      const photoSet = harvestImages({ container: card });
+      const photoUrls = Array.from(photoSet).slice(0, maxPhotosPerReview);
 
       out.push({
         source_review_id: reviewId,
@@ -310,7 +462,7 @@
         rating,
         content,
         published_at: publishedAt || null,
-        _photo_urls: Array.from(photoUrls).slice(0, maxPhotosPerReview),
+        _photo_urls: photoUrls,
       });
     }
     return out;
@@ -431,16 +583,28 @@
       }
       log('Info:', info);
 
-      setStatus('Mở tab ảnh + scroll…');
+      setStatus('Mở tab Ảnh + scroll lazy load…');
       const venuePhotoUrls = await extractVenuePhotos(DEFAULTS.maxVenuePhotos);
       log(`Lấy được ${venuePhotoUrls.length} ảnh venue`);
 
-      setStatus('Mở tab reviews + scroll…');
+      setStatus('Tìm ảnh menu (nếu Google có tag)…');
+      const menuPhotoUrl = await extractMenuImage();
+      log(`Menu image: ${menuPhotoUrl ? 'có' : 'không tìm thấy'}`);
+
+      setStatus('Mở tab Đánh giá + scroll…');
       const reviews = await extractReviews(DEFAULTS.maxReviews, DEFAULTS.maxPhotosPerReview);
       log(`Lấy được ${reviews.length} reviews`);
 
       setStatus(`Upload ${venuePhotoUrls.length} ảnh venue…`);
       const uploadedVenueMedia = await uploadUrlsInBatches(venuePhotoUrls);
+      log(`Cloudinary trả về ${uploadedVenueMedia.length} URL venue`);
+
+      let uploadedMenuUrl = null;
+      if (menuPhotoUrl) {
+        setStatus('Upload ảnh menu…');
+        const menuUploaded = await uploadUrlsInBatches([menuPhotoUrl]);
+        uploadedMenuUrl = menuUploaded[0] || null;
+      }
 
       const reviewsWithMedia = [];
       for (let i = 0; i < reviews.length; i++) {
@@ -454,6 +618,8 @@
         delete r._photo_urls;
         reviewsWithMedia.push(r);
       }
+      const reviewMediaTotal = reviewsWithMedia.reduce((acc, r) => acc + (r.media?.length || 0), 0);
+      log(`Tổng ảnh review đã upload: ${reviewMediaTotal}`);
 
       setStatus('Tạo draft import…');
       const payload = {
@@ -470,6 +636,7 @@
           latitude: info.latitude,
           longitude: info.longitude,
           media: uploadedVenueMedia,
+          menu_image_url: uploadedMenuUrl,
           selected_reviews: reviewsWithMedia,
         },
         reviews: reviewsWithMedia,
@@ -482,7 +649,9 @@
       log('Draft created:', draft);
 
       setStatus(
-        `✅ Tạo draft xong! ${uploadedVenueMedia.length} ảnh venue + ${reviewsWithMedia.length} reviews. Vào /admin/imports để confirm.`,
+        `✅ Xong! ${uploadedVenueMedia.length} ảnh venue` +
+          (uploadedMenuUrl ? ' + 1 menu' : '') +
+          ` + ${reviewsWithMedia.length} review (${reviewMediaTotal} ảnh). Vào /admin/imports.`,
         'ok',
       );
     } catch (e) {
@@ -506,20 +675,44 @@
     `;
     panelEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
-        <strong style="color:#0f172a">📥 MyNook Importer</strong>
+        <strong style="color:#0f172a">📥 MyNook Importer <span style="font-weight:normal;color:#94a3b8;font-size:10px;">v0.2</span></strong>
         <button id="mynook-reset" title="Reset config" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px;">⚙</button>
       </div>
-      <button id="mynook-go" style="
-        margin-top:8px;width:100%;padding:8px 10px;background:#0f172a;color:white;
-        border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;">
-        Import to MyNook
-      </button>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        <button id="mynook-test" style="
+          flex:1;padding:8px 10px;background:white;color:#0f172a;
+          border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;font-weight:500;font-size:12px;">
+          🔍 Test
+        </button>
+        <button id="mynook-go" style="
+          flex:2;padding:8px 10px;background:#0f172a;color:white;
+          border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;">
+          Import to MyNook
+        </button>
+      </div>
       <div id="mynook-status" style="margin-top:8px;color:#475569;font-size:12px;line-height:1.4;"></div>
     `;
     document.body.appendChild(panelEl);
     statusEl = panelEl.querySelector('#mynook-status');
     panelEl.querySelector('#mynook-go').addEventListener('click', runImport);
+    panelEl.querySelector('#mynook-test').addEventListener('click', runDiagnose);
     panelEl.querySelector('#mynook-reset').addEventListener('click', resetConfig);
+  }
+
+  // Diagnose without uploading — quick sanity check
+  async function runDiagnose() {
+    setStatus('Diagnose: scan DOM hiện tại…');
+    const before = diagnose();
+    setStatus('Diagnose: click tab Ảnh + scroll…');
+    await clickTab(['ảnh', 'photo', 'photos', 'hình']);
+    await sleep(1500);
+    await scrollFeed(6, 600);
+    const after = diagnose();
+    const reviewCards = $$('div[data-review-id]').length;
+    setStatus(
+      `Test xong: ${before} ảnh trước tab + ${after} sau scroll + ${reviewCards} review cards. Mở DevTools Console xem chi tiết.`,
+      after > 0 ? 'ok' : 'err',
+    );
   }
 
   function setStatus(msg, kind) {

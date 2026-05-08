@@ -62,8 +62,11 @@ Userscript cũng `@match` localhost:3000 → khi page load nó tự đọc cooki
 1. Login web-client (làm 1 lần) — badge xanh xuất hiện = đã sync token
 2. Mở 1 trang Google Maps place, ví dụ `https://www.google.com/maps/place/Quan+An+Ngon/...`
 3. Đợi 1-2s cho script inject panel ở góc phải trên
-4. Bấm **Import to MyNook** → chạy luôn, không hỏi gì
-5. Theo dõi status trong panel:
+4. **Trước tiên bấm 🔍 Test** → mở F12 Console xem log `[MyNookImporter]`. Nếu thấy:
+   - `harvestImages() trả về: 0 URL` → DOM Google không match selector → báo tôi log
+   - `harvestImages() trả về: 30+ URL` → OK, sẵn sàng import
+5. Bấm **Import to MyNook** → chạy luôn, không hỏi gì
+6. Theo dõi status trong panel:
    ```
    Đọc thông tin venue…
    Mở tab ảnh + scroll…
@@ -110,7 +113,9 @@ Reset config (token + apiBase): bấm icon **⚙** trong panel.
 | `Upload HTTP 403` | Account không phải admin | Đăng nhập account `type = admin` |
 | `CORS error` trong console | Gateway chưa restart sau khi update CORS config | Restart `nx serve api-gateway` |
 | `❌ Network error` khi upload | Backend chưa chạy hoặc port khác | Check `apiBase` config |
-| Lấy được ít ảnh | Tab Ảnh không kịp load | Tăng `scrollFeed(times)` trong `extractVenuePhotos()` từ 4 lên 8 |
+| Lấy 0 ảnh venue | Tab Ảnh không kịp load hoặc tab name khác | Mở DevTools Console xem log `[MyNookImporter]` — sẽ thấy "Tìm thấy X ảnh trong DOM". Nếu = 0 nghĩa là `harvestImages()` không match. Inspect element 1 ảnh trên trang xem thật sự nó có domain `googleusercontent.com` không |
+| Lấy 0 ảnh menu | Place không có sub-tab "Menu" / "Thực đơn" trong photos | Bình thường — không phải mọi venue đều có. Vào `/admin/imports` paste URL ảnh menu thủ công vào field "Ảnh menu" |
+| Lấy 0 review | Tab Đánh giá không tìm thấy hoặc cards không match `div[data-review-id]` | Check console log `Tìm thấy X review card`. Nếu = 0 thì Google đổi attribute, cần update selector |
 | Reviews thiếu nội dung | Review dài bị truncate "...Thêm" | Script đã auto-click nút "Thêm", nếu vẫn miss thì kiểm tra `expandReviewMore()` |
 
 ---
