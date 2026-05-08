@@ -6,13 +6,15 @@ import {
   Patch,
   Post,
   Query,
+  HttpException,
   Request,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import type { AxiosError, AxiosResponse } from 'axios';
+import { firstValueFrom, type Observable } from 'rxjs';
 import { VENUE_SERVICE_URL } from '@mynook/shared-types';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { AdminGuard } from '../../common/guards/admin.guard.js';
@@ -26,18 +28,47 @@ import { AuthHeadersInterceptor } from '../../common/interceptors/auth-headers.i
 export class AdminImportController {
   constructor(private readonly http: HttpService) {}
 
+  private async forward<T>(request$: Observable<AxiosResponse<T>>): Promise<T> {
+    try {
+      const { data } = await firstValueFrom(request$);
+      return data;
+    } catch (err) {
+      throw this.toHttpException(err);
+    }
+  }
+
+  private toHttpException(err: unknown): Error {
+    const upstream = err as AxiosError;
+    const response = upstream.response;
+    if (!response) {
+      return err instanceof Error ? err : new Error(String(err));
+    }
+
+    const body = response.data;
+    if (body && typeof body === 'object') {
+      return new HttpException(body, response.status);
+    }
+
+    return new HttpException(
+      {
+        statusCode: response.status,
+        message: typeof body === 'string' && body.trim() ? body : upstream.message,
+      },
+      response.status,
+    );
+  }
+
   @Post('resolve')
   @ApiOperation({ summary: 'Resolve Google Maps input' })
   async resolve(
     @Request() req: { authHeaders: Record<string, string> },
     @Body() body: Record<string, unknown>,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${VENUE_SERVICE_URL}/imports/google-maps/resolve`, body, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @Post('drafts')
@@ -46,12 +77,11 @@ export class AdminImportController {
     @Request() req: { authHeaders: Record<string, string> },
     @Body() body: Record<string, unknown>,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${VENUE_SERVICE_URL}/imports/google-maps/drafts`, body, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @Get('drafts')
@@ -60,13 +90,12 @@ export class AdminImportController {
     @Request() req: { authHeaders: Record<string, string> },
     @Query('status') status?: string,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.get(`${VENUE_SERVICE_URL}/imports/google-maps/drafts`, {
         headers: req.authHeaders,
         params: status ? { status } : undefined,
       }),
     );
-    return data;
   }
 
   @Get('drafts/:id')
@@ -75,12 +104,11 @@ export class AdminImportController {
     @Request() req: { authHeaders: Record<string, string> },
     @Param('id') id: string,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.get(`${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}`, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @Patch('drafts/:id')
@@ -90,12 +118,11 @@ export class AdminImportController {
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.patch(`${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}`, body, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @Post('drafts/:id/enrich')
@@ -104,12 +131,11 @@ export class AdminImportController {
     @Request() req: { authHeaders: Record<string, string> },
     @Param('id') id: string,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}/enrich`, {}, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @Post('drafts/:id/import-reviews')
@@ -119,14 +145,13 @@ export class AdminImportController {
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(
         `${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}/import-reviews`,
         body,
         { headers: req.authHeaders },
       ),
     );
-    return data;
   }
 
   @Post('drafts/:id/publish')
@@ -135,12 +160,11 @@ export class AdminImportController {
     @Request() req: { authHeaders: Record<string, string> },
     @Param('id') id: string,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}/publish`, {}, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @Post('drafts/:id/reject')
@@ -149,11 +173,10 @@ export class AdminImportController {
     @Request() req: { authHeaders: Record<string, string> },
     @Param('id') id: string,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}/reject`, {}, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 }

@@ -20,7 +20,7 @@ export class GoogleMapsImportController {
 
   @Post('resolve')
   @ApiOperation({ summary: 'Resolve Google Maps input into a normalized draft preview' })
-  resolve(@Body() body: Record<string, unknown>) {
+  resolve(@Body() body: Record<string, unknown>): Promise<unknown> {
     return this.importService.resolve(body as never);
   }
 

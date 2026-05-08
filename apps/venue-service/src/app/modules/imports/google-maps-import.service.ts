@@ -9,7 +9,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { firstValueFrom } from 'rxjs';
 import { DataSource, Repository } from 'typeorm';
 import {
-  Category,
   District,
   Venue,
   VenueImport,
@@ -304,7 +303,7 @@ export class GoogleMapsImportService {
     }
 
     const enriched = await this.enrichPayload(normalized);
-    draft.normalized_payload = enriched.payload as Record<string, unknown>;
+    draft.normalized_payload = enriched.payload as unknown as Record<string, unknown>;
     draft.confidence = enriched.confidence;
     if (!draft.matched_venue_id) {
       draft.matched_venue_id = enriched.matched_venue_id;
@@ -343,7 +342,7 @@ export class GoogleMapsImportService {
       primary_category_id: normalized.primary_category_id ?? null,
       selected_reviews: this.normalizeReviews(normalized.selected_reviews ?? []),
     });
-    draft.normalized_payload = enriched.payload as Record<string, unknown>;
+    draft.normalized_payload = enriched.payload as unknown as Record<string, unknown>;
     draft.confidence = enriched.confidence;
     draft.matched_venue_id = enriched.matched_venue_id;
     draft.status = enriched.status;
@@ -374,6 +373,7 @@ export class GoogleMapsImportService {
   async publishDraft(id: string, userId: string) {
     const draft = await this.loadDraft(id);
     if (draft.status === VenueImportStatus.PUBLISHED && draft.published_venue_id) {
+      await this.safeRecalculateVenueStats(draft.published_venue_id);
       return {
         draft: await this.serializeDraft(draft),
         venue: await this.venueService.findById(draft.published_venue_id),
@@ -409,7 +409,7 @@ export class GoogleMapsImportService {
       }
     }
 
-    await this.recalculateVenueStats(created.id);
+    await this.safeRecalculateVenueStats(created.id);
 
     const venue = await this.venueService.findById(created.id);
     return {
@@ -470,7 +470,17 @@ export class GoogleMapsImportService {
         account_id: String(review.account_id ?? ''),
         source_review_id: reviews[index]?.source_review_id ?? null,
       }))
-      .filter((row) => row.review_id);
+      .filter((row: PublishReviewSeedResult) => row.review_id);
+  }
+
+  private async safeRecalculateVenueStats(venueId: string): Promise<void> {
+    try {
+      await this.recalculateVenueStats(venueId);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to recalculate venue stats for ${venueId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   private async recalculateVenueStats(venueId: string): Promise<void> {
@@ -487,8 +497,8 @@ export class GoogleMapsImportService {
     await this.dataSource.query(
       `
       UPDATE venue_schema.venues
-         SET rating_avg = COALESCE($1, 0),
-             review_count = COALESCE($2, 0)
+         SET rating_avg = COALESCE($1::double precision, 0),
+             review_count = COALESCE($2::int, 0)
        WHERE id = $3
       `,
       [row?.rating_avg ?? 0, row?.review_count ?? 0, venueId],
@@ -1020,7 +1030,8 @@ export class GoogleMapsImportService {
     return match ? match[0] : null;
   }
 
-  private extractPlaceId(text: string): string | null {
+  private extractPlaceId(text: string | null | undefined): string | null {
+    if (!text) return null;
     const placeId = text.match(/[?&]query_place_id=([^&\s]+)/i)?.[1];
     if (placeId) return decodeURIComponent(placeId);
     const pathId = text.match(/\/place\/([^/?&#]+)/i)?.[1];

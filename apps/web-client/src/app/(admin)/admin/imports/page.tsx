@@ -1,5 +1,6 @@
 'use client';
 
+import axios from 'axios';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   AlertTriangle,
@@ -57,6 +58,29 @@ import {
 } from '@/lib/api/admin';
 
 type DraftForm = Partial<GoogleMapsImportNormalizedPayload>;
+
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as { message?: unknown; error?: unknown } | undefined;
+    const message = data?.message;
+    if (Array.isArray(message)) return message.join(', ');
+    if (typeof message === 'string' && message.trim()) return message;
+    if (typeof data?.error === 'string' && data.error.trim()) return data.error;
+    if (err.message) return err.message;
+  }
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
+function getPublishMissingFields(payload: DraftForm): string[] {
+  const missing: string[] = [];
+  if (!payload.name?.trim()) missing.push('ten venue');
+  if (!payload.address_line?.trim()) missing.push('dia chi');
+  if (!payload.city_id) missing.push('thanh pho');
+  if (!payload.district_id) missing.push('quan/huyen');
+  if (typeof payload.latitude !== 'number' || Number.isNaN(payload.latitude)) missing.push('latitude');
+  if (typeof payload.longitude !== 'number' || Number.isNaN(payload.longitude)) missing.push('longitude');
+  return missing;
+}
 
 const STATUS_FILTERS: Array<{ value: GoogleMapsImportDraft['status'] | 'all'; label: string }> = [
   { value: 'all', label: 'Tất cả' },
@@ -131,6 +155,7 @@ export default function AdminImportsPage() {
   const currentCategoryIds = form.category_ids ?? [];
   const currentReviews = form.selected_reviews ?? [];
   const currentMedia = form.media ?? [];
+  const publishMissingFields = getPublishMissingFields(form);
   const isPublished = selectedDraft?.status === 'published';
   const isRejected = selectedDraft?.status === 'rejected';
   const isReadOnly = isPublished || isRejected;
@@ -157,6 +182,13 @@ export default function AdminImportsPage() {
 
   const publishMutation = useMutation({
     mutationFn: async () => {
+      const missing = getPublishMissingFields(form);
+      if (missing.length > 0) {
+        throw new Error(`Thieu thong tin bat buoc de publish: ${missing.join(', ')}`);
+      }
+      if (selectedDraft?.status === 'duplicate' && selectedDraft.matched_venue_id) {
+        throw new Error('Draft dang bi danh dau trung venue. Kiem tra matched venue truoc khi publish.');
+      }
       await updateGoogleMapsDraft(selectedDraftId as string, form);
       return publishGoogleMapsDraft(selectedDraftId as string);
     },
@@ -164,7 +196,7 @@ export default function AdminImportsPage() {
       qc.invalidateQueries({ queryKey: ['admin', 'imports', 'google-maps'] });
       toast.success(`Đã publish — ${data.seeded_reviews} review được seed`);
     },
-    onError: (err: Error) => toast.error(err.message || 'Publish thất bại'),
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Publish that bai')),
   });
 
   const rejectMutation = useMutation({
@@ -402,6 +434,11 @@ export default function AdminImportsPage() {
                             size="sm"
                             onClick={() => publishMutation.mutate()}
                             disabled={isBusy}
+                            title={
+                              publishMissingFields.length > 0
+                                ? `Thieu: ${publishMissingFields.join(', ')}`
+                                : undefined
+                            }
                           >
                             {publishMutation.isPending ? (
                               <Loader2 className="size-4 animate-spin" />

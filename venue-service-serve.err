@@ -280,3 +280,326 @@ Note: This will throw an error in the next major version.[31m
 [90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
     at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
 [39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:54:53 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findTopRated [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:115:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:54:53 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 10:56:37 AM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mQueryFailedError: invalid input syntax for type integer: "3.75"
+    at PostgresQueryRunner.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\driver\postgres\PostgresQueryRunner.ts:325:19[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at DataSource.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\data-source\DataSource.ts:541:20[90m)[31m
+    at GoogleMapsImportService.recalculateVenueStats [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:341:1[90m)[31m
+    at GoogleMapsImportService.publishDraft [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:282:1[90m)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17 {
+  query: [32m'\n      UPDATE venue_schema.venues\n         SET rating_avg = COALESCE($1, 0),\n             review_count = COALESCE($2, 0)\n       WHERE id = $3\n      '[31m,
+  parameters: [
+    [33m3.75[31m,
+    [33m8[31m,
+    [32m'cda727fd-c356-43c4-a8b0-b129ddc6c9fa'[31m
+  ],
+  driverError: error: invalid input syntax for type integer: "3.75"
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg[24m\lib\client.js:631:17
+  [90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+      at PostgresQueryRunner.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\driver\postgres\PostgresQueryRunner.ts:254:25[90m)[31m
+      at DataSource.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\data-source\DataSource.ts:541:20[90m)[31m
+      at GoogleMapsImportService.recalculateVenueStats [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:341:1[90m)[31m
+      at GoogleMapsImportService.publishDraft [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:282:1[90m)[31m
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17 {
+    length: [33m147[31m,
+    severity: [32m'ERROR'[31m,
+    code: [32m'22P02'[31m,
+    detail: [90mundefined[31m,
+    hint: [90mundefined[31m,
+    position: [90mundefined[31m,
+    internalPosition: [90mundefined[31m,
+    internalQuery: [90mundefined[31m,
+    where: [32m"unnamed portal parameter $1 = '...'"[31m,
+    schema: [90mundefined[31m,
+    table: [90mundefined[31m,
+    column: [90mundefined[31m,
+    dataType: [90mundefined[31m,
+    constraint: [90mundefined[31m,
+    file: [32m'numutils.c'[31m,
+    line: [32m'616'[31m,
+    routine: [32m'pg_strtoint32_safe'[31m
+  },
+  length: [33m147[31m,
+  severity: [32m'ERROR'[31m,
+  code: [32m'22P02'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [32m"unnamed portal parameter $1 = '...'"[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [32m'numutils.c'[31m,
+  line: [32m'616'[31m,
+  routine: [32m'pg_strtoint32_safe'[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 11:19:35 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 11:19:35 AM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: Unexpected close
+      at succeed [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mamqplib[24m\lib\connection.js:226:15[90m)[31m
+      at onOpenOk [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mamqplib[24m\lib\connection.js:208:7[90m)[31m
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mamqplib[24m\lib\connection.js:111:11
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mamqplib[24m\lib\connection.js:104:11
+      at TLSSocket.recv [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mamqplib[24m\lib\connection.js:453:9[90m)[31m
+  [90m    at Object.onceWrapper (node:events:622:28)[31m
+  [90m    at TLSSocket.emit (node:events:508:28)[31m
+  [90m    at emitReadable_ (node:internal/streams/readable:832:12)[31m
+  [90m    at processTicksAndRejections (node:internal/process/task_queues:88:21)[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 2:37:34 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 2:37:34 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: Heartbeat timeout
+      at Heart.<anonymous> [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mamqplib[24m\lib\connection.js:379:21[90m)[31m
+  [90m    at Heart.emit (node:events:508:28)[31m
+      at Heart.runHeartbeat [90m(d:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mamqplib[24m\lib\heartbeat.js:88:7[90m)[31m
+  [90m    at listOnTimeout (node:internal/timers:605:17)[31m
+  [90m    at processTimers (node:internal/timers:541:7)[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 3:02:48 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findTopRated [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:115:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 3:02:48 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 3:29:31 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findTopRated [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:115:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 3:29:31 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 4:02:38 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findTopRated [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:115:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 4:02:38 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mTypeORMError: "venue_schema" alias was not found. Maybe you forgot to join it?
+    at QueryExpressionMap.findAliasByName [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\QueryExpressionMap.ts:449:19[90m)[31m
+    at JoinAttribute.getValue [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:167:45[90m)[31m
+    at JoinAttribute.get relation [as relation] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:191:53[90m)[31m
+    at JoinAttribute.get metadata [as metadata] [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\JoinAttribute.ts:203:18[90m)[31m
+    at SelectQueryBuilder.join [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:2100:53[90m)[31m
+    at SelectQueryBuilder.innerJoin [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\query-builder\SelectQueryBuilder.ts:399:14[90m)[31m
+    at VenueService.attachCategories [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:47:1[90m)[31m
+    at VenueService.findAll [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\venue\venue.service.ts:79:1[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 4:21:32 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mQueryFailedError: invalid input syntax for type integer: "4.125"
+    at PostgresQueryRunner.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\driver\postgres\PostgresQueryRunner.ts:325:19[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at DataSource.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\data-source\DataSource.ts:541:20[90m)[31m
+    at GoogleMapsImportService.recalculateVenueStats [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:341:1[90m)[31m
+    at GoogleMapsImportService.publishDraft [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:282:1[90m)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17 {
+  query: [32m'\n      UPDATE venue_schema.venues\n         SET rating_avg = COALESCE($1, 0),\n             review_count = COALESCE($2, 0)\n       WHERE id = $3\n      '[31m,
+  parameters: [
+    [33m4.125[31m,
+    [33m8[31m,
+    [32m'755faaec-402c-4c9a-acb5-423be6cad48b'[31m
+  ],
+  driverError: error: invalid input syntax for type integer: "4.125"
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg[24m\lib\client.js:631:17
+  [90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+      at PostgresQueryRunner.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\driver\postgres\PostgresQueryRunner.ts:254:25[90m)[31m
+      at DataSource.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\data-source\DataSource.ts:541:20[90m)[31m
+      at GoogleMapsImportService.recalculateVenueStats [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:341:1[90m)[31m
+      at GoogleMapsImportService.publishDraft [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:282:1[90m)[31m
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17 {
+    length: [33m148[31m,
+    severity: [32m'ERROR'[31m,
+    code: [32m'22P02'[31m,
+    detail: [90mundefined[31m,
+    hint: [90mundefined[31m,
+    position: [90mundefined[31m,
+    internalPosition: [90mundefined[31m,
+    internalQuery: [90mundefined[31m,
+    where: [32m"unnamed portal parameter $1 = '...'"[31m,
+    schema: [90mundefined[31m,
+    table: [90mundefined[31m,
+    column: [90mundefined[31m,
+    dataType: [90mundefined[31m,
+    constraint: [90mundefined[31m,
+    file: [32m'numutils.c'[31m,
+    line: [32m'616'[31m,
+    routine: [32m'pg_strtoint32_safe'[31m
+  },
+  length: [33m148[31m,
+  severity: [32m'ERROR'[31m,
+  code: [32m'22P02'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [32m"unnamed portal parameter $1 = '...'"[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [32m'numutils.c'[31m,
+  line: [32m'616'[31m,
+  routine: [32m'pg_strtoint32_safe'[31m
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 4:33:23 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[31m[Nest] 12104  - [31m05/08/2026, 4:33:23 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 4:42:12 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31m[31mDisconnected from RMQ. Trying to reconnect.[31m
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 4:42:12 PM [31m  ERROR[31m [38;5;3m[ClientProxy] [31mObject(1) {
+  err: Error: read ECONNRESET
+  [90m    at TLSWrap.onStreamRead (node:internal/stream_base_commons:216:20)[31m {
+    errno: [33m-4077[31m,
+    code: [32m'ECONNRESET'[31m,
+    syscall: [32m'read'[31m
+  }
+}
+[39m[22m
+[1m[31m[31m[Nest] 12104  - [31m05/08/2026, 4:47:22 PM [31m  ERROR[31m [38;5;3m[ExceptionsHandler] [31mQueryFailedError: invalid input syntax for type integer: "3.5"
+    at PostgresQueryRunner.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\driver\postgres\PostgresQueryRunner.ts:325:19[90m)[31m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+    at DataSource.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\data-source\DataSource.ts:541:20[90m)[31m
+    at GoogleMapsImportService.recalculateVenueStats [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:341:1[90m)[31m
+    at GoogleMapsImportService.publishDraft [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:282:1[90m)[31m
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+    at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17 {
+  query: [32m'\n      UPDATE venue_schema.venues\n         SET rating_avg = COALESCE($1, 0),\n             review_count = COALESCE($2, 0)\n       WHERE id = $3\n      '[31m,
+  parameters: [
+    [33m3.5[31m,
+    [33m8[31m,
+    [32m'c43777b7-87fc-4bbc-91b4-8ba2e8621c4c'[31m
+  ],
+  driverError: error: invalid input syntax for type integer: "3.5"
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4mpg[24m\lib\client.js:631:17
+  [90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[31m
+      at PostgresQueryRunner.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\driver\postgres\PostgresQueryRunner.ts:254:25[90m)[31m
+      at DataSource.query [90m(d:\Data\Project\mynook-location-recommendation-system\[31msrc\data-source\DataSource.ts:541:20[90m)[31m
+      at GoogleMapsImportService.recalculateVenueStats [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:341:1[90m)[31m
+      at GoogleMapsImportService.publishDraft [90m(d:\Data\Project\mynook-location-recommendation-system\[31mapps\venue-service\src\app\modules\imports\google-maps-import.service.ts:282:1[90m)[31m
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-execution-context.js:46:28
+      at [90md:\Data\Project\mynook-location-recommendation-system\[31mnode_modules\[4m@nestjs\core[24m\router\router-proxy.js:9:17 {
+    length: [33m146[31m,
+    severity: [32m'ERROR'[31m,
+    code: [32m'22P02'[31m,
+    detail: [90mundefined[31m,
+    hint: [90mundefined[31m,
+    position: [90mundefined[31m,
+    internalPosition: [90mundefined[31m,
+    internalQuery: [90mundefined[31m,
+    where: [32m"unnamed portal parameter $1 = '...'"[31m,
+    schema: [90mundefined[31m,
+    table: [90mundefined[31m,
+    column: [90mundefined[31m,
+    dataType: [90mundefined[31m,
+    constraint: [90mundefined[31m,
+    file: [32m'numutils.c'[31m,
+    line: [32m'616'[31m,
+    routine: [32m'pg_strtoint32_safe'[31m
+  },
+  length: [33m146[31m,
+  severity: [32m'ERROR'[31m,
+  code: [32m'22P02'[31m,
+  detail: [90mundefined[31m,
+  hint: [90mundefined[31m,
+  position: [90mundefined[31m,
+  internalPosition: [90mundefined[31m,
+  internalQuery: [90mundefined[31m,
+  where: [32m"unnamed portal parameter $1 = '...'"[31m,
+  schema: [90mundefined[31m,
+  table: [90mundefined[31m,
+  column: [90mundefined[31m,
+  dataType: [90mundefined[31m,
+  constraint: [90mundefined[31m,
+  file: [32m'numutils.c'[31m,
+  line: [32m'616'[31m,
+  routine: [32m'pg_strtoint32_safe'[31m
+}
+[39m[22m
