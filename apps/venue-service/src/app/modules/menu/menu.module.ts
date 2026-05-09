@@ -13,5 +13,6 @@ import { MenuAnalyzeService } from './menu-analyze.service.js';
   ],
   controllers: [MenuController],
   providers: [MenuService, MenuAnalyzeService],
+  exports: [MenuService, MenuAnalyzeService],
 })
 export class MenuModule {}

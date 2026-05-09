@@ -18,6 +18,8 @@ import {
 import { INTERACTION_SERVICE_URL } from '@mynook/shared-types';
 import { CategoryService } from '../category/category.service.js';
 import { LocationService } from '../location/location.service.js';
+import { MenuAnalyzeService } from '../menu/menu-analyze.service.js';
+import { MenuService } from '../menu/menu.service.js';
 import { VenueService } from '../venue/venue.service.js';
 
 interface GoogleMapsReviewSnippet {
@@ -108,6 +110,8 @@ export class GoogleMapsImportService {
     private readonly categoryService: CategoryService,
     private readonly locationService: LocationService,
     private readonly venueService: VenueService,
+    private readonly menuService: MenuService,
+    private readonly menuAnalyzeService: MenuAnalyzeService,
     private readonly dataSource: DataSource,
     private readonly http: HttpService,
   ) {}
@@ -415,6 +419,24 @@ export class GoogleMapsImportService {
       } catch (err) {
         this.logger.warn(
           `Failed to seed Google Maps reviews for draft ${draft.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    if (normalized.menu_image_url) {
+      try {
+        const analyzed = await this.menuAnalyzeService.analyzeMenuImage(
+          normalized.menu_image_url,
+        );
+        if (analyzed.categories.length > 0) {
+          await this.menuService.bulkSave(created.id, userId, {
+            categories: analyzed.categories,
+            menu_image_url: normalized.menu_image_url,
+          });
+        }
+      } catch (err) {
+        this.logger.warn(
+          `Failed to analyze menu image for draft ${draft.id}: ${(err as Error).message}`,
         );
       }
     }

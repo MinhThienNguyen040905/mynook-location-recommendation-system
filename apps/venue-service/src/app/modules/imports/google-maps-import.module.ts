@@ -8,6 +8,7 @@ import {
 } from '@mynook/database';
 import { CategoryModule } from '../category/category.module.js';
 import { LocationModule } from '../location/location.module.js';
+import { MenuModule } from '../menu/menu.module.js';
 import { VenueModule } from '../venue/venue.module.js';
 import { GoogleMapsImportController } from './google-maps-import.controller.js';
 import { GoogleMapsImportService } from './google-maps-import.service.js';
@@ -18,6 +19,7 @@ import { GoogleMapsImportService } from './google-maps-import.service.js';
     TypeOrmModule.forFeature([Venue, VenueImport, VenueImportReviewSource]),
     CategoryModule,
     LocationModule,
+    MenuModule,
     VenueModule,
   ],
   controllers: [GoogleMapsImportController],
