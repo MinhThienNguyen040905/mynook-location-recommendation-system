@@ -9,6 +9,12 @@ export interface ReviewAiAnalysis {
   summary: string;
 }
 
+export interface ReviewAuthor {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 export interface Review {
   id: string;
   account_id: string;
@@ -19,6 +25,7 @@ export interface Review {
   ai_analysis_json: ReviewAiAnalysis | null;
   is_verified_visit: boolean;
   created_at: string;
+  author: ReviewAuthor | null;
 }
 
 export interface CreateReviewRequest {

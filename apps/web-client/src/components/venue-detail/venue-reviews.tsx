@@ -104,28 +104,50 @@ function AiAnalysisBadge({ analysis }: { analysis: ReviewAiAnalysis }) {
 function ReviewCard({ review }: { review: Review }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = (review.content?.length ?? 0) > 150;
+  const authorName = review.author?.full_name?.trim() || 'Người dùng ẩn danh';
+  const initial = authorName.charAt(0).toUpperCase();
 
   return (
     <div className="py-5 border-b border-slate-100 dark:border-slate-700 last:border-0">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-0.5">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star
-                key={s}
-                size={14}
-                className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-600 fill-slate-200 dark:fill-slate-600'}
-              />
-            ))}
-          </div>
-          {review.is_verified_visit && (
-            <span className="inline-flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
-              <BadgeCheck size={12} />
-              Đã ghé thăm
-            </span>
+      <div className="flex items-start justify-between mb-2 gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {review.author?.avatar_url ? (
+            <img
+              src={review.author.avatar_url}
+              alt={authorName}
+              className="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold flex items-center justify-center text-sm shrink-0">
+              {initial}
+            </div>
           )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                {authorName}
+              </span>
+              {review.is_verified_visit && (
+                <span className="inline-flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  <BadgeCheck size={12} />
+                  Đã ghé thăm
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    size={12}
+                    className={s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-600 fill-slate-200 dark:fill-slate-600'}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-slate-400">{timeAgo(review.created_at)}</span>
+            </div>
+          </div>
         </div>
-        <span className="text-xs text-slate-400">{timeAgo(review.created_at)}</span>
       </div>
 
       {review.content && (

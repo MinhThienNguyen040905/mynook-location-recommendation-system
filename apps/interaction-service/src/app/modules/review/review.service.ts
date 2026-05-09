@@ -50,12 +50,50 @@ export class ReviewService implements OnModuleInit {
     }
   }
 
-  /** Lấy danh sách reviews của một venue (mới nhất trước) */
-  async findByVenue(venueId: string): Promise<Review[]> {
-    return this.reviewRepo.find({
-      where: { venue_id: venueId },
-      order: { created_at: 'DESC' },
-    });
+  /** Lấy danh sách reviews của một venue (mới nhất trước), kèm thông tin người viết */
+  async findByVenue(venueId: string): Promise<Array<Review & { author: { id: string; full_name: string | null; avatar_url: string | null } | null }>> {
+    const rows = await this.reviewRepo.manager.query(
+      `
+      SELECT r.id,
+             r.account_id,
+             r.venue_id,
+             r.content,
+             r.rating,
+             r.media,
+             r.ai_analysis_json,
+             r.is_verified_visit,
+             r.created_at,
+             r.updated_at,
+             a.id           AS author_id,
+             a.full_name    AS author_full_name,
+             a.avatar_url   AS author_avatar_url
+        FROM interaction_schema.reviews r
+        LEFT JOIN auth_schema.accounts a ON a.id = r.account_id
+       WHERE r.venue_id = $1
+       ORDER BY r.created_at DESC
+      `,
+      [venueId],
+    );
+
+    return rows.map((row: Record<string, unknown>) => ({
+      id: row['id'],
+      account_id: row['account_id'],
+      venue_id: row['venue_id'],
+      content: row['content'],
+      rating: row['rating'],
+      media: row['media'] ?? [],
+      ai_analysis_json: row['ai_analysis_json'],
+      is_verified_visit: row['is_verified_visit'],
+      created_at: row['created_at'],
+      updated_at: row['updated_at'],
+      author: row['author_id']
+        ? {
+            id: row['author_id'] as string,
+            full_name: (row['author_full_name'] as string | null) ?? null,
+            avatar_url: (row['author_avatar_url'] as string | null) ?? null,
+          }
+        : null,
+    })) as Array<Review & { author: { id: string; full_name: string | null; avatar_url: string | null } | null }>;
   }
 
   /** Tạo review mới + emit event để search-ai-service xử lý AI analysis */
