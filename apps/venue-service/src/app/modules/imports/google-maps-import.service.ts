@@ -392,7 +392,7 @@ export class GoogleMapsImportService {
 
     const normalized = draft.normalized_payload as Partial<GoogleMapsNormalizedPayload>;
     const venueDto = this.toCreateVenueDto(normalized);
-    const created = await this.venueService.create(userId, venueDto);
+    const created = await this.venueService.createCommunity(userId, venueDto);
 
     const selectedReviews = this.mergeReviewMedia(
       this.normalizeReviews(normalized.selected_reviews ?? []),
