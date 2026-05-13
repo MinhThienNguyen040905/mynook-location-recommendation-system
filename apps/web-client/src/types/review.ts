@@ -11,6 +11,7 @@ export interface ReviewAiAnalysis {
 
 export interface ReviewAuthor {
   id: string;
+  display_name: string;
   full_name: string | null;
   avatar_url: string | null;
 }

@@ -104,7 +104,7 @@ function AiAnalysisBadge({ analysis }: { analysis: ReviewAiAnalysis }) {
 function ReviewCard({ review }: { review: Review }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = (review.content?.length ?? 0) > 150;
-  const authorName = review.author?.full_name?.trim() || 'Người dùng ẩn danh';
+  const authorName = review.author?.display_name || 'Người dùng ẩn danh';
   const initial = authorName.charAt(0).toUpperCase();
 
   return (

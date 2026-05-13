@@ -51,7 +51,7 @@ export class ReviewService implements OnModuleInit {
   }
 
   /** Lấy danh sách reviews của một venue (mới nhất trước), kèm thông tin người viết */
-  async findByVenue(venueId: string): Promise<Array<Review & { author: { id: string; full_name: string | null; avatar_url: string | null } | null }>> {
+  async findByVenue(venueId: string): Promise<Array<Review & { author: { id: string; display_name: string; full_name: string | null; avatar_url: string | null } | null }>> {
     const rows = await this.reviewRepo.manager.query(
       `
       SELECT r.id,
@@ -66,7 +66,12 @@ export class ReviewService implements OnModuleInit {
              r.updated_at,
              a.id           AS author_id,
              a.full_name    AS author_full_name,
-             a.avatar_url   AS author_avatar_url
+             a.avatar_url   AS author_avatar_url,
+             COALESCE(
+               NULLIF(TRIM(a.full_name), ''),
+               NULLIF(split_part(a.email, '@', 1), ''),
+               'Người dùng'
+             )              AS author_display_name
         FROM interaction_schema.reviews r
         LEFT JOIN auth_schema.accounts a ON a.id = r.account_id
        WHERE r.venue_id = $1
@@ -89,11 +94,12 @@ export class ReviewService implements OnModuleInit {
       author: row['author_id']
         ? {
             id: row['author_id'] as string,
+            display_name: (row['author_display_name'] as string) ?? 'Người dùng',
             full_name: (row['author_full_name'] as string | null) ?? null,
             avatar_url: (row['author_avatar_url'] as string | null) ?? null,
           }
         : null,
-    })) as Array<Review & { author: { id: string; full_name: string | null; avatar_url: string | null } | null }>;
+    })) as Array<Review & { author: { id: string; display_name: string; full_name: string | null; avatar_url: string | null } | null }>;
   }
 
   /** Tạo review mới + emit event để search-ai-service xử lý AI analysis */
@@ -222,7 +228,9 @@ export class ReviewService implements OnModuleInit {
       SELECT id
       FROM auth_schema.accounts
       WHERE is_active = true
-      ORDER BY CASE WHEN type IN ('customer', 'owner') THEN 0 ELSE 1 END, random()
+      ORDER BY CASE WHEN type IN ('customer', 'owner') THEN 0 ELSE 1 END,
+               CASE WHEN full_name IS NOT NULL AND TRIM(full_name) <> '' THEN 0 ELSE 1 END,
+               random()
       LIMIT $1
       `,
       [Math.max(1, limit)],
