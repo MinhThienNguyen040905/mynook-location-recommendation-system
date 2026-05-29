@@ -19,7 +19,7 @@ export function CommunityEditBanner({ venue }: CommunityEditBannerProps) {
 
   const [name, setName] = useState(venue.name);
   const [description, setDescription] = useState(venue.description ?? '');
-  const [address, setAddress] = useState(venue.address);
+  const [addressLine, setAddressLine] = useState(venue.address_line ?? '');
 
   if (!venue.is_community_contributed) return null;
 
@@ -29,8 +29,8 @@ export function CommunityEditBanner({ venue }: CommunityEditBannerProps) {
     try {
       await updateVenue(venue.id, {
         name: name.trim(),
-        description: description.trim() || null,
-        address: address.trim(),
+        description: description.trim() || undefined,
+        address_line: addressLine.trim(),
       });
       setSuccess(true);
       setEditing(false);
@@ -87,12 +87,14 @@ export function CommunityEditBanner({ venue }: CommunityEditBannerProps) {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Địa chỉ</label>
+            <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Địa chỉ (số nhà + tên đường)</label>
             <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              value={addressLine}
+              onChange={(e) => setAddressLine(e.target.value)}
+              placeholder="VD: 123 Nguyễn Huệ"
               className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#e9590c]/30 focus:border-[#e9590c] outline-none transition-all"
             />
+            <p className="text-xs text-slate-400">Để đổi Quận/Thành phố, vui lòng dùng form chỉnh sửa đầy đủ.</p>
           </div>
 
           <div className="space-y-1.5">
@@ -116,7 +118,7 @@ export function CommunityEditBanner({ venue }: CommunityEditBannerProps) {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving || !name.trim() || !address.trim()}
+              disabled={saving || !name.trim() || !addressLine.trim()}
               className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#e9590c] hover:bg-[#c2410b] rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}

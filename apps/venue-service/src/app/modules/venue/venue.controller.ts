@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from '@mynook/shared-types';
@@ -32,6 +33,19 @@ export class VenueController {
   @ApiResponse({ status: 200, description: 'Danh sách venues' })
   getMyVenues(@CurrentUser() user: CurrentUserPayload) {
     return this.venueService.findByOwner(user.id);
+  }
+
+  @Get('top-rated')
+  @ApiOperation({ summary: 'Top-rated venues theo activity gần đây' })
+  @ApiResponse({ status: 200, description: 'Danh sách venues hot tuần' })
+  getTopRated(
+    @Query('days') days?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.venueService.findTopRated(
+      days ? Number(days) : 7,
+      limit ? Number(limit) : 6,
+    );
   }
 
   @Get('my-contributions')

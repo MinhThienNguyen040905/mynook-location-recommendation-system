@@ -27,7 +27,14 @@ export const API_ENDPOINTS = {
     SEARCH: '/venues/search',
     NEARBY: '/venues/nearby',
     TRENDING: '/venues/trending',
+    TOP_RATED: '/venues/top-rated',
     MY_CONTRIBUTIONS: '/venues/my-contributions',
+  },
+
+  // Interactions (track view, recently viewed)
+  INTERACTIONS: {
+    TRACK_VIEW: '/interactions/view',
+    RECENTLY_VIEWED: '/interactions/recently-viewed',
   },
 
   // Bookings
@@ -82,6 +89,14 @@ export const API_ENDPOINTS = {
     VENUE_DETAIL: (id: string) => `/admin/venues/${id}`,
     VENUE_RESTORE: (id: string) => `/admin/venues/${id}/restore`,
     VENUE_HARD_DELETE: (id: string) => `/admin/venues/${id}/hard`,
+    // Google Maps imports
+    IMPORTS: '/admin/imports/google-maps/drafts',
+    IMPORT_RESOLVE: '/admin/imports/google-maps/resolve',
+    IMPORT_DETAIL: (id: string) => `/admin/imports/google-maps/drafts/${id}`,
+    IMPORT_ENRICH: (id: string) => `/admin/imports/google-maps/drafts/${id}/enrich`,
+    IMPORT_REVIEWS: (id: string) => `/admin/imports/google-maps/drafts/${id}/import-reviews`,
+    IMPORT_PUBLISH: (id: string) => `/admin/imports/google-maps/drafts/${id}/publish`,
+    IMPORT_REJECT: (id: string) => `/admin/imports/google-maps/drafts/${id}/reject`,
     // Reviews
     REVIEWS: '/admin/reviews',
     REVIEW_DETAIL: (id: string) => `/admin/reviews/${id}`,
@@ -97,6 +112,16 @@ export const API_ENDPOINTS = {
     VENUE_REPORT_RESOLVE: (id: string) => `/admin/venue-reports/${id}/resolve`,
     // Broadcast
     NOTIFICATIONS_BROADCAST: '/admin/notifications/broadcast',
+    // Categories
+    CATEGORIES: '/admin/categories',
+    CATEGORY_DETAIL: (id: string) => `/admin/categories/${id}`,
+    // Locations
+    CITIES: '/admin/cities',
+    CITY_DETAIL: (id: string) => `/admin/cities/${id}`,
+    DISTRICTS: '/admin/districts',
+    DISTRICT_DETAIL: (id: string) => `/admin/districts/${id}`,
+    // Reindex
+    VENUES_REINDEX: '/admin/venues/reindex-embeddings',
   },
 
   // Notifications
@@ -111,11 +136,26 @@ export const API_ENDPOINTS = {
   SEARCH: {
     SEMANTIC: '/search',
     SUGGESTIONS: '/search/suggestions',
+    RECOMMENDED: '/search/recommended',
   },
 
   // Tags
   TAGS: {
     LIST: '/tags',
+  },
+
+  // Locations (cities / districts — public read, admin CRUD)
+  LOCATIONS: {
+    CITIES: '/cities',
+    CITY_DETAIL: (id: string) => `/cities/${id}`,
+    DISTRICTS: '/districts',
+    DISTRICT_DETAIL: (id: string) => `/districts/${id}`,
+  },
+
+  // Categories (venue types — public read)
+  CATEGORIES: {
+    LIST: '/categories',
+    DETAIL: (id: string) => `/categories/${id}`,
   },
 
   // Upload

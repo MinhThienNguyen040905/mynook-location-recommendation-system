@@ -3,20 +3,51 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Info, Image as ImageIcon, CheckCircle, Trash2,
+  Info, Image as ImageIcon, Trash2,
   MapPin, Clock, Plus,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { getVenueById, updateVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
+import { listCities, listDistricts } from '@/lib/api/locations';
+import { CategoryPickerChips } from '@/components/venue/category-picker-chips';
+import { Tag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Venue } from '@/types/venue';
+import type { City, District, Venue } from '@/types/venue';
 
-const ALL_AMENITIES = [
-  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
-  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
-  'Phòng họp', 'Bãi đỗ xe',
-];
+interface FormState {
+  name: string;
+  address_line: string;
+  ward: string;
+  city_id: string;
+  district_id: string;
+  description: string;
+  opening_hours: Record<string, { open: string; close: string }>;
+  category_ids: string[];
+  primary_category_id: string | null;
+}
+
+function formFromVenue(v: Venue): FormState {
+  const cats = v.categories ?? [];
+  // Prefer backend-provided primary_category_id; fall back to the category
+  // flagged is_primary, then to the first one (matches getCategoriesForVenue
+  // ordering which puts primary first).
+  const primaryId =
+    v.primary_category_id ??
+    cats.find((c) => c.is_primary)?.id ??
+    cats[0]?.id ??
+    null;
+  return {
+    name: v.name ?? '',
+    address_line: v.address_line ?? '',
+    ward: v.ward ?? '',
+    city_id: v.city_id ?? '',
+    district_id: v.district_id ?? '',
+    description: v.description ?? '',
+    opening_hours: v.opening_hours ?? {},
+    category_ids: cats.map((c) => c.id),
+    primary_category_id: primaryId,
+  };
+}
 
 export function VenueGeneralInfo() {
   const searchParams = useSearchParams();
@@ -28,13 +59,37 @@ export function VenueGeneralInfo() {
   const [mediaUploading, setMediaUploading] = useState(false);
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: '',
-    address: '',
+    address_line: '',
+    ward: '',
+    city_id: '',
+    district_id: '',
     description: '',
-    owner_amenities: [] as string[],
-    opening_hours: {} as Record<string, { open: string; close: string }>,
+    opening_hours: {},
+    category_ids: [],
+    primary_category_id: null,
   });
+
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    listCities().then((data) => { if (!cancelled) setCities(data); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!form.city_id) { setDistricts([]); return; }
+    let cancelled = false;
+    setLoadingDistricts(true);
+    listDistricts(form.city_id)
+      .then((data) => { if (!cancelled) setDistricts(data); })
+      .finally(() => { if (!cancelled) setLoadingDistricts(false); });
+    return () => { cancelled = true; };
+  }, [form.city_id]);
 
   useEffect(() => {
     if (!venueId) {
@@ -44,13 +99,7 @@ export function VenueGeneralInfo() {
     getVenueById(venueId)
       .then((v) => {
         setVenue(v);
-        setForm({
-          name: v.name ?? '',
-          address: v.address ?? '',
-          description: v.description ?? '',
-          owner_amenities: v.owner_amenities ?? [],
-          opening_hours: v.opening_hours ?? {},
-        });
+        setForm(formFromVenue(v));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -61,10 +110,7 @@ export function VenueGeneralInfo() {
       <div className="space-y-8">
         <Skeleton className="h-64 rounded-3xl" />
         <Skeleton className="h-48 rounded-3xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Skeleton className="h-48 rounded-3xl" />
-          <Skeleton className="h-48 rounded-3xl" />
-        </div>
+        <Skeleton className="h-48 rounded-3xl" />
       </div>
     );
   }
@@ -78,27 +124,26 @@ export function VenueGeneralInfo() {
     );
   }
 
-  function toggleAmenity(name: string) {
-    setForm(prev => ({
-      ...prev,
-      owner_amenities: prev.owner_amenities.includes(name)
-        ? prev.owner_amenities.filter(a => a !== name)
-        : [...prev.owner_amenities, name],
-    }));
-  }
-
   async function handleSave() {
     if (!venueId) return;
     setSaving(true);
     try {
       const updated = await updateVenue(venueId, {
         name: form.name,
-        address: form.address,
+        address_line: form.address_line,
+        ward: form.ward || undefined,
+        city_id: form.city_id || undefined,
+        district_id: form.district_id || undefined,
         description: form.description,
-        owner_amenities: form.owner_amenities,
         opening_hours: form.opening_hours,
+        category_ids: form.category_ids,
+        primary_category_id: form.primary_category_id ?? undefined,
       });
-      setVenue(updated);
+      // Re-fetch to get eager-loaded categories back into form state
+      const full = await getVenueById(venueId);
+      setVenue(full);
+      setForm(formFromVenue(full));
+      void updated;
     } catch {
       // TODO: toast error
     } finally {
@@ -137,13 +182,7 @@ export function VenueGeneralInfo() {
 
   function handleCancel() {
     if (!venue) return;
-    setForm({
-      name: venue.name ?? '',
-      address: venue.address ?? '',
-      description: venue.description ?? '',
-      owner_amenities: venue.owner_amenities ?? [],
-      opening_hours: venue.opening_hours ?? {},
-    });
+    setForm(formFromVenue(venue));
   }
 
   const hours = form.opening_hours as Record<string, { open: string; close: string }>;
@@ -173,16 +212,52 @@ export function VenueGeneralInfo() {
             </div>
           </div>
           <div className="md:col-span-2 space-y-2">
-            <label className="text-sm font-bold text-slate-700">Address</label>
+            <label className="text-sm font-bold text-slate-700">Address (số nhà + tên đường)</label>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
                 type="text"
-                value={form.address}
-                onChange={e => setForm({ ...form, address: e.target.value })}
+                value={form.address_line}
+                onChange={e => setForm({ ...form, address_line: e.target.value })}
+                placeholder="VD: 123 Nguyễn Huệ"
                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-slate-50/50"
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Phường/Xã</label>
+            <input
+              type="text"
+              value={form.ward}
+              onChange={e => setForm({ ...form, ward: e.target.value })}
+              placeholder="VD: Phường Bến Nghé"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-slate-50/50"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Thành phố</label>
+            <select
+              value={form.city_id}
+              onChange={e => setForm({ ...form, city_id: e.target.value, district_id: '' })}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-slate-50/50"
+            >
+              <option value="">— Chọn —</option>
+              {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-700">Quận/Huyện</label>
+            <select
+              value={form.district_id}
+              onChange={e => setForm({ ...form, district_id: e.target.value })}
+              disabled={!form.city_id || loadingDistricts}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-slate-50/50 disabled:opacity-60"
+            >
+              <option value="">
+                {!form.city_id ? 'Chọn TP trước' : loadingDistricts ? 'Đang tải...' : '— Chọn —'}
+              </option>
+              {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
           </div>
           <div className="md:col-span-2 space-y-2">
             <label className="text-sm font-bold text-slate-700">Description</label>
@@ -194,6 +269,21 @@ export function VenueGeneralInfo() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Categories */}
+      <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
+        <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
+          <Tag className="text-primary size-5" /> Loại quán
+        </h3>
+        <CategoryPickerChips
+          selectedIds={form.category_ids}
+          primaryId={form.primary_category_id}
+          onChange={(ids, primary) => setForm({ ...form, category_ids: ids, primary_category_id: primary })}
+          tone="olive"
+          label="Phân loại"
+          helpText="Venue có thể thuộc nhiều loại. Nhấn ngôi sao để đặt loại chính (hiển thị trên card)."
+        />
       </div>
 
       {/* Photo & Media */}
@@ -255,55 +345,27 @@ export function VenueGeneralInfo() {
         </div>
       </div>
 
-      {/* Amenities + Open Hours */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        {/* Amenities */}
-        <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
-            <CheckCircle className="text-primary size-5" /> Amenities
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {ALL_AMENITIES.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => toggleAmenity(name)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                  form.owner_amenities.includes(name)
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-white text-slate-500 border-slate-200 hover:border-primary/50'
-                )}
+      {/* Open Hours */}
+      <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
+        <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
+          <Clock className="text-primary size-5" /> Open Hours
+        </h3>
+        <div className="space-y-3">
+          {Object.keys(hours).length > 0 ? (
+            Object.entries(hours).map(([day, time]) => (
+              <div
+                key={day}
+                className="flex items-center justify-between p-3 rounded-xl bg-slate-50/50 border border-slate-100"
               >
-                {name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Open Hours */}
-        <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
-          <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
-            <Clock className="text-primary size-5" /> Open Hours
-          </h3>
-          <div className="space-y-3">
-            {Object.keys(hours).length > 0 ? (
-              Object.entries(hours).map(([day, time]) => (
-                <div
-                  key={day}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50/50 border border-slate-100"
-                >
-                  <span className="text-sm font-bold text-slate-700 capitalize">{day}</span>
-                  <span className="text-sm font-medium text-primary">{time.open} – {time.close}</span>
-                </div>
-              ))
-            ) : (
-              <div className="py-6 text-center text-slate-400 text-sm">
-                Chưa thiết lập giờ mở cửa
+                <span className="text-sm font-bold text-slate-700 capitalize">{day}</span>
+                <span className="text-sm font-medium text-primary">{time.open} – {time.close}</span>
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="py-6 text-center text-slate-400 text-sm">
+              Chưa thiết lập giờ mở cửa
+            </div>
+          )}
         </div>
       </div>
 

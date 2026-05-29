@@ -27,8 +27,8 @@ export class AdminVenueController {
   list(
     @Query('is_active') isActive?: string,
     @Query('is_community_contributed') isCc?: string,
-    @Query('city') city?: string,
-    @Query('district') district?: string,
+    @Query('city_id') cityId?: string,
+    @Query('district_id') districtId?: string,
     @Query('q') q?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -38,8 +38,8 @@ export class AdminVenueController {
         isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       is_community_contributed:
         isCc === 'true' ? true : isCc === 'false' ? false : undefined,
-      city,
-      district,
+      city_id: cityId,
+      district_id: districtId,
       q,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
@@ -50,6 +50,20 @@ export class AdminVenueController {
   @ApiOperation({ summary: 'Thống kê venues (tổng, hot, khu vực phổ biến)' })
   stats() {
     return this.adminService.stats();
+  }
+
+  @Post('reindex-embeddings')
+  @ApiOperation({
+    summary: 'Sinh lại search_document + embedding cho venues thiếu (hoặc all nếu force=true)',
+  })
+  reindex(
+    @Query('force') force?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.reindexEmbeddings(
+      force === 'true' || force === '1',
+      limit ? Number(limit) : 50,
+    );
   }
 
   @Get('cities')

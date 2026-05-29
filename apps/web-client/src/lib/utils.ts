@@ -30,3 +30,41 @@ export function formatCurrency(amount: number) {
     currency: 'VND',
   }).format(amount);
 }
+
+// ── Venue address helpers ────────────────────────────────────────
+
+/**
+ * Compose the full address string from structured venue fields.
+ * Handles both shapes: a `Venue` (with `city_ref`/`district_ref` eager-loaded)
+ * and a `SearchResult` (with pre-resolved `city`/`district` name strings).
+ * Parts are joined by ", " and empty parts are dropped.
+ */
+export function formatAddress(source: {
+  address_line?: string | null;
+  ward?: string | null;
+  // Venue shape
+  district_ref?: { name: string } | null;
+  city_ref?: { name: string } | null;
+  // SearchResult shape
+  district?: string | null;
+  city?: string | null;
+}): string {
+  const district =
+    source.district_ref?.name ?? (source.district ?? null);
+  const city = source.city_ref?.name ?? (source.city ?? null);
+  return [source.address_line, source.ward, district, city]
+    .filter((s): s is string => !!s && s.length > 0)
+    .join(', ');
+}
+
+/** Short address for cards — "<district>, <city>" (fallbacks to whatever exists) */
+export function formatShortAddress(source: {
+  district_ref?: { name: string } | null;
+  city_ref?: { name: string } | null;
+  district?: string | null;
+  city?: string | null;
+}): string {
+  const district = source.district_ref?.name ?? source.district ?? null;
+  const city = source.city_ref?.name ?? source.city ?? null;
+  return [district, city].filter((s): s is string => !!s).join(', ');
+}

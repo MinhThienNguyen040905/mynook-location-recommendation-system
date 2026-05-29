@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Star, BadgeCheck, Quote, Tag } from "lucide-react";
+import { Heart, Star, BadgeCheck, Quote, Tag, Coffee, Navigation } from "lucide-react";
 import type { SearchResult } from "@/types/venue";
 
 interface SearchVenueCardProps {
@@ -38,7 +38,7 @@ const CROWD_CONFIG: Record<
   },
 };
 
-/** Format tag key: "good_coffee" → "Good Coffee" */
+/** Format tag/category key: "good_coffee" → "Good Coffee" */
 function formatTag(key: string): string {
   return key
     .split("_")
@@ -46,10 +46,19 @@ function formatTag(key: string): string {
     .join(" ");
 }
 
+/** Format metres → "850m" or "1.2km" */
+function formatDistance(m: number | null): string | null {
+  if (m === null || !Number.isFinite(m)) return null;
+  if (m < 1000) return `${Math.round(m)}m`;
+  return `${(m / 1000).toFixed(1)}km`;
+}
+
 export function SearchVenueCard({ venue }: SearchVenueCardProps) {
   const crowd = CROWD_CONFIG[venue.current_crowd_level] ?? CROWD_CONFIG.moderate;
   const imageUrl =
     venue.media?.[0] || `https://picsum.photos/seed/${venue.id}/800/600`;
+  const primaryCategory = venue.matched_categories?.[0] ?? null;
+  const distance = formatDistance(venue.distance_m);
 
   return (
     <Link href={`/venues/${venue.id}`}>
@@ -62,9 +71,23 @@ export function SearchVenueCard({ venue }: SearchVenueCardProps) {
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
-          {venue.is_group_friendly && (
-            <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 shadow-sm">
-              Nhóm ≤{venue.max_group_size}
+          <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
+            {primaryCategory && (
+              <div className="inline-flex items-center gap-1 bg-[#e9590c] text-white px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                <Coffee size={11} />
+                {formatTag(primaryCategory)}
+              </div>
+            )}
+            {venue.is_group_friendly && (
+              <div className="bg-white/90 dark:bg-black/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 shadow-sm">
+                Nhóm ≤{venue.max_group_size}
+              </div>
+            )}
+          </div>
+          {distance && (
+            <div className="absolute bottom-3 left-3 inline-flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded-md text-xs font-medium">
+              <Navigation size={11} />
+              {distance}
             </div>
           )}
           <button

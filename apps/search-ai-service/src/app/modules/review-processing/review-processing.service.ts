@@ -13,6 +13,18 @@ export interface ReviewCreatedEvent {
   isVerifiedVisit: boolean;
 }
 
+export interface ReviewDeletedEvent {
+  reviewId: string;
+  venueId: string;
+  rating: number;
+  isVerifiedVisit: boolean;
+  analysis: {
+    positive_tags?: string[];
+    negative_tags?: string[];
+    time_context?: 'morning' | 'afternoon' | 'evening' | 'all_day' | null;
+  } | null;
+}
+
 @Injectable()
 export class ReviewProcessingService {
   private readonly logger = new Logger(ReviewProcessingService.name);
@@ -171,7 +183,7 @@ export class ReviewProcessingService {
   }
 
   private mapTimeContext(
-    tc: 'morning' | 'afternoon' | 'evening' | 'all_day' | null,
+    tc: 'morning' | 'afternoon' | 'evening' | 'all_day' | null | undefined,
   ): TimeContext {
     switch (tc) {
       case 'morning':
@@ -183,5 +195,109 @@ export class ReviewProcessingService {
       default:
         return TimeContext.ALL_DAY;
     }
+  }
+
+  /**
+   * Reverse the venue_tag deltas previously applied by `processReview` for a review.
+   *
+   * Best-effort: if `analysis` is null (Groq failed during create — no tags applied),
+   * or a tag key has since been deleted/merged from `tags` master, that contribution
+   * is silently skipped. After the per-tag reverts, any venue_tag row that ended up
+   * with score=0 AND positive_count=0 AND negative_count=0 is hard-deleted so the
+   * `trg_venue_tags_bump_usage` trigger decrements `tags.usage_count` correctly.
+   *
+   * Not idempotent against RMQ redelivery — same caveat as `processReview`.
+   */
+  async revertReview(event: ReviewDeletedEvent): Promise<void> {
+    const analysis = event.analysis;
+    if (!analysis) {
+      this.logger.log(`Review ${event.reviewId} has no AI analysis snapshot — nothing to revert`);
+      return;
+    }
+    const positive = analysis.positive_tags ?? [];
+    const negative = analysis.negative_tags ?? [];
+    if (positive.length === 0 && negative.length === 0) {
+      this.logger.log(`Review ${event.reviewId} analysis has no tags — nothing to revert`);
+      return;
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const multiplier = event.isVerifiedVisit ? 2 : 1;
+      const timeFrame = this.mapTimeContext(analysis.time_context);
+
+      // Resolve all tag keys → ids in one query
+      const allKeys = [...new Set([...positive, ...negative])];
+      const tagRows: { id: string; key: string }[] =
+        allKeys.length > 0
+          ? await queryRunner.query(
+              `SELECT id, key FROM search_schema.tags WHERE key = ANY($1::text[])`,
+              [allKeys],
+            )
+          : [];
+      const keyToId = new Map(tagRows.map((r) => [r.key, r.id]));
+
+      for (const key of positive) {
+        const tagId = keyToId.get(key);
+        if (!tagId) {
+          this.logger.warn(`Tag key "${key}" missing from master — cannot revert`);
+          continue;
+        }
+        // Original positive upsert: score += +multiplier, positive_count += 1
+        // Revert: score += -multiplier, positive_count = GREATEST(positive_count - 1, 0)
+        await this.applyRevertDelta(queryRunner, event.venueId, tagId, timeFrame, -multiplier, true);
+      }
+
+      for (const key of negative) {
+        const tagId = keyToId.get(key);
+        if (!tagId) {
+          this.logger.warn(`Tag key "${key}" missing from master — cannot revert`);
+          continue;
+        }
+        // Original negative upsert: score += -multiplier, negative_count += 1
+        // Revert: score += +multiplier, negative_count = GREATEST(negative_count - 1, 0)
+        await this.applyRevertDelta(queryRunner, event.venueId, tagId, timeFrame, multiplier, false);
+      }
+
+      // Cleanup empty rows so usage_count trigger decrements properly
+      await queryRunner.query(
+        `DELETE FROM search_schema.venue_tags
+         WHERE venue_id = $1 AND score = 0 AND positive_count = 0 AND negative_count = 0`,
+        [event.venueId],
+      );
+
+      await queryRunner.commitTransaction();
+      this.logger.log(
+        `Reverted review ${event.reviewId}: -${positive.length} positive, -${negative.length} negative (multiplier=${multiplier}, timeFrame=${timeFrame})`,
+      );
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Revert transaction failed for review ${event.reviewId}: ${error}`);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async applyRevertDelta(
+    queryRunner: import('typeorm').QueryRunner,
+    venueId: string,
+    tagId: string,
+    timeFrame: TimeContext,
+    scoreDelta: number,
+    wasPositive: boolean,
+  ): Promise<void> {
+    const positiveDec = wasPositive ? 1 : 0;
+    const negativeDec = wasPositive ? 0 : 1;
+    await queryRunner.query(
+      `UPDATE search_schema.venue_tags
+       SET score = score + $1,
+           positive_count = GREATEST(positive_count - $2, 0),
+           negative_count = GREATEST(negative_count - $3, 0)
+       WHERE venue_id = $4 AND tag_id = $5 AND time_frame = $6`,
+      [scoreDelta, positiveDec, negativeDec, venueId, tagId, timeFrame],
+    );
   }
 }

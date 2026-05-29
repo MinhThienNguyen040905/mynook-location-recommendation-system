@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ChevronDown, Search, Loader2 } from "lucide-react";
+import { ChevronDown, Search, Loader2, MapPin, MapPinOff } from "lucide-react";
 import { SearchVenueCard } from "@/components/search/search-venue-card";
 import { MapView } from "@/components/search/map-view";
 import { hybridSearchPublic } from "@/lib/api/search";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import type { SearchResult } from "@/types/venue";
 
 function SearchContent() {
@@ -18,8 +19,10 @@ function SearchContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const geo = useGeolocation();
+
   const doSearch = useCallback(
-    async (q: string) => {
+    async (q: string, lat?: number, lng?: number) => {
       if (!q.trim()) {
         setResults([]);
         setTotal(0);
@@ -28,7 +31,10 @@ function SearchContent() {
       }
       setIsLoading(true);
       try {
-        const data = await hybridSearchPublic(q.trim());
+        const data = await hybridSearchPublic(q.trim(), {
+          lat,
+          lng,
+        });
         setResults(data.results);
         setTotal(data.total);
         setHasSearched(true);
@@ -48,9 +54,12 @@ function SearchContent() {
   useEffect(() => {
     if (initialQuery) {
       setQuery(initialQuery);
-      doSearch(initialQuery);
+      doSearch(initialQuery, geo.coords?.lat, geo.coords?.lng);
     }
-  }, [initialQuery, doSearch]);
+    // re-run when GPS becomes available so distance ranking kicks in
+    // (intentionally not depending on doSearch to avoid loops)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery, geo.coords?.lat, geo.coords?.lng]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,9 +67,17 @@ function SearchContent() {
       router.push(`/search?q=${encodeURIComponent(query.trim())}`, {
         scroll: false,
       });
-      doSearch(query.trim());
+      doSearch(query.trim(), geo.coords?.lat, geo.coords?.lng);
     }
   };
+
+  const gpsLabel = (() => {
+    if (geo.status === "pending") return "Đang lấy vị trí...";
+    if (geo.status === "denied") return "Đã từ chối GPS";
+    if (geo.status === "unavailable") return "GPS không khả dụng";
+    if (geo.coords) return "Đang dùng vị trí của bạn";
+    return "Bật vị trí để tìm gần đây";
+  })();
 
   return (
     <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden bg-[#f8f6f5] dark:bg-[#221610]">
@@ -93,6 +110,31 @@ function SearchContent() {
             Tìm kiếm
           </button>
         </form>
+
+        {/* GPS toggle */}
+        <div className="mt-3 max-w-3xl flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => (geo.coords ? geo.clear() : geo.request())}
+            disabled={geo.status === "pending"}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-colors ${
+              geo.coords
+                ? "bg-[#e9590c]/10 border-[#e9590c]/30 text-[#e9590c]"
+                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-[#e9590c]/40"
+            }`}
+          >
+            {geo.coords ? <MapPin size={13} /> : <MapPinOff size={13} />}
+            <span className="font-medium">{gpsLabel}</span>
+          </button>
+          {geo.coords && (
+            <span className="text-slate-400">
+              ({geo.coords.lat.toFixed(4)}, {geo.coords.lng.toFixed(4)})
+            </span>
+          )}
+          {geo.error && (
+            <span className="text-red-500">{geo.error}</span>
+          )}
+        </div>
       </div>
 
       {/* Split Main Content */}

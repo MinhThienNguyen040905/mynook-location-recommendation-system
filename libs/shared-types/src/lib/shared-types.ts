@@ -80,6 +80,7 @@ export const RMQ_EVENTS = {
 
   // Interaction domain
   VENUE_REVIEWED: 'venue.reviewed',
+  VENUE_REVIEW_DELETED: 'venue.review.deleted',
 } as const;
 
 // ---- RabbitMQ Event Payloads ----
@@ -89,6 +90,34 @@ export interface UserRegisteredEvent {
   email: string;
   fullName: string | null;
   type: AccountType;
+}
+
+export interface VenueReviewDeletedEvent {
+  reviewId: string;
+  venueId: string;
+  rating: number;
+  isVerifiedVisit: boolean;
+  /** Snapshot of Review.ai_analysis_json at time of deletion. May be null if Groq failed during create. */
+  analysis: {
+    positive_tags?: string[];
+    negative_tags?: string[];
+    time_context?: 'morning' | 'afternoon' | 'evening' | 'all_day' | null;
+  } | null;
+}
+
+/**
+ * Emitted by venue-service after a venue is created or updated with a non-empty
+ * description. Consumed by search-ai-service to seed `venue_tags` from the
+ * owner-supplied description so brand-new venues aren't penalised for having
+ * zero review-derived tags. Seeds use a small floor score that real reviews
+ * can override.
+ */
+export interface VenueDescribedEvent {
+  venueId: string;
+  name: string;
+  branchName: string | null;
+  /** Trimmed description text — guaranteed non-empty by the publisher. */
+  description: string;
 }
 
 // ---- Service URLs (HTTP) ----

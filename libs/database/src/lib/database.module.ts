@@ -26,6 +26,9 @@ export class DatabaseModule {
           useFactory: (config: ConfigService) => ({
             type: 'postgres' as const,
             url: config.get<string>('DATABASE_URL'),
+            extra: {
+              max: Number(config.get<string>('DB_POOL_MAX') ?? 3),
+            },
             entities: options.entities,
             synchronize: false, // Dùng SQL migration trên Supabase, KHÔNG để TypeORM tự sync
             ssl: config.get('DATABASE_URL')?.includes('supabase.com')

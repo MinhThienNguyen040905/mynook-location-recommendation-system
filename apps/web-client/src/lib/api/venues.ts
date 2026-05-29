@@ -1,6 +1,11 @@
 import { apiClient } from './client';
 import { API_BASE_URL, API_ENDPOINTS } from '@/config/api';
-import type { Venue, VenueSearchParams, CreateVenueRequest } from '@/types/venue';
+import type {
+  Venue,
+  VenueSearchParams,
+  CreateVenueRequest,
+  UpdateVenueRequest,
+} from '@/types/venue';
 import type { PaginatedResponse } from '@/types/api';
 
 // ─── Client-side fetchers (dùng trong 'use client' component + React Query) ──
@@ -72,8 +77,14 @@ export async function createCommunityVenue(body: CreateVenueRequest): Promise<Ve
 }
 
 /** Cập nhật venue */
-export async function updateVenue(id: string, body: Partial<Venue>): Promise<Venue> {
-  const { data } = await apiClient.patch<Venue>(API_ENDPOINTS.VENUES.DETAIL(id), body);
+export async function updateVenue(
+  id: string,
+  body: UpdateVenueRequest,
+): Promise<Venue> {
+  const { data } = await apiClient.patch<Venue>(
+    API_ENDPOINTS.VENUES.DETAIL(id),
+    body,
+  );
   return data;
 }
 
@@ -117,6 +128,21 @@ export async function getTrendingVenuesServer(): Promise<Venue[]> {
     const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.VENUES.TRENDING}`, {
       next: { revalidate: 300 },
     });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+/** Top-rated venues (Hot tuần này) — Server Component, cache 5 phút */
+export async function getTopRatedVenuesServer(
+  days = 7,
+  limit = 6,
+): Promise<Venue[]> {
+  try {
+    const url = `${API_BASE_URL}${API_ENDPOINTS.VENUES.TOP_RATED}?days=${days}&limit=${limit}`;
+    const res = await fetch(url, { next: { revalidate: 300 } });
     if (!res.ok) return [];
     return res.json();
   } catch {

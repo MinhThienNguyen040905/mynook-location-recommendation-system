@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { MapPin, Star } from "lucide-react";
+import { formatAddress } from "@/lib/utils";
+import { FavoriteButton } from "./favorite-button";
 import type { Venue } from "@/types/venue";
 
 const CROWD_CONFIG: Record<string, { label: string; percent: number; color: string }> = {
@@ -11,7 +13,7 @@ const CROWD_CONFIG: Record<string, { label: string; percent: number; color: stri
 
 export function VenueHeader({ venue }: { venue: Venue }) {
   const crowd = CROWD_CONFIG[venue.current_crowd_level] ?? CROWD_CONFIG.moderate;
-  const fullAddress = `${venue.address}${venue.district ? `, ${venue.district}` : ""}, ${venue.city}`;
+  const fullAddress = formatAddress(venue);
 
   return (
     <div className="mb-8">
@@ -32,10 +34,13 @@ export function VenueHeader({ venue }: { venue: Venue }) {
 
       {/* Header Info */}
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">
-            {venue.name}
-          </h1>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
+              {venue.name}
+            </h1>
+            <FavoriteButton venueId={venue.id} className="shrink-0 mt-1" />
+          </div>
           {venue.branch_name && (
             <p className="text-sm text-slate-400 dark:text-slate-500 mb-2">
               {venue.branch_name}

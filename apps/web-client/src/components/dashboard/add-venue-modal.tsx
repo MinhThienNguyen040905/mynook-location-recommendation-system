@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
   X, MapPin, Upload, Trash2,
@@ -10,8 +10,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { createVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
+import { listCities, listDistricts } from '@/lib/api/locations';
+import { listCategories } from '@/lib/api/categories';
+import { CategoryPickerChips } from '@/components/venue/category-picker-chips';
 import type { UploadResult } from '@/lib/api/upload';
-import type { CreateVenueRequest } from '@/types/venue';
+import type { City, District, VenueCategory, CreateVenueRequest } from '@/types/venue';
 
 // Lazy-load Leaflet map (no SSR)
 const LocationPickerMap = dynamic(
@@ -30,9 +33,10 @@ interface MediaItem {
 interface FormData {
   name: string;
   branch_name: string;
-  address: string;
-  city: string;
-  district: string;
+  address_line: string;
+  ward: string;
+  city_id: string;
+  district_id: string;
   description: string;
   latitude: number;
   longitude: number;
@@ -41,25 +45,22 @@ interface FormData {
   is_group_friendly: boolean;
   openTime: string;
   closeTime: string;
-  owner_amenities: string[];
   mediaItems: MediaItem[];
+  category_ids: string[];
+  primary_category_id: string | null;
 }
 
 const EMPTY_FORM: FormData = {
-  name: '', branch_name: '', address: '', city: 'Ho Chi Minh', district: '',
+  name: '', branch_name: '', address_line: '', ward: '',
+  city_id: '', district_id: '',
   description: '', latitude: 0, longitude: 0,
   total_capacity: '50', max_group_size: '10', is_group_friendly: false,
   openTime: '08:00', closeTime: '22:00',
-  owner_amenities: [], mediaItems: [],
+  mediaItems: [],
+  category_ids: [], primary_category_id: null,
 };
 
-const AMENITIES = [
-  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
-  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
-  'Phòng họp', 'Bãi đỗ xe',
-];
-
-const STEPS = ['Thông tin cơ bản', 'Vị trí & Sức chứa', 'Giờ mở cửa & Tiện ích', 'Xác nhận'];
+const STEPS = ['Thông tin cơ bản', 'Vị trí & Sức chứa', 'Giờ mở cửa', 'Xác nhận'];
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
 
 /* ── Step indicator ──────────────────────────────────────────── */
@@ -140,6 +141,13 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
           className="nook-input resize-none" />
       </div>
 
+      <CategoryPickerChips
+        selectedIds={form.category_ids}
+        primaryId={form.primary_category_id}
+        onChange={(ids, primary) => set({ category_ids: ids, primary_category_id: primary })}
+        tone="olive"
+      />
+
       {/* Media upload */}
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ảnh / Video</label>
@@ -194,7 +202,21 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 }
 
 /* ── Step 2: Vị trí & Sức chứa ──────────────────────────────── */
-function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
+function Step2({
+  form,
+  set,
+  cities,
+  districts,
+  loadingCities,
+  loadingDistricts,
+}: {
+  form: FormData;
+  set: (f: Partial<FormData>) => void;
+  cities: City[];
+  districts: District[];
+  loadingCities: boolean;
+  loadingDistricts: boolean;
+}) {
   const handleLocationChange = useCallback(
     (lat: number, lng: number) => set({ latitude: lat, longitude: lng }),
     [set],
@@ -203,21 +225,47 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ *</label>
-        <input value={form.address} onChange={e => set({ address: e.target.value })}
-          placeholder="Số nhà, tên đường" className="nook-input" />
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ (số nhà + đường) *</label>
+        <input value={form.address_line} onChange={e => set({ address_line: e.target.value })}
+          placeholder="VD: 123 Nguyễn Huệ" className="nook-input" />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Phường/Xã</label>
+        <input value={form.ward} onChange={e => set({ ward: e.target.value })}
+          placeholder="VD: Phường Bến Nghé" className="nook-input" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quận/Huyện</label>
-          <input value={form.district} onChange={e => set({ district: e.target.value })}
-            placeholder="VD: Quận 1" className="nook-input" />
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Thành phố *</label>
+          <select
+            value={form.city_id}
+            onChange={e => set({ city_id: e.target.value, district_id: '' })}
+            className="nook-input"
+            disabled={loadingCities}
+          >
+            <option value="">{loadingCities ? 'Đang tải...' : '— Chọn thành phố —'}</option>
+            {cities.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Thành phố</label>
-          <input value={form.city} onChange={e => set({ city: e.target.value })}
-            placeholder="Ho Chi Minh" className="nook-input" />
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quận/Huyện *</label>
+          <select
+            value={form.district_id}
+            onChange={e => set({ district_id: e.target.value })}
+            className="nook-input"
+            disabled={!form.city_id || loadingDistricts}
+          >
+            <option value="">
+              {!form.city_id ? 'Chọn thành phố trước' : loadingDistricts ? 'Đang tải...' : '— Chọn quận/huyện —'}
+            </option>
+            {districts.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -258,15 +306,8 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
   );
 }
 
-/* ── Step 3: Giờ mở cửa & Tiện ích ──────────────────────────── */
+/* ── Step 3: Giờ mở cửa ──────────────────────────────────────── */
 function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
-  function toggleAmenity(a: string) {
-    const next = form.owner_amenities.includes(a)
-      ? form.owner_amenities.filter(x => x !== a)
-      : [...form.owner_amenities, a];
-    set({ owner_amenities: next });
-  }
-
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
@@ -284,38 +325,31 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
         </div>
       </div>
       <p className="text-xs text-gray-400">Áp dụng cho tất cả các ngày. Bạn có thể chỉnh sửa chi tiết sau.</p>
-
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tiện ích của quán</label>
-        <div className="flex flex-wrap gap-2">
-          {AMENITIES.map(a => (
-            <button key={a} type="button" onClick={() => toggleAmenity(a)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
-                form.owner_amenities.includes(a)
-                  ? 'bg-nook-olive text-white border-nook-olive'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-nook-olive/50'
-              )}>
-              {a}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
 
 /* ── Step 4: Xác nhận ────────────────────────────────────────── */
-function Step4({ form }: { form: FormData }) {
+function Step4({
+  form,
+  cityName,
+  districtName,
+  categoryLabel,
+}: {
+  form: FormData;
+  cityName: string;
+  districtName: string;
+  categoryLabel: string;
+}) {
   const rows: [string, string][] = [
     ['Tên quán',       form.name],
     ['Chi nhánh',      form.branch_name || '—'],
-    ['Địa chỉ',       [form.address, form.district, form.city].filter(Boolean).join(', ')],
+    ['Loại quán',      categoryLabel || '—'],
+    ['Địa chỉ',       [form.address_line, form.ward, districtName, cityName].filter(Boolean).join(', ')],
     ['Tọa độ',        form.latitude && form.longitude ? `${form.latitude.toFixed(6)}, ${form.longitude.toFixed(6)}` : '—'],
     ['Giờ mở cửa',    `${form.openTime} – ${form.closeTime}`],
     ['Sức chứa',      `${form.total_capacity} người (nhóm tối đa ${form.max_group_size})` ],
     ['Nhóm đông',     form.is_group_friendly ? 'Có' : 'Không'],
-    ['Tiện ích',      form.owner_amenities.join(', ') || '—'],
     ['Media',         form.mediaItems.length > 0 ? `${form.mediaItems.length} file` : '—'],
   ];
 
@@ -380,8 +414,22 @@ function SuccessScreen({ name, onClose }: { name: string; onClose: () => void })
 
 /* ── Validate each step ──────────────────────────────────────── */
 function isStepValid(step: number, form: FormData) {
-  if (step === 0) return form.name.trim() !== '' && form.description.trim() !== '';
-  if (step === 1) return form.address.trim() !== '' && form.latitude !== 0 && form.longitude !== 0;
+  if (step === 0) {
+    return (
+      form.name.trim() !== '' &&
+      form.description.trim() !== '' &&
+      form.category_ids.length > 0
+    );
+  }
+  if (step === 1) {
+    return (
+      form.address_line.trim() !== '' &&
+      form.city_id !== '' &&
+      form.district_id !== '' &&
+      form.latitude !== 0 &&
+      form.longitude !== 0
+    );
+  }
   return true;
 }
 
@@ -392,6 +440,50 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [categories, setCategories] = useState<VenueCategory[]>([]);
+  const [loadingCities, setLoadingCities] = useState(true);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  // Load cities + categories once
+  useEffect(() => {
+    let cancelled = false;
+    listCities()
+      .then((data) => { if (!cancelled) setCities(data); })
+      .finally(() => { if (!cancelled) setLoadingCities(false); });
+    listCategories()
+      .then((data) => { if (!cancelled) setCategories(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // Reload districts when city changes
+  useEffect(() => {
+    if (!form.city_id) { setDistricts([]); return; }
+    let cancelled = false;
+    setLoadingDistricts(true);
+    listDistricts(form.city_id)
+      .then((data) => { if (!cancelled) setDistricts(data); })
+      .finally(() => { if (!cancelled) setLoadingDistricts(false); });
+    return () => { cancelled = true; };
+  }, [form.city_id]);
+
+  const cityName = cities.find((c) => c.id === form.city_id)?.name ?? '';
+  const districtName = districts.find((d) => d.id === form.district_id)?.name ?? '';
+
+  // Build "Quán cà phê (chính), Co-working" for Step 4 review
+  const categoryLabel = form.category_ids
+    .map((id) => {
+      const cat = categories.find((c) => c.id === id);
+      if (!cat) return '';
+      return id === form.primary_category_id
+        ? `${cat.display_name} (chính)`
+        : cat.display_name;
+    })
+    .filter(Boolean)
+    .join(', ');
 
   function set(partial: Partial<FormData>) {
     setFormState(prev => ({ ...prev, ...partial }));
@@ -430,19 +522,21 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
       // Step 3: Create venue
       const body: CreateVenueRequest = {
         name: form.name.trim(),
-        address: form.address.trim(),
+        address_line: form.address_line.trim(),
+        ward: form.ward.trim() || undefined,
+        city_id: form.city_id,
+        district_id: form.district_id,
         latitude: form.latitude,
         longitude: form.longitude,
         description: form.description.trim() || undefined,
         branch_name: form.branch_name.trim() || undefined,
-        city: form.city.trim() || undefined,
-        district: form.district.trim() || undefined,
         total_capacity: form.total_capacity ? parseInt(form.total_capacity) : undefined,
         max_group_size: form.max_group_size ? parseInt(form.max_group_size) : undefined,
         is_group_friendly: form.is_group_friendly,
         media: mediaUrls.length > 0 ? mediaUrls : undefined,
         opening_hours,
-        owner_amenities: form.owner_amenities.length > 0 ? form.owner_amenities : undefined,
+        category_ids: form.category_ids,
+        primary_category_id: form.primary_category_id ?? undefined,
       };
 
       await createVenue(body);
@@ -460,11 +554,8 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
 
   return (
     /* Backdrop */
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <motion.div
@@ -502,9 +593,25 @@ export function AddVenueModal({ onClose }: { onClose: () => void }) {
                   transition={{ duration: 0.2 }}
                 >
                   {step === 0 && <Step1 form={form} set={set} />}
-                  {step === 1 && <Step2 form={form} set={set} />}
+                  {step === 1 && (
+                    <Step2
+                      form={form}
+                      set={set}
+                      cities={cities}
+                      districts={districts}
+                      loadingCities={loadingCities}
+                      loadingDistricts={loadingDistricts}
+                    />
+                  )}
                   {step === 2 && <Step3 form={form} set={set} />}
-                  {step === 3 && <Step4 form={form} />}
+                  {step === 3 && (
+                    <Step4
+                      form={form}
+                      cityName={cityName}
+                      districtName={districtName}
+                      categoryLabel={categoryLabel}
+                    />
+                  )}
                 </motion.div>
               </AnimatePresence>
             </>

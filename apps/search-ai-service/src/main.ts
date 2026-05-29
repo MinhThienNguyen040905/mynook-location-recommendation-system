@@ -29,7 +29,7 @@ async function bootstrap() {
     app.connectMicroservice(
       RmqModule.buildConsumerOptions({
         queue: RMQ_QUEUES.SEARCH_AI,
-        routingKeys: ['venue.reviewed', 'venue.*'],
+        routingKeys: ['venue.reviewed', 'venue.review.deleted', 'venue.*'],
       }),
     );
     await app.startAllMicroservices();

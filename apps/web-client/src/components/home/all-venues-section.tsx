@@ -2,6 +2,7 @@ import { Star, MapPin } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getAllVenuesServer } from "@/lib/api/venues";
+import { formatShortAddress } from "@/lib/utils";
 import type { Venue } from "@/types/venue";
 
 const CROWD_LABEL: Record<string, { text: string; color: string }> = {
@@ -81,9 +82,16 @@ export async function AllVenuesSection() {
               </div>
 
               <div className="p-4">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-[#e9590c] transition-colors truncate">
-                  {venue.name}
-                </h3>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-[#e9590c] transition-colors truncate">
+                    {venue.name}
+                  </h3>
+                  {venue.categories && venue.categories.length > 0 && (
+                    <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-[#e9590c]/10 text-[#e9590c] border border-[#e9590c]/20">
+                      {(venue.categories.find((c) => c.is_primary) ?? venue.categories[0]).display_name}
+                    </span>
+                  )}
+                </div>
 
                 {venue.branch_name && (
                   <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
@@ -94,8 +102,7 @@ export async function AllVenuesSection() {
                 <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mt-2">
                   <MapPin size={14} className="mr-1 shrink-0" />
                   <span className="truncate">
-                    {venue.district ? `${venue.district}, ` : ""}
-                    {venue.city}
+                    {formatShortAddress(venue) || "—"}
                   </span>
                 </div>
 
@@ -103,19 +110,6 @@ export async function AllVenuesSection() {
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 line-clamp-2">
                     {venue.description}
                   </p>
-                )}
-
-                {venue.owner_amenities && venue.owner_amenities.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {venue.owner_amenities.slice(0, 3).map((amenity) => (
-                      <span
-                        key={amenity}
-                        className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-600"
-                      >
-                        {amenity}
-                      </span>
-                    ))}
-                  </div>
                 )}
               </div>
             </Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
   X, MapPin, Upload, Trash2,
@@ -10,8 +10,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { createCommunityVenue } from '@/lib/api/venues';
 import { uploadMedia } from '@/lib/api/upload';
+import { listCities, listDistricts } from '@/lib/api/locations';
+import { CategoryPickerChips } from '@/components/venue/category-picker-chips';
 import type { UploadResult } from '@/lib/api/upload';
-import type { CreateVenueRequest } from '@/types/venue';
+import type { City, District, CreateVenueRequest } from '@/types/venue';
 
 const LocationPickerMap = dynamic(
   () => import('../dashboard/location-picker-map').then((m) => m.LocationPickerMap),
@@ -28,9 +30,10 @@ interface MediaItem {
 
 interface FormData {
   name: string;
-  address: string;
-  city: string;
-  district: string;
+  address_line: string;
+  ward: string;
+  city_id: string;
+  district_id: string;
   description: string;
   latitude: number;
   longitude: number;
@@ -39,23 +42,19 @@ interface FormData {
   is_group_friendly: boolean;
   openTime: string;
   closeTime: string;
-  owner_amenities: string[];
   mediaItems: MediaItem[];
+  category_ids: string[];
+  primary_category_id: string | null;
 }
 
 const EMPTY_FORM: FormData = {
-  name: '', address: '', city: 'Ho Chi Minh', district: '',
+  name: '', address_line: '', ward: '', city_id: '', district_id: '',
   description: '', latitude: 0, longitude: 0,
   total_capacity: '50', max_group_size: '10', is_group_friendly: false,
   openTime: '08:00', closeTime: '22:00',
-  owner_amenities: [], mediaItems: [],
+  mediaItems: [],
+  category_ids: [], primary_category_id: null,
 };
-
-const AMENITIES = [
-  'Wi-Fi tốc độ cao', 'Ổ cắm điện', 'Khu vực yên tĩnh', 'Chỗ ngồi ngoài trời',
-  'Thân thiện thú cưng', 'Phòng riêng', 'Máy lạnh', 'Ánh sáng tự nhiên',
-  'Phòng họp', 'Bãi đỗ xe',
-];
 
 const STEPS = ['Thông tin quán', 'Vị trí', 'Chi tiết thêm'];
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime';
@@ -124,6 +123,13 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
           className="nook-input resize-none" />
       </div>
 
+      <CategoryPickerChips
+        selectedIds={form.category_ids}
+        primaryId={form.primary_category_id}
+        onChange={(ids, primary) => set({ category_ids: ids, primary_category_id: primary })}
+        tone="orange"
+      />
+
       <div className="space-y-1.5">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ảnh (không bắt buộc)</label>
         {form.mediaItems.length > 0 && (
@@ -150,7 +156,21 @@ function Step1({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 }
 
 /* ── Step 2: Vị trí ───────────────────────────────────────────── */
-function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
+function Step2({
+  form,
+  set,
+  cities,
+  districts,
+  loadingCities,
+  loadingDistricts,
+}: {
+  form: FormData;
+  set: (f: Partial<FormData>) => void;
+  cities: City[];
+  districts: District[];
+  loadingCities: boolean;
+  loadingDistricts: boolean;
+}) {
   const handleLocationChange = useCallback(
     (lat: number, lng: number) => set({ latitude: lat, longitude: lng }),
     [set],
@@ -159,21 +179,43 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ *</label>
-        <input value={form.address} onChange={e => set({ address: e.target.value })}
-          placeholder="Số nhà, tên đường" className="nook-input" />
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Địa chỉ (số nhà + đường) *</label>
+        <input value={form.address_line} onChange={e => set({ address_line: e.target.value })}
+          placeholder="VD: 123 Nguyễn Huệ" className="nook-input" />
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Phường/Xã</label>
+        <input value={form.ward} onChange={e => set({ ward: e.target.value })}
+          placeholder="VD: Phường Bến Nghé" className="nook-input" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quận/Huyện</label>
-          <input value={form.district} onChange={e => set({ district: e.target.value })}
-            placeholder="Quận 1" className="nook-input" />
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Thành phố *</label>
+          <select
+            value={form.city_id}
+            onChange={e => set({ city_id: e.target.value, district_id: '' })}
+            disabled={loadingCities}
+            className="nook-input"
+          >
+            <option value="">{loadingCities ? 'Đang tải...' : '— Chọn —'}</option>
+            {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Thành phố</label>
-          <input value={form.city} onChange={e => set({ city: e.target.value })}
-            placeholder="Ho Chi Minh" className="nook-input" />
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Quận/Huyện *</label>
+          <select
+            value={form.district_id}
+            onChange={e => set({ district_id: e.target.value })}
+            disabled={!form.city_id || loadingDistricts}
+            className="nook-input"
+          >
+            <option value="">
+              {!form.city_id ? 'Chọn TP trước' : loadingDistricts ? 'Đang tải...' : '— Chọn —'}
+            </option>
+            {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
         </div>
       </div>
 
@@ -189,13 +231,6 @@ function Step2({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
 
 /* ── Step 3: Chi tiết thêm ────────────────────────────────────── */
 function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => void }) {
-  function toggleAmenity(a: string) {
-    const next = form.owner_amenities.includes(a)
-      ? form.owner_amenities.filter(x => x !== a)
-      : [...form.owner_amenities, a];
-    set({ owner_amenities: next });
-  }
-
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
@@ -232,31 +267,24 @@ function Step3({ form, set }: { form: FormData; set: (f: Partial<FormData>) => v
         <input type="checkbox" checked={form.is_group_friendly} onChange={e => set({ is_group_friendly: e.target.checked })} className="sr-only" />
         <span className="text-sm font-medium text-gray-700">Phù hợp cho nhóm đông</span>
       </label>
-
-      <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Tiện ích</label>
-        <div className="flex flex-wrap gap-1.5">
-          {AMENITIES.map(a => (
-            <button key={a} type="button" onClick={() => toggleAmenity(a)}
-              className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all',
-                form.owner_amenities.includes(a)
-                  ? 'bg-[#e9590c] text-white border-[#e9590c]'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-[#e9590c]/50'
-              )}>
-              {a}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
 
 /* ── Validate ─────────────────────────────────────────────────── */
 function isStepValid(step: number, form: FormData) {
-  if (step === 0) return form.name.trim() !== '';
-  if (step === 1) return form.address.trim() !== '' && form.latitude !== 0 && form.longitude !== 0;
+  if (step === 0) {
+    return form.name.trim() !== '' && form.category_ids.length > 0;
+  }
+  if (step === 1) {
+    return (
+      form.address_line.trim() !== '' &&
+      form.city_id !== '' &&
+      form.district_id !== '' &&
+      form.latitude !== 0 &&
+      form.longitude !== 0
+    );
+  }
   return true;
 }
 
@@ -267,6 +295,29 @@ export function ContributeVenueModal({ onClose, onSuccess }: { onClose: () => vo
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [cities, setCities] = useState<City[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loadingCities, setLoadingCities] = useState(true);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    listCities()
+      .then((data) => { if (!cancelled) setCities(data); })
+      .finally(() => { if (!cancelled) setLoadingCities(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!form.city_id) { setDistricts([]); return; }
+    let cancelled = false;
+    setLoadingDistricts(true);
+    listDistricts(form.city_id)
+      .then((data) => { if (!cancelled) setDistricts(data); })
+      .finally(() => { if (!cancelled) setLoadingDistricts(false); });
+    return () => { cancelled = true; };
+  }, [form.city_id]);
 
   function set(partial: Partial<FormData>) {
     setFormState(prev => ({ ...prev, ...partial }));
@@ -293,18 +344,20 @@ export function ContributeVenueModal({ onClose, onSuccess }: { onClose: () => vo
 
       const body: CreateVenueRequest = {
         name: form.name.trim(),
-        address: form.address.trim(),
+        address_line: form.address_line.trim(),
+        ward: form.ward.trim() || undefined,
+        city_id: form.city_id,
+        district_id: form.district_id,
         latitude: form.latitude,
         longitude: form.longitude,
         description: form.description.trim() || undefined,
-        city: form.city.trim() || undefined,
-        district: form.district.trim() || undefined,
         total_capacity: form.total_capacity ? parseInt(form.total_capacity) : undefined,
         max_group_size: form.max_group_size ? parseInt(form.max_group_size) : undefined,
         is_group_friendly: form.is_group_friendly,
         media: mediaUrls.length > 0 ? mediaUrls : undefined,
         opening_hours,
-        owner_amenities: form.owner_amenities.length > 0 ? form.owner_amenities : undefined,
+        category_ids: form.category_ids,
+        primary_category_id: form.primary_category_id ?? undefined,
       };
 
       await createCommunityVenue(body);
@@ -322,9 +375,8 @@ export function ContributeVenueModal({ onClose, onSuccess }: { onClose: () => vo
   const canNext = isStepValid(step, form);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
@@ -376,7 +428,16 @@ export function ContributeVenueModal({ onClose, onSuccess }: { onClose: () => vo
                   initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
                   {step === 0 && <Step1 form={form} set={set} />}
-                  {step === 1 && <Step2 form={form} set={set} />}
+                  {step === 1 && (
+                    <Step2
+                      form={form}
+                      set={set}
+                      cities={cities}
+                      districts={districts}
+                      loadingCities={loadingCities}
+                      loadingDistricts={loadingDistricts}
+                    />
+                  )}
                   {step === 2 && <Step3 form={form} set={set} />}
                 </motion.div>
               </AnimatePresence>

@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   UseInterceptors,
   Request,
@@ -38,6 +39,22 @@ export class VenueController {
   async getAllVenues() {
     const { data } = await firstValueFrom(
       this.http.get(`${VENUE_SERVICE_URL}/venues`),
+    );
+    return data;
+  }
+
+  /** Top-rated venues (public) */
+  @Get('top-rated')
+  @ApiOperation({ summary: 'Top-rated venues (Hot tuần này)' })
+  @ApiResponse({ status: 200, description: 'Danh sách top-rated venues' })
+  async getTopRated(
+    @Query('days') days?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const { data } = await firstValueFrom(
+      this.http.get(`${VENUE_SERVICE_URL}/venues/top-rated`, {
+        params: { days, limit },
+      }),
     );
     return data;
   }

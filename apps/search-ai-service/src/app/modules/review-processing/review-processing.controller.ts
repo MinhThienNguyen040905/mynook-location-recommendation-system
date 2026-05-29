@@ -2,7 +2,7 @@ import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, Payload, Ctx } from '@nestjs/microservices';
 import { RMQ_EVENTS } from '@mynook/shared-types';
 import { ReviewProcessingService } from './review-processing.service.js';
-import type { ReviewCreatedEvent } from './review-processing.service.js';
+import type { ReviewCreatedEvent, ReviewDeletedEvent } from './review-processing.service.js';
 
 @Controller()
 export class ReviewProcessingController {
@@ -40,6 +40,33 @@ export class ReviewProcessingController {
     } catch (error) {
       this.logger.error(`Failed to process review ${reviewEvent.reviewId}: ${error}`);
       // Negative acknowledge — message goes back to queue for retry
+      const channel = context.getChannelRef();
+      const originalMsg = context.getMessage();
+      channel.nack(originalMsg, false, true);
+    }
+  }
+
+  /**
+   * Handle `venue.review.deleted` — reverse the venue_tag deltas previously applied
+   * for this review (using the AI analysis snapshot captured at delete time).
+   */
+  @EventPattern(RMQ_EVENTS.VENUE_REVIEW_DELETED)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async handleReviewDeleted(@Payload() event: any, @Ctx() context: any) {
+    const deletedEvent = event as ReviewDeletedEvent;
+    this.logger.log(
+      `Received review-deleted event: ${deletedEvent.reviewId} for venue ${deletedEvent.venueId}`,
+    );
+
+    try {
+      await this.reviewProcessing.revertReview(deletedEvent);
+      const channel = context.getChannelRef();
+      const originalMsg = context.getMessage();
+      channel.ack(originalMsg);
+    } catch (error) {
+      this.logger.error(
+        `Failed to revert review ${deletedEvent.reviewId}: ${error}`,
+      );
       const channel = context.getChannelRef();
       const originalMsg = context.getMessage();
       channel.nack(originalMsg, false, true);

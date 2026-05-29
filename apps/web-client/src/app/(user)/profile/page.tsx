@@ -16,6 +16,7 @@ import { uploadMedia } from '@/lib/api/upload';
 import { getMyContributions } from '@/lib/api/venues';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Venue } from '@/types/venue';
+import { formatAddress } from '@/lib/utils';
 
 /* ── Sub-components ──────────────────────────────────────────── */
 function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value: number; label: string }) {
@@ -326,7 +327,7 @@ export default function UserProfilePage() {
                       </h4>
                       <p className="text-sm text-nook-ink/50 truncate mt-0.5">
                         <MapPin size={12} className="inline mr-1" />
-                        {venue.address}
+                        {formatAddress(venue)}
                       </p>
                       <div className="flex items-center gap-3 mt-2 text-xs text-nook-ink/40">
                         <span className="flex items-center gap-1">
