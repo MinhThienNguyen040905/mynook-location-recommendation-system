@@ -28,13 +28,6 @@ const TYPE_OPTIONS: { key: NotifType; label: string; color: string; icon: React.
   { key: 'review_reply', label: 'Phản hồi', color: 'border-green-300 bg-green-50 text-green-700',  icon: <CheckCircle2 size={15} /> },
 ];
 
-const TYPE_HEADER_COLOR: Record<NotifType, string> = {
-  system: 'bg-blue-500',
-  promo: 'bg-purple-500',
-  reminder: 'bg-amber-500',
-  review_reply: 'bg-green-500',
-};
-
 export function SendNotificationModal({ onClose }: SendNotificationModalProps) {
   const [target, setTarget] = useState<Target>('all');
   const [type, setType] = useState<NotifType>('system');

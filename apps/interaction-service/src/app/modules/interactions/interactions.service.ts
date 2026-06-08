@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserInteraction } from '@mynook/database';
@@ -25,8 +25,6 @@ export interface RecentlyViewedVenue {
 
 @Injectable()
 export class InteractionsService {
-  private readonly logger = new Logger(InteractionsService.name);
-
   constructor(
     @InjectRepository(UserInteraction)
     private readonly interactionRepo: Repository<UserInteraction>,

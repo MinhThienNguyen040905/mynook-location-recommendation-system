@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Venue } from '@mynook/database';
@@ -31,8 +31,6 @@ export interface RecommendedVenue {
 
 @Injectable()
 export class RecommendService {
-  private readonly logger = new Logger(RecommendService.name);
-
   constructor(
     @InjectRepository(Venue)
     private readonly venueRepo: Repository<Venue>,

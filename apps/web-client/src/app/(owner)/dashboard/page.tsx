@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Camera, Star, Verified, Edit3, Check, X,
-  User, Phone, Link as LinkIcon, MapPin,
+  User, Phone, MapPin,
   TrendingUp, Store, Plus,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

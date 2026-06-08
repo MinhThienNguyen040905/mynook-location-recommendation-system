@@ -2,8 +2,6 @@
 
 import { ImageIcon } from "lucide-react";
 
-const PLACEHOLDER = "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&q=80&w=1000";
-
 interface VenueGalleryProps {
   media: string[];
   name: string;
