@@ -92,7 +92,6 @@ export class ReviewService implements OnModuleInit {
              r.ai_analysis_json,
              r.is_verified_visit,
              r.created_at,
-             r.updated_at,
              a.id           AS author_id,
              a.full_name    AS author_full_name,
              a.avatar_url   AS author_avatar_url,
@@ -118,8 +117,7 @@ export class ReviewService implements OnModuleInit {
       media: row['media'] ?? [],
       ai_analysis_json: row['ai_analysis_json'],
       is_verified_visit: row['is_verified_visit'],
-      created_at: row['created_at'],
-      updated_at: row['updated_at'],
+      created_at: new Date(row['created_at'] as string | Date).toISOString(),
       author: row['author_id']
         ? {
             id: row['author_id'] as string,

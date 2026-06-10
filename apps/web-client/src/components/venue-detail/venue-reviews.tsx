@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Star, MessageSquarePlus, ThumbsUp, ThumbsDown, Clock, Sparkles, BadgeCheck } from 'lucide-react';
+import { Star, MessageSquarePlus, ThumbsUp, ThumbsDown, Clock, Sparkles, BadgeCheck, AlertCircle } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { getVenueReviews } from '@/lib/api/reviews';
 import { WriteReviewModal } from '@/components/review/write-review-modal';
@@ -212,14 +212,20 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
 export function VenueReviews({ venueId, venueName, initialReviews }: VenueReviewsProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [showWriteModal, setShowWriteModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(initialReviews.length === 0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refreshReviews = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await getVenueReviews(venueId);
       setReviews(data);
-    } catch {
-      // keep existing reviews on error
+    } catch (error) {
+      console.error('Failed to refresh venue reviews:', error);
+      setLoadError('Không tải được danh sách review. Vui lòng thử lại.');
     }
+    setIsLoading(false);
   }, [venueId]);
 
   useEffect(() => {
@@ -251,7 +257,23 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
         </button>
       </div>
 
-      {reviews.length > 0 ? (
+      {isLoading && reviews.length === 0 ? (
+        <div className="py-12 text-center bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl">
+          <div className="mx-auto mb-3 size-8 rounded-full border-2 border-slate-200 border-t-[#e9590c] animate-spin" />
+          <p className="text-sm text-slate-400">Đang tải review...</p>
+        </div>
+      ) : loadError && reviews.length === 0 ? (
+        <div className="py-12 text-center bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/40 rounded-xl">
+          <AlertCircle size={32} className="mx-auto mb-3 text-red-400" />
+          <p className="text-slate-500 mb-3">{loadError}</p>
+          <button
+            onClick={refreshReviews}
+            className="text-sm font-bold text-[#e9590c] hover:underline"
+          >
+            Tải lại
+          </button>
+        </div>
+      ) : reviews.length > 0 ? (
         <>
           {/* Summary */}
           <div className="flex gap-8 items-start mb-6 p-5 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-sm">
