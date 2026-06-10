@@ -671,13 +671,9 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
                       : 'opacity-70',
                   )}
                 >
-                  {item.image_url ? (
+                  {item.image_url && (
                     <div className="size-20 rounded-lg overflow-hidden shrink-0 border border-slate-100 dark:border-slate-600">
                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    </div>
-                  ) : (
-                    <div className="size-20 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-600">
-                      <ImageIcon size={22} className="text-slate-300 dark:text-slate-500" />
                     </div>
                   )}
 
