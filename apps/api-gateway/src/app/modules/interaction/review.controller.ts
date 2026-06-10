@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
   UseInterceptors,
   Request,
@@ -32,6 +33,27 @@ export class ReviewController {
   async getVenueReviews(@Param('venueId') venueId: string) {
     const { data } = await firstValueFrom(
       this.http.get(`${INTERACTION_SERVICE_URL}/reviews/venue/${venueId}`),
+    );
+    return data;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Get('my')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lay danh sach reviews cua user hien tai' })
+  @ApiResponse({ status: 200, description: 'Danh sach reviews cua user' })
+  async getMyReviews(
+    @Request() req: { authHeaders: Record<string, string> },
+    @Query('limit') limit?: string,
+  ) {
+    const params = new URLSearchParams();
+    if (limit) params.set('limit', limit);
+    const { data } = await firstValueFrom(
+      this.http.get(
+        `${INTERACTION_SERVICE_URL}/reviews/my?${params.toString()}`,
+        { headers: req.authHeaders },
+      ),
     );
     return data;
   }

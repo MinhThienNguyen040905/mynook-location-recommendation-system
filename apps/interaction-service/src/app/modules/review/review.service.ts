@@ -26,6 +26,35 @@ interface SeedGoogleMapsReviewsDto {
   reviews: SeedGoogleMapsReviewInput[];
 }
 
+export interface UserReviewListItem {
+  id: string;
+  account_id: string;
+  venue_id: string;
+  content: string | null;
+  rating: number;
+  media: string[];
+  ai_analysis_json: unknown | null;
+  is_verified_visit: boolean;
+  created_at: string;
+  venue: {
+    id: string;
+    name: string;
+    branch_name: string | null;
+    address_line: string | null;
+    ward: string | null;
+    city_name: string | null;
+    district_name: string | null;
+    media: string[];
+    rating_avg: number;
+    review_count: number;
+  } | null;
+}
+
+export interface UserReviewListResponse {
+  total: number;
+  data: UserReviewListItem[];
+}
+
 @Injectable()
 export class ReviewService implements OnModuleInit {
   private readonly logger = new Logger(ReviewService.name);
@@ -100,6 +129,85 @@ export class ReviewService implements OnModuleInit {
           }
         : null,
     })) as Array<Review & { author: { id: string; display_name: string; full_name: string | null; avatar_url: string | null } | null }>;
+  }
+
+  /** Lấy reviews của một user, kèm thông tin venue để hiển thị ở profile. */
+  async findByAccount(
+    accountId: string,
+    limit = 20,
+  ): Promise<UserReviewListResponse> {
+    const safeLimit = Math.max(1, Math.min(limit, 50));
+    const [countRows, rows] = await Promise.all([
+      this.reviewRepo.manager.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM interaction_schema.reviews
+        WHERE account_id = $1
+        `,
+        [accountId],
+      ),
+      this.reviewRepo.manager.query(
+        `
+        SELECT
+          r.id,
+          r.account_id,
+          r.venue_id,
+          r.content,
+          r.rating,
+          r.media,
+          r.ai_analysis_json,
+          r.is_verified_visit,
+          r.created_at,
+          v.id AS venue_id_ref,
+          v.name AS venue_name,
+          v.branch_name AS venue_branch_name,
+          v.address_line AS venue_address_line,
+          v.ward AS venue_ward,
+          v.media AS venue_media,
+          v.rating_avg AS venue_rating_avg,
+          v.review_count AS venue_review_count,
+          c.name AS venue_city_name,
+          d.name AS venue_district_name
+        FROM interaction_schema.reviews r
+        LEFT JOIN venue_schema.venues v ON v.id = r.venue_id
+        LEFT JOIN venue_schema.cities c ON c.id = v.city_id
+        LEFT JOIN venue_schema.districts d ON d.id = v.district_id
+        WHERE r.account_id = $1
+        ORDER BY r.created_at DESC
+        LIMIT $2
+        `,
+        [accountId, safeLimit],
+      ),
+    ]);
+
+    return {
+      total: Number(countRows[0]?.total ?? 0),
+      data: rows.map((row: Record<string, unknown>) => ({
+        id: row.id as string,
+        account_id: row.account_id as string,
+        venue_id: row.venue_id as string,
+        content: row.content as string | null,
+        rating: Number(row.rating),
+        media: (row.media as string[]) ?? [],
+        ai_analysis_json: row.ai_analysis_json ?? null,
+        is_verified_visit: row.is_verified_visit === true,
+        created_at: new Date(row.created_at as string | Date).toISOString(),
+        venue: row.venue_id_ref
+          ? {
+              id: row.venue_id_ref as string,
+              name: row.venue_name as string,
+              branch_name: row.venue_branch_name as string | null,
+              address_line: row.venue_address_line as string | null,
+              ward: row.venue_ward as string | null,
+              city_name: row.venue_city_name as string | null,
+              district_name: row.venue_district_name as string | null,
+              media: (row.venue_media as string[]) ?? [],
+              rating_avg: Number(row.venue_rating_avg ?? 0),
+              review_count: Number(row.venue_review_count ?? 0),
+            }
+          : null,
+      })),
+    };
   }
 
   /** Tạo review mới + emit event để search-ai-service xử lý AI analysis */

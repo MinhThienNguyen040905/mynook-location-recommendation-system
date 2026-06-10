@@ -9,14 +9,16 @@ import {
   MessageSquare, HandHeart,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { cn } from '@/lib/utils';
+import { cn, formatAddress, formatDate } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { updateProfile } from '@/lib/api/auth';
 import { uploadMedia } from '@/lib/api/upload';
 import { getMyContributions } from '@/lib/api/venues';
+import { getInteractionStats } from '@/lib/api/interactions';
+import { getMyReviews } from '@/lib/api/reviews';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Venue } from '@/types/venue';
-import { formatAddress } from '@/lib/utils';
+import type { UserReview } from '@/types/review';
 
 /* ── Sub-components ──────────────────────────────────────────── */
 function StatCard({ icon: Icon, value, label }: { icon: React.ElementType; value: number; label: string }) {
@@ -75,6 +77,10 @@ export default function UserProfilePage() {
   const [activeTab, setActiveTab] = useState<'reviews' | 'contributions'>('reviews');
   const [contributions, setContributions] = useState<Venue[]>([]);
   const [contributionsLoading, setContributionsLoading] = useState(false);
+  const [myReviews, setMyReviews] = useState<UserReview[]>([]);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [visitedCount, setVisitedCount] = useState(0);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -89,6 +95,31 @@ export default function UserProfilePage() {
         phone_number: user.phone_number ?? '',
       });
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+
+    Promise.allSettled([getMyReviews(20), getInteractionStats()])
+      .then(([reviewsResult, statsResult]) => {
+        if (cancelled) return;
+
+        if (reviewsResult.status === 'fulfilled') {
+          setMyReviews(reviewsResult.value.data);
+          setReviewTotal(reviewsResult.value.total);
+        }
+
+        if (statsResult.status === 'fulfilled') {
+          setVisitedCount(statsResult.value.viewed_count);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setReviewsLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, [user]);
 
   useEffect(() => {
@@ -245,8 +276,8 @@ export default function UserProfilePage() {
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <StatCard icon={MessageSquare} value={0} label="Đánh giá" />
-        <StatCard icon={MapPin}        value={0} label="Đã ghé thăm" />
+        <StatCard icon={MessageSquare} value={reviewTotal} label="Đánh giá" />
+        <StatCard icon={MapPin}        value={visitedCount} label="Đã ghé thăm" />
       </div>
 
       {/* ── Tabs ── */}
@@ -280,13 +311,85 @@ export default function UserProfilePage() {
 
         <div className="p-6">
           {activeTab === 'reviews' && (
-            <div className="py-12 text-center text-nook-ink/40">
-              <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Chưa có đánh giá nào</p>
-              <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
-                Tìm venue để đánh giá →
-              </Link>
-            </div>
+            reviewsLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32 rounded-2xl" />
+                ))}
+              </div>
+            ) : myReviews.length === 0 ? (
+              <div className="py-12 text-center text-nook-ink/40">
+                <MessageSquare size={40} className="mx-auto mb-3 opacity-30" />
+                <p className="font-medium">Chưa có đánh giá nào</p>
+                <Link href="/search" className="mt-4 inline-block text-sm text-nook-olive font-bold hover:underline">
+                  Tìm venue để đánh giá
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myReviews.map((review) => (
+                  <Link
+                    key={review.id}
+                    href={review.venue ? `/venues/${review.venue.id}` : '/search'}
+                    className="block rounded-2xl border border-nook-sand p-4 hover:border-nook-olive/30 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex gap-4">
+                      <div className="size-20 rounded-xl overflow-hidden shrink-0 bg-nook-sand">
+                        {review.venue?.media?.[0] ? (
+                          <img src={review.venue.media[0]} alt={review.venue.name} className="size-full object-cover" />
+                        ) : (
+                          <div className="size-full flex items-center justify-center">
+                            <MapPin size={24} className="text-nook-ink/20" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-nook-ink truncate">
+                              {review.venue?.name ?? 'Venue không còn tồn tại'}
+                            </h4>
+                            {review.venue && (
+                              <p className="text-sm text-nook-ink/50 truncate mt-0.5">
+                                <MapPin size={12} className="inline mr-1" />
+                                {formatAddress({
+                                  address_line: review.venue.address_line,
+                                  ward: review.venue.ward,
+                                  district: review.venue.district_name,
+                                  city: review.venue.city_name,
+                                })}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-xs text-nook-ink/40 shrink-0">
+                            {formatDate(review.created_at)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-2">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              size={14}
+                              className={i < review.rating ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200'}
+                            />
+                          ))}
+                          {review.is_verified_visit && (
+                            <span className="ml-2 rounded-full bg-nook-olive/10 px-2 py-0.5 text-xs font-medium text-nook-olive">
+                              Đã ghé thăm
+                            </span>
+                          )}
+                        </div>
+                        {review.content && (
+                          <p className="mt-2 line-clamp-2 text-sm text-nook-ink/70">
+                            {review.content}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )
           )}
 
           {activeTab === 'contributions' && (

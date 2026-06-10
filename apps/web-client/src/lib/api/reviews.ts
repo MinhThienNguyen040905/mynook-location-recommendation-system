@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import { API_BASE_URL, API_ENDPOINTS } from '@/config/api';
-import type { Review, CreateReviewRequest } from '@/types/review';
+import type { Review, CreateReviewRequest, UserReviewListResponse } from '@/types/review';
 
 /** Lấy danh sách reviews của một venue (client-side) */
 export async function getVenueReviews(venueId: string): Promise<Review[]> {
@@ -11,6 +11,14 @@ export async function getVenueReviews(venueId: string): Promise<Review[]> {
 /** Tạo review mới (client-side, cần auth) */
 export async function createReview(body: CreateReviewRequest): Promise<Review> {
   const { data } = await apiClient.post<Review>(API_ENDPOINTS.REVIEWS.CREATE, body);
+  return data;
+}
+
+export async function getMyReviews(limit = 20): Promise<UserReviewListResponse> {
+  const { data } = await apiClient.get<UserReviewListResponse>(
+    API_ENDPOINTS.REVIEWS.MY,
+    { params: { limit } },
+  );
   return data;
 }
 

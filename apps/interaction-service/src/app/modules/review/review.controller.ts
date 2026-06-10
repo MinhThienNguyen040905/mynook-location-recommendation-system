@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CurrentUser } from '@mynook/shared-types';
 import type { CurrentUserPayload } from '@mynook/shared-types';
@@ -15,6 +24,18 @@ export class ReviewController {
   @ApiResponse({ status: 200, description: 'Danh sách reviews' })
   getVenueReviews(@Param('venueId') venueId: string) {
     return this.reviewService.findByVenue(venueId);
+  }
+
+  @Get('my')
+  @ApiOperation({ summary: 'Lấy danh sách reviews của user hiện tại' })
+  @ApiResponse({ status: 200, description: 'Danh sách reviews của user' })
+  getMyReviews(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Query('limit') limit?: string,
+  ) {
+    if (!user?.id) throw new UnauthorizedException();
+    const max = limit ? parseInt(limit, 10) || 20 : 20;
+    return this.reviewService.findByAccount(user.id, max);
   }
 
   @Post()

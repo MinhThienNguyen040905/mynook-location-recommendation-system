@@ -44,4 +44,12 @@ export class InteractionsController {
     const max = limit ? Math.min(parseInt(limit, 10) || 8, 30) : 8;
     return this.interactions.recentlyViewed(user.id, max);
   }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Interaction stats for the current user' })
+  @ApiResponse({ status: 200 })
+  async stats(@CurrentUser() user: CurrentUserPayload | undefined) {
+    if (!user?.id) throw new UnauthorizedException();
+    return this.interactions.stats(user.id);
+  }
 }

@@ -29,6 +29,35 @@ export interface Review {
   author: ReviewAuthor | null;
 }
 
+export interface UserReview {
+  id: string;
+  account_id: string;
+  venue_id: string;
+  rating: number;
+  content: string | null;
+  media: string[];
+  ai_analysis_json: ReviewAiAnalysis | null;
+  is_verified_visit: boolean;
+  created_at: string;
+  venue: {
+    id: string;
+    name: string;
+    branch_name: string | null;
+    address_line: string | null;
+    ward: string | null;
+    city_name: string | null;
+    district_name: string | null;
+    media: string[];
+    rating_avg: number;
+    review_count: number;
+  } | null;
+}
+
+export interface UserReviewListResponse {
+  total: number;
+  data: UserReview[];
+}
+
 export interface CreateReviewRequest {
   venue_id: string;
   rating: number;
