@@ -4,6 +4,8 @@ import {
   Get,
   Patch,
   Body,
+  HttpException,
+  HttpStatus,
   UseGuards,
   UseInterceptors,
   Request,
@@ -15,7 +17,8 @@ import {
   ApiBearerAuth,
 } from "@nestjs/swagger";
 import { HttpService } from "@nestjs/axios";
-import { firstValueFrom } from "rxjs";
+import { firstValueFrom, type Observable } from "rxjs";
+import type { AxiosError, AxiosResponse } from "axios";
 import { AUTH_SERVICE_URL } from "@mynook/shared-types";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard.js";
 import { AuthHeadersInterceptor } from "../../common/interceptors/auth-headers.interceptor.js";
@@ -36,6 +39,31 @@ import {
 export class AuthController {
   constructor(private readonly http: HttpService) {}
 
+  private async forward<T>(request$: Observable<AxiosResponse<T>>): Promise<T> {
+    try {
+      const { data } = await firstValueFrom(request$);
+      return data;
+    } catch (error) {
+      throw this.toHttpException(error);
+    }
+  }
+
+  private toHttpException(error: unknown): HttpException {
+    const upstream = error as AxiosError;
+
+    if (upstream.response) {
+      return new HttpException(
+        upstream.response.data ?? { message: "Auth service error" },
+        upstream.response.status,
+      );
+    }
+
+    return new HttpException(
+      { message: "Không thể kết nối đến auth-service" },
+      HttpStatus.BAD_GATEWAY,
+    );
+  }
+
   @Post("register")
   @ApiOperation({ summary: "Đăng ký tài khoản mới (user hoặc owner)" })
   @ApiResponse({
@@ -44,10 +72,9 @@ export class AuthController {
   })
   @ApiResponse({ status: 409, description: "Email đã được sử dụng" })
   async register(@Body() body: GatewayRegisterDto) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/register`, body),
     );
-    return data;
   }
 
   @Post("send-otp")
@@ -55,10 +82,9 @@ export class AuthController {
   @ApiResponse({ status: 201, description: "OTP đã gửi đến email" })
   @ApiResponse({ status: 409, description: "Email đã được sử dụng" })
   async sendOtp(@Body() body: GatewaySendOtpDto) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/send-otp`, body),
     );
-    return data;
   }
 
   @Post("verify-otp")
@@ -66,10 +92,9 @@ export class AuthController {
   @ApiResponse({ status: 201, description: "Đăng ký thành công, trả về tokens + user info" })
   @ApiResponse({ status: 400, description: "OTP không hợp lệ hoặc đã hết hạn" })
   async verifyOtp(@Body() body: GatewayVerifyOtpDto) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/verify-otp`, body),
     );
-    return data;
   }
 
   @Post("login")
@@ -80,10 +105,9 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: "Email hoặc mật khẩu không đúng" })
   async login(@Body() body: GatewayLoginDto) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/login`, body),
     );
-    return data;
   }
 
   @Post("refresh")
@@ -97,10 +121,9 @@ export class AuthController {
     description: "Refresh token không hợp lệ hoặc đã hết hạn",
   })
   async refresh(@Body() body: GatewayRefreshTokenDto) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/refresh`, body),
     );
-    return data;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -114,12 +137,11 @@ export class AuthController {
     description: "Token không hợp lệ hoặc đã hết hạn",
   })
   async getProfile(@Request() req: { authHeaders: Record<string, string> }) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.get(`${AUTH_SERVICE_URL}/auth/profile`, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @Post("forgot-password")
@@ -131,10 +153,9 @@ export class AuthController {
     description: "Message xác nhận (dev: kèm dev_reset_token)",
   })
   async forgotPassword(@Body() body: GatewayForgotPasswordDto) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/forgot-password`, body),
     );
-    return data;
   }
 
   @Post("reset-password")
@@ -145,10 +166,9 @@ export class AuthController {
     description: "Token không hợp lệ hoặc đã hết hạn",
   })
   async resetPassword(@Body() body: GatewayResetPasswordDto) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/reset-password`, body),
     );
-    return data;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -165,12 +185,11 @@ export class AuthController {
     @Request() req: { authHeaders: Record<string, string> },
     @Body() body: GatewayChangePasswordDto,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.post(`${AUTH_SERVICE_URL}/auth/change-password`, body, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 
   @UseGuards(JwtAuthGuard)
@@ -190,11 +209,10 @@ export class AuthController {
     @Request() req: { authHeaders: Record<string, string> },
     @Body() body: GatewayUpdateProfileDto,
   ) {
-    const { data } = await firstValueFrom(
+    return this.forward(
       this.http.patch(`${AUTH_SERVICE_URL}/auth/profile`, body, {
         headers: req.authHeaders,
       }),
     );
-    return data;
   }
 }
