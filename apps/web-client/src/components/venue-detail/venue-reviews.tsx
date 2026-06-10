@@ -1,7 +1,19 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Star, MessageSquarePlus, ThumbsUp, ThumbsDown, Clock, Sparkles, BadgeCheck, AlertCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MessageSquarePlus,
+  Sparkles,
+  Star,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { getVenueReviews } from '@/lib/api/reviews';
 import { WriteReviewModal } from '@/components/review/write-review-modal';
@@ -103,9 +115,43 @@ function AiAnalysisBadge({ analysis }: { analysis: ReviewAiAnalysis }) {
 
 function ReviewCard({ review }: { review: Review }) {
   const [expanded, setExpanded] = useState(false);
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
   const isLong = (review.content?.length ?? 0) > 150;
   const authorName = review.author?.display_name || 'Người dùng ẩn danh';
   const initial = authorName.charAt(0).toUpperCase();
+  const activePhoto = activePhotoIndex === null ? null : review.media[activePhotoIndex];
+
+  const closePhoto = () => setActivePhotoIndex(null);
+  const showPreviousPhoto = () => {
+    setActivePhotoIndex((current) => {
+      if (current === null) return current;
+      return current === 0 ? review.media.length - 1 : current - 1;
+    });
+  };
+  const showNextPhoto = () => {
+    setActivePhotoIndex((current) => {
+      if (current === null) return current;
+      return current === review.media.length - 1 ? 0 : current + 1;
+    });
+  };
+
+  useEffect(() => {
+    if (activePhotoIndex === null) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closePhoto();
+      if (event.key === 'ArrowLeft') showPreviousPhoto();
+      if (event.key === 'ArrowRight') showNextPhoto();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [activePhotoIndex, review.media.length]);
 
   return (
     <div className="py-5 border-b border-slate-100 dark:border-slate-700 last:border-0">
@@ -167,10 +213,75 @@ function ReviewCard({ review }: { review: Review }) {
       {review.media && review.media.length > 0 && (
         <div className="flex gap-2 mt-3">
           {review.media.map((url, i) => (
-            <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              key={`${url}-${i}`}
+              onClick={() => setActivePhotoIndex(i)}
+              className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-[#e9590c]/60 transition-colors"
+            >
               <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
-            </div>
+            </button>
           ))}
+        </div>
+      )}
+
+      {activePhoto && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={closePhoto}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Review photos"
+        >
+          <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
+            {(activePhotoIndex ?? 0) + 1} / {review.media.length}
+          </div>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              closePhoto();
+            }}
+            className="absolute right-4 top-4 size-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+            aria-label="Close review photo"
+          >
+            <X size={22} />
+          </button>
+
+          {review.media.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  showPreviousPhoto();
+                }}
+                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 size-11 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                aria-label="Previous review photo"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  showNextPhoto();
+                }}
+                className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 size-11 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                aria-label="Next review photo"
+              >
+                <ChevronRight size={28} />
+              </button>
+            </>
+          )}
+
+          <img
+            src={activePhoto}
+            alt={`Review photo ${(activePhotoIndex ?? 0) + 1}`}
+            className="max-h-[88vh] max-w-[92vw] object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
         </div>
       )}
 
