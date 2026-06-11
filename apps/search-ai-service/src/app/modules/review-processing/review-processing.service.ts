@@ -31,6 +31,8 @@ export interface ReviewAnalysisBackfillResult {
   skipped: number;
   failed: number;
   remaining: number;
+  rateLimited: boolean;
+  retryAfterSeconds: number | null;
   errors: Array<{ reviewId: string; message: string }>;
 }
 
@@ -193,6 +195,8 @@ export class ReviewProcessingService {
       skipped: 0,
       failed: 0,
       remaining: 0,
+      rateLimited: false,
+      retryAfterSeconds: null,
       errors: [],
     };
 
@@ -222,14 +226,22 @@ export class ReviewProcessingService {
           );
           result.analyzed += 1;
         } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
           result.failed += 1;
           if (result.errors.length < 10) {
             result.errors.push({
               reviewId: row.id,
-              message: error instanceof Error ? error.message : String(error),
+              message,
             });
           }
           this.logger.error(`Backfill failed for review ${row.id}: ${error}`);
+
+          const retryAfterSeconds = this.extractRateLimitRetryAfter(message);
+          if (retryAfterSeconds !== null) {
+            result.rateLimited = true;
+            result.retryAfterSeconds = retryAfterSeconds;
+            break;
+          }
         }
       }
     }
@@ -324,6 +336,21 @@ export class ReviewProcessingService {
     );
 
     return rows.map((row) => row.key);
+  }
+
+  private extractRateLimitRetryAfter(message: string): number | null {
+    if (!message.includes('rate_limit_exceeded')) {
+      return null;
+    }
+
+    const match = message.match(/try again in (?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?/i);
+    if (!match) {
+      return 60;
+    }
+
+    const minutes = Number(match[1] ?? 0);
+    const seconds = Number(match[2] ?? 0);
+    return Math.max(1, Math.ceil(minutes * 60 + seconds));
   }
 
   /**
