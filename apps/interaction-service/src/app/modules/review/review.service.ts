@@ -68,14 +68,22 @@ export class ReviewService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    await this.ensureRmqConnected();
+  }
+
+  private async ensureRmqConnected(): Promise<boolean> {
+    if (this.rmqConnected) return true;
+
     try {
       await this.events.connect();
       this.rmqConnected = true;
       this.logger.log('Connected to RabbitMQ (EVENTS_SERVICE)');
+      return true;
     } catch (err) {
       this.logger.warn(
         `RabbitMQ not available: ${(err as Error).message}. Review events will be skipped.`,
       );
+      return false;
     }
   }
 
@@ -279,7 +287,7 @@ export class ReviewService implements OnModuleInit {
     const review = await this.reviewRepo.findOne({ where: { id: reviewId } });
     if (!review) throw new NotFoundException('Review not found');
 
-    if (this.rmqConnected) {
+    if (await this.ensureRmqConnected()) {
       const analysis = (review.ai_analysis_json ?? null) as
         | VenueReviewDeletedEvent['analysis']
         | null;
@@ -361,7 +369,7 @@ export class ReviewService implements OnModuleInit {
   }
 
   private async emitVenueReviewed(review: Review): Promise<void> {
-    if (this.rmqConnected) {
+    if (await this.ensureRmqConnected()) {
       this.events.emit(RMQ_EVENTS.VENUE_REVIEWED, {
         reviewId: review.id,
         accountId: review.account_id,

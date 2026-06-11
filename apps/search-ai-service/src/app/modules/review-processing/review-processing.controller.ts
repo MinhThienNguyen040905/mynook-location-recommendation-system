@@ -1,4 +1,4 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, Logger, Post, Query } from '@nestjs/common';
 import { EventPattern, Payload, Ctx } from '@nestjs/microservices';
 import { RMQ_EVENTS } from '@mynook/shared-types';
 import { ReviewProcessingService } from './review-processing.service.js';
@@ -11,6 +11,21 @@ export class ReviewProcessingController {
   constructor(
     private readonly reviewProcessing: ReviewProcessingService,
   ) {}
+
+  @Post('reviews/backfill-ai-analysis')
+  async backfillAiAnalysis(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('venueId') venueId?: string,
+    @Query('dryRun') dryRun?: string,
+  ) {
+    return this.reviewProcessing.backfillMissingAnalyses({
+      limit: limit ? Number.parseInt(limit, 10) || undefined : undefined,
+      offset: offset ? Number.parseInt(offset, 10) || undefined : undefined,
+      venueId: venueId || undefined,
+      dryRun: dryRun === 'true' || dryRun === '1',
+    });
+  }
 
   /**
    * Handle `venue.reviewed` RabbitMQ event emitted by interaction-service.

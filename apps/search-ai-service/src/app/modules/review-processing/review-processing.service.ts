@@ -25,9 +25,19 @@ export interface ReviewDeletedEvent {
   } | null;
 }
 
+export interface ReviewAnalysisBackfillResult {
+  scanned: number;
+  analyzed: number;
+  skipped: number;
+  failed: number;
+  remaining: number;
+  errors: Array<{ reviewId: string; message: string }>;
+}
+
 @Injectable()
 export class ReviewProcessingService {
   private readonly logger = new Logger(ReviewProcessingService.name);
+  private readonly promptTagLimit = 80;
 
   constructor(
     @InjectRepository(Tag) private readonly tagRepo: Repository<Tag>,
@@ -47,18 +57,19 @@ export class ReviewProcessingService {
       return null;
     }
 
-    // 1. Get existing tags for the prompt
-    const existingTags = await this.tagRepo.find();
-    const existingTagKeys = existingTags.map((t) => t.key);
+    // 1. Get only the most-used tags for the prompt to keep Groq token usage low.
+    const promptTagKeys = await this.getPromptTagKeys();
 
     // 2. Call Groq AI
     const analysis = await this.groqAi.analyzeReview(
       event.content,
       event.rating,
-      existingTagKeys,
+      promptTagKeys,
     );
 
     if (!analysis) return null;
+
+    const existingTags = await this.tagRepo.find();
 
     // 3. Upsert tags in a database transaction
     const queryRunner = this.dataSource.createQueryRunner();
@@ -141,6 +152,110 @@ export class ReviewProcessingService {
     }
   }
 
+  async backfillMissingAnalyses(options?: {
+    limit?: number;
+    offset?: number;
+    venueId?: string;
+    dryRun?: boolean;
+  }): Promise<ReviewAnalysisBackfillResult> {
+    const safeLimit = Math.max(1, Math.min(options?.limit ?? 25, 100));
+    const safeOffset = Math.max(0, options?.offset ?? 0);
+    const dryRun = options?.dryRun === true;
+    const params: unknown[] = [safeLimit, safeOffset];
+    const venueFilter = options?.venueId ? 'AND venue_id = $3' : '';
+    if (options?.venueId) params.push(options.venueId);
+
+    const rows: Array<{
+      id: string;
+      account_id: string;
+      venue_id: string;
+      content: string | null;
+      rating: number;
+      is_verified_visit: boolean;
+    }> = await this.dataSource.query(
+      `
+      SELECT id, account_id, venue_id, content, rating, is_verified_visit
+      FROM interaction_schema.reviews
+      WHERE ai_analysis_json IS NULL
+        AND content IS NOT NULL
+        AND btrim(content) <> ''
+        ${venueFilter}
+      ORDER BY created_at ASC
+      LIMIT $1
+      OFFSET $2
+      `,
+      params,
+    );
+
+    const result: ReviewAnalysisBackfillResult = {
+      scanned: rows.length,
+      analyzed: 0,
+      skipped: 0,
+      failed: 0,
+      remaining: 0,
+      errors: [],
+    };
+
+    if (!dryRun) {
+      for (const row of rows) {
+        try {
+          const event: ReviewCreatedEvent = {
+            reviewId: row.id,
+            accountId: row.account_id,
+            venueId: row.venue_id,
+            content: row.content,
+            rating: Number(row.rating),
+            isVerifiedVisit: row.is_verified_visit === true,
+          };
+          const analysis = await this.processReview(event);
+          if (!analysis) {
+            throw new Error('AI analysis returned null');
+          }
+
+          await this.dataSource.query(
+            `
+            UPDATE interaction_schema.reviews
+            SET ai_analysis_json = $2
+            WHERE id = $1 AND ai_analysis_json IS NULL
+            `,
+            [row.id, analysis],
+          );
+          result.analyzed += 1;
+        } catch (error) {
+          result.failed += 1;
+          if (result.errors.length < 10) {
+            result.errors.push({
+              reviewId: row.id,
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+          this.logger.error(`Backfill failed for review ${row.id}: ${error}`);
+        }
+      }
+    }
+
+    const remainingVenueFilter = options?.venueId ? 'AND venue_id = $1' : '';
+    const remainingRows: Array<{ count: string | number }> =
+      await this.dataSource.query(
+        `
+        SELECT COUNT(*) AS count
+        FROM interaction_schema.reviews
+        WHERE ai_analysis_json IS NULL
+          AND content IS NOT NULL
+          AND btrim(content) <> ''
+          ${remainingVenueFilter}
+        `,
+        options?.venueId ? [options.venueId] : [],
+      );
+    result.remaining = Number(remainingRows[0]?.count ?? 0);
+
+    if (dryRun) {
+      result.skipped = rows.length;
+    }
+
+    return result;
+  }
+
   /**
    * Upsert a VenueTag row: increment/decrement score and counts.
    * Uses INSERT ... ON CONFLICT for atomic upsert.
@@ -195,6 +310,20 @@ export class ReviewProcessingService {
       default:
         return TimeContext.ALL_DAY;
     }
+  }
+
+  private async getPromptTagKeys(): Promise<string[]> {
+    const rows: Array<{ key: string }> = await this.dataSource.query(
+      `
+      SELECT key
+      FROM search_schema.tags
+      ORDER BY usage_count DESC, key ASC
+      LIMIT $1
+      `,
+      [this.promptTagLimit],
+    );
+
+    return rows.map((row) => row.key);
   }
 
   /**
