@@ -44,6 +44,54 @@ export class Review {
   created_at!: Date;
 }
 
+export type ReviewReactionType = 'like' | 'dislike';
+
+@Entity({ schema: 'interaction_schema', name: 'review_reactions' })
+@Index('uniq_review_reactions_review_account', ['review_id', 'account_id'], {
+  unique: true,
+})
+export class ReviewReaction {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  review_id!: string;
+
+  @Column({ type: 'uuid' })
+  account_id!: string;
+
+  @Column({ type: 'varchar', length: 20 })
+  reaction_type!: ReviewReactionType;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  created_at!: Date;
+}
+
+@Entity({ schema: 'interaction_schema', name: 'review_comments' })
+@Index('idx_review_comments_review_created', ['review_id', 'created_at'])
+export class ReviewComment {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid' })
+  review_id!: string;
+
+  @Column({ type: 'uuid' })
+  account_id!: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  parent_comment_id!: string | null;
+
+  @Column({ type: 'text' })
+  content!: string;
+
+  @Column({ type: 'jsonb', default: '[]' })
+  media!: unknown[];
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  created_at!: Date;
+}
+
 @Entity({ schema: 'interaction_schema', name: 'user_favorites' })
 export class UserFavorite {
   @PrimaryColumn({ type: 'uuid' })

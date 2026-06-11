@@ -22,8 +22,11 @@ export class ReviewController {
   @Get('venue/:venueId')
   @ApiOperation({ summary: 'Lấy danh sách reviews của một venue' })
   @ApiResponse({ status: 200, description: 'Danh sách reviews' })
-  getVenueReviews(@Param('venueId') venueId: string) {
-    return this.reviewService.findByVenue(venueId);
+  getVenueReviews(
+    @Param('venueId') venueId: string,
+    @CurrentUser() user: CurrentUserPayload | undefined,
+  ) {
+    return this.reviewService.findByVenue(venueId, user?.id);
   }
 
   @Get('my')
@@ -48,6 +51,34 @@ export class ReviewController {
     return this.reviewService.create(user.id, dto);
   }
 
+  @Post(':reviewId/reaction')
+  @ApiOperation({ summary: 'Like/dislike hoac bo reaction tren review' })
+  setReaction(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Param('reviewId') reviewId: string,
+    @Body() body: { reaction?: 'like' | 'dislike' | null },
+  ) {
+    if (!user?.id) throw new UnauthorizedException();
+    return this.reviewService.setReaction(user.id, reviewId, body.reaction ?? null);
+  }
+
+  @Post(':reviewId/comments')
+  @ApiOperation({ summary: 'Comment hoac reply tren review' })
+  createComment(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Param('reviewId') reviewId: string,
+    @Body() body: { content?: string; parent_comment_id?: string | null; media?: string[] },
+  ) {
+    if (!user?.id) throw new UnauthorizedException();
+    return this.reviewService.createComment(
+      user.id,
+      reviewId,
+      body.content ?? '',
+      body.parent_comment_id ?? null,
+      body.media ?? [],
+    );
+  }
+
   @Post('seed/google-maps')
   @ApiOperation({ summary: 'Seed Google Maps review snippets (internal)' })
   seedGoogleMapsReviews(
@@ -68,7 +99,7 @@ export class ReviewController {
   }
 
   /**
-   * Internal endpoint â€” called by search-ai-service to save AI analysis result.
+   * Internal endpoint - called by search-ai-service to save AI analysis result.
    * NOT exposed via api-gateway (internal service-to-service only).
    */
   @Patch(':reviewId/ai-analysis')

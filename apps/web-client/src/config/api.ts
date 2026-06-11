@@ -51,6 +51,8 @@ export const API_ENDPOINTS = {
     LIST: (venueId: string) => `/reviews/venue/${venueId}`,
     MY: '/reviews/my',
     CREATE: '/reviews',
+    REACTION: (reviewId: string) => `/reviews/${reviewId}/reaction`,
+    COMMENTS: (reviewId: string) => `/reviews/${reviewId}/comments`,
   },
 
   // Favorites

@@ -16,6 +16,20 @@ export interface ReviewAuthor {
   avatar_url: string | null;
 }
 
+export type ReviewReaction = 'like' | 'dislike';
+
+export interface ReviewComment {
+  id: string;
+  review_id: string;
+  account_id: string;
+  parent_comment_id: string | null;
+  content: string;
+  media: string[];
+  created_at: string;
+  author: ReviewAuthor | null;
+  replies: ReviewComment[];
+}
+
 export interface Review {
   id: string;
   account_id: string;
@@ -26,7 +40,19 @@ export interface Review {
   ai_analysis_json: ReviewAiAnalysis | null;
   is_verified_visit: boolean;
   created_at: string;
+  like_count: number;
+  dislike_count: number;
+  comment_count: number;
+  my_reaction: ReviewReaction | null;
+  comments: ReviewComment[];
   author: ReviewAuthor | null;
+}
+
+export interface ReviewReactionSummary {
+  review_id: string;
+  like_count: number;
+  dislike_count: number;
+  my_reaction: ReviewReaction | null;
 }
 
 export interface UserReview {
