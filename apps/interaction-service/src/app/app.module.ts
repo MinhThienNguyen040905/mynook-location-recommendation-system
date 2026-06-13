@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import {
   DatabaseModule,
   Review,
+  ReviewComment,
+  ReviewReaction,
   UserFavorite,
   UserInteraction,
   Notification,
@@ -20,6 +22,8 @@ import { FavoritesModule } from './modules/favorites/favorites.module.js';
     DatabaseModule.forRoot({
       entities: [
         Review,
+        ReviewComment,
+        ReviewReaction,
         UserFavorite,
         UserInteraction,
         Notification,

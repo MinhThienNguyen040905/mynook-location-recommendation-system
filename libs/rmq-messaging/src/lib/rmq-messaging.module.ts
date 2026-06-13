@@ -9,14 +9,17 @@ import {
  * Lấy RabbitMQ URL từ environment variables.
  * Hỗ trợ CloudAMQP (amqps://) và local (amqp://localhost:5672).
  *
- * Thứ tự ưu tiên: RMQ_URL > CLOUDAMQP_URL > fallback localhost
+ * Mặc định dùng RabbitMQ local Docker: RMQ_URL > fallback localhost.
+ * Chỉ dùng CloudAMQP khi RMQ_PROVIDER=cloud: CLOUDAMQP_URL > RMQ_URL > fallback localhost.
  */
 export function getRmqUrl(): string {
-  return (
-    process.env['RMQ_URL'] ||
-    process.env['CLOUDAMQP_URL'] ||
-    'amqp://localhost:5672'
-  );
+  const localUrl = process.env['RMQ_URL'] || 'amqp://localhost:5672';
+
+  if (process.env['RMQ_PROVIDER'] === 'cloud') {
+    return process.env['CLOUDAMQP_URL'] || localUrl;
+  }
+
+  return localUrl;
 }
 
 // ── Default exchange name ──────────────────────────────────────

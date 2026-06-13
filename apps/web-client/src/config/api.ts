@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
   INTERACTIONS: {
     TRACK_VIEW: '/interactions/view',
     RECENTLY_VIEWED: '/interactions/recently-viewed',
+    STATS: '/interactions/stats',
   },
 
   // Bookings
@@ -48,7 +49,10 @@ export const API_ENDPOINTS = {
   // Reviews
   REVIEWS: {
     LIST: (venueId: string) => `/reviews/venue/${venueId}`,
+    MY: '/reviews/my',
     CREATE: '/reviews',
+    REACTION: (reviewId: string) => `/reviews/${reviewId}/reaction`,
+    COMMENTS: (reviewId: string) => `/reviews/${reviewId}/comments`,
   },
 
   // Favorites

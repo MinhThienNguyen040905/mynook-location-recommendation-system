@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserInteraction } from '@mynook/database';
@@ -23,10 +23,12 @@ export interface RecentlyViewedVenue {
   primary_category_name: string | null;
 }
 
+export interface InteractionStats {
+  viewed_count: number;
+}
+
 @Injectable()
 export class InteractionsService {
-  private readonly logger = new Logger(InteractionsService.name);
-
   constructor(
     @InjectRepository(UserInteraction)
     private readonly interactionRepo: Repository<UserInteraction>,
@@ -124,5 +126,20 @@ export class InteractionsService {
       primary_category_key: r.primary_category_key as string | null,
       primary_category_name: r.primary_category_name as string | null,
     }));
+  }
+
+  async stats(accountId: string): Promise<InteractionStats> {
+    const rows = await this.interactionRepo.manager.query(
+      `
+      SELECT COUNT(DISTINCT venue_id)::int AS viewed_count
+      FROM interaction_schema.user_interactions
+      WHERE account_id = $1 AND interaction_type = 'view'
+      `,
+      [accountId],
+    );
+
+    return {
+      viewed_count: Number(rows[0]?.viewed_count ?? 0),
+    };
   }
 }

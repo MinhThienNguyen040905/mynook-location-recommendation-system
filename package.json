@@ -5,7 +5,14 @@
   "scripts": {
     "dev": "npx nx dev web-client",
     "dev:admin": "npx nx dev web-client -- --port 3000 & sleep 2 && echo 'Admin venues: http://localhost:3000/admin/venues/list'",
-    "dev:all": "npx nx run-many -t serve"
+    "dev:all": "npx nx run-many -t serve",
+    "redis:up": "docker compose up -d redis",
+    "redis:down": "docker compose stop redis",
+    "redis:logs": "docker compose logs -f redis",
+    "infra:up": "docker compose up -d redis rabbitmq",
+    "rabbitmq:up": "docker compose up -d rabbitmq",
+    "rabbitmq:down": "docker compose down",
+    "rabbitmq:logs": "docker compose logs -f rabbitmq"
   },
   "private": true,
   "devDependencies": {
@@ -71,6 +78,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "groq-sdk": "^1.1.2",
+    "ioredis": "^5.11.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
     "motion": "^12.38.0",

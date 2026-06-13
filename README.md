@@ -46,6 +46,37 @@ cd mynook-location-recommendation-system
 npm install
 ```
 
+### RabbitMQ local bằng Docker
+
+RabbitMQ mặc định chạy local qua Docker, ổn định hơn CloudAMQP cho môi trường dev.
+
+```bash
+# Start RabbitMQ (:5672) + Management UI (:15672)
+npm run rabbitmq:up
+
+# Xem log RabbitMQ
+npm run rabbitmq:logs
+
+# Tắt RabbitMQ
+npm run rabbitmq:down
+```
+
+Management UI: http://localhost:15672 với tài khoản `guest` / `guest`.
+
+Mặc định `.env` dùng:
+
+```env
+RMQ_URL=amqp://localhost:5672
+RMQ_PROVIDER=local
+```
+
+Khi cần dùng CloudAMQP/online, đổi sang:
+
+```env
+RMQ_PROVIDER=cloud
+CLOUDAMQP_URL=amqps://...
+```
+
 ## Chạy dự án
 
 ### Khởi động tất cả apps cùng lúc (bao gồm frontend)

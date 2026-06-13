@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { HeroSection } from "@/components/home/hero-section";
@@ -13,7 +14,9 @@ export default function HomePage() {
     <div className="flex flex-col min-h-screen bg-[#f8f6f5] dark:bg-[#221610] font-sans">
       <Navbar />
       <HeroSection />
-      <CategoryPills />
+      <Suspense fallback={null}>
+        <CategoryPills />
+      </Suspense>
       <RecentlyViewedSection />
       <RecommendedSection />
       <TopRatedSection />

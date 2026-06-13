@@ -1,11 +1,30 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { Star, MessageSquarePlus, ThumbsUp, ThumbsDown, Clock, Sparkles, BadgeCheck } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import {
+  AlertCircle,
+  BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  ImagePlus,
+  Loader2,
+  MessageSquare,
+  MessageSquarePlus,
+  Reply,
+  Send,
+  Sparkles,
+  Star,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import { getVenueReviews } from '@/lib/api/reviews';
+import { createReviewComment, getVenueReviews, setReviewReaction } from '@/lib/api/reviews';
+import { uploadMedia } from '@/lib/api/upload';
 import { WriteReviewModal } from '@/components/review/write-review-modal';
-import type { Review, ReviewAiAnalysis } from '@/types/review';
+import type { Review, ReviewAiAnalysis, ReviewComment, ReviewReaction } from '@/types/review';
 
 interface VenueReviewsProps {
   venueId: string;
@@ -42,6 +61,68 @@ const TIME_LABELS: Record<string, string> = {
 /** Format tag key: "good_coffee" → "Good Coffee" */
 function formatTag(key: string): string {
   return key.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function isVideoUrl(url: string): boolean {
+  return /\/video\/upload\//.test(url) || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url);
+}
+
+function MediaStrip({ media }: { media: string[] }) {
+  if (!media || media.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {media.map((url, index) => (
+        <div
+          key={`${url}-${index}`}
+          className="h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
+        >
+          {isVideoUrl(url) ? (
+            <video src={url} className="h-full w-full object-cover" controls />
+          ) : (
+            <img src={url} alt={`Comment media ${index + 1}`} className="h-full w-full object-cover" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SelectedMediaPreview({
+  previews,
+  files,
+  onRemove,
+}: {
+  previews: string[];
+  files: File[];
+  onRemove: (index: number) => void;
+}) {
+  if (previews.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {previews.map((src, index) => (
+        <div
+          key={`${src}-${index}`}
+          className="relative h-16 w-16 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
+        >
+          {files[index]?.type.startsWith('video/') ? (
+            <video src={src} className="h-full w-full object-cover" muted />
+          ) : (
+            <img src={src} alt={`Selected media ${index + 1}`} className="h-full w-full object-cover" />
+          )}
+          <button
+            type="button"
+            onClick={() => onRemove(index)}
+            className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition-opacity hover:opacity-100"
+            aria-label="Remove selected media"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function AiAnalysisBadge({ analysis }: { analysis: ReviewAiAnalysis }) {
@@ -101,11 +182,300 @@ function AiAnalysisBadge({ analysis }: { analysis: ReviewAiAnalysis }) {
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function CommentItem({
+  comment,
+  depth = 0,
+  activeReplyId,
+  replyDraft,
+  replyFiles,
+  replyPreviews,
+  isSubmitting,
+  isUploading,
+  onReplyStart,
+  onReplyDraftChange,
+  onReplyFileSelect,
+  onReplyMediaRemove,
+  onReplySubmit,
+}: {
+  comment: ReviewComment;
+  depth?: number;
+  activeReplyId: string | null;
+  replyDraft: string;
+  replyFiles: File[];
+  replyPreviews: string[];
+  isSubmitting: boolean;
+  isUploading: boolean;
+  onReplyStart: (commentId: string) => void;
+  onReplyDraftChange: (value: string) => void;
+  onReplyFileSelect: (files: FileList | null) => void;
+  onReplyMediaRemove: (index: number) => void;
+  onReplySubmit: (parentCommentId: string) => void;
+}) {
+  const authorName = comment.author?.display_name || 'Người dùng';
+  const initial = authorName.charAt(0).toUpperCase();
+  const showReplyForm = activeReplyId === comment.id;
+
+  return (
+    <div className={depth > 0 ? 'ml-8 mt-3' : 'mt-3'}>
+      <div className="flex gap-2">
+        {comment.author?.avatar_url ? (
+          <img
+            src={comment.author.avatar_url}
+            alt={authorName}
+            className="size-7 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+          />
+        ) : (
+          <div className="size-7 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold flex items-center justify-center text-xs shrink-0">
+            {initial}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="rounded-lg bg-slate-50 dark:bg-slate-700/60 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                {authorName}
+              </span>
+              <span className="text-[11px] text-slate-400 shrink-0">
+                {timeAgo(comment.created_at)}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
+              {comment.content}
+            </p>
+            <MediaStrip media={comment.media ?? []} />
+          </div>
+          <button
+            type="button"
+            onClick={() => onReplyStart(comment.id)}
+            className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#e9590c]"
+          >
+            <Reply size={12} />
+            Trả lời
+          </button>
+          {showReplyForm && (
+            <div className="mt-2">
+              <div className="flex gap-2">
+                <input
+                  value={replyDraft}
+                  onChange={(event) => onReplyDraftChange(event.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-[#e9590c]"
+                  placeholder="Viết phản hồi..."
+                />
+                <label className="size-9 rounded-lg border border-slate-200 text-slate-500 hover:border-[#e9590c]/40 hover:text-[#e9590c] dark:border-slate-700 flex items-center justify-center cursor-pointer">
+                  <ImagePlus size={15} />
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={(event) => {
+                      onReplyFileSelect(event.target.files);
+                      event.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={isSubmitting || isUploading || replyDraft.trim().length === 0}
+                  onClick={() => onReplySubmit(comment.id)}
+                  className="size-9 rounded-lg bg-[#e9590c] text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center hover:bg-[#c2410b]"
+                  aria-label="Send reply"
+                >
+                  {isUploading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                </button>
+              </div>
+              <SelectedMediaPreview
+                files={replyFiles}
+                previews={replyPreviews}
+                onRemove={onReplyMediaRemove}
+              />
+            </div>
+          )}
+
+          {comment.replies.map((reply) => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              depth={depth + 1}
+              activeReplyId={activeReplyId}
+              replyDraft={replyDraft}
+              replyFiles={replyFiles}
+              replyPreviews={replyPreviews}
+              isSubmitting={isSubmitting}
+              isUploading={isUploading}
+              onReplyStart={onReplyStart}
+              onReplyDraftChange={onReplyDraftChange}
+              onReplyFileSelect={onReplyFileSelect}
+              onReplyMediaRemove={onReplyMediaRemove}
+              onReplySubmit={onReplySubmit}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewCard({
+  review,
+  onReactionUpdated,
+  onCommentCreated,
+}: {
+  review: Review;
+  onReactionUpdated: (reviewId: string, summary: { like_count: number; dislike_count: number; my_reaction: ReviewReaction | null }) => void;
+  onCommentCreated: (reviewId: string, comment: ReviewComment) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
+  const [commentPreviews, setCommentPreviews] = useState<string[]>([]);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [replyDraft, setReplyDraft] = useState('');
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
+  const [replyPreviews, setReplyPreviews] = useState<string[]>([]);
+  const [isReacting, setIsReacting] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isUploadingCommentMedia, setIsUploadingCommentMedia] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const commentFileInputRef = useRef<HTMLInputElement>(null);
+  const commentPreviewsRef = useRef<string[]>([]);
+  const replyPreviewsRef = useRef<string[]>([]);
   const isLong = (review.content?.length ?? 0) > 150;
   const authorName = review.author?.display_name || 'Người dùng ẩn danh';
   const initial = authorName.charAt(0).toUpperCase();
+  const activePhoto = activePhotoIndex === null ? null : review.media[activePhotoIndex];
+  const comments = review.comments ?? [];
+  const maxCommentFiles = 4;
+
+  const addSelectedFiles = (
+    selectedFiles: FileList | null,
+    currentFiles: File[],
+    setFiles: (files: File[]) => void,
+    setPreviews: (previews: string[]) => void,
+    currentPreviews: string[],
+  ) => {
+    const selected = Array.from(selectedFiles ?? []);
+    if (selected.length === 0) return;
+    const remaining = maxCommentFiles - currentFiles.length;
+    const nextFiles = selected.slice(0, remaining);
+    setFiles([...currentFiles, ...nextFiles]);
+    setPreviews([...currentPreviews, ...nextFiles.map((file) => URL.createObjectURL(file))]);
+  };
+
+  const removeSelectedFile = (
+    index: number,
+    files: File[],
+    previews: string[],
+    setFiles: (files: File[]) => void,
+    setPreviews: (previews: string[]) => void,
+  ) => {
+    URL.revokeObjectURL(previews[index]);
+    setFiles(files.filter((_, fileIndex) => fileIndex !== index));
+    setPreviews(previews.filter((_, previewIndex) => previewIndex !== index));
+  };
+
+  const handleReaction = async (reaction: ReviewReaction) => {
+    if (isReacting) return;
+    const nextReaction = review.my_reaction === reaction ? null : reaction;
+    setIsReacting(true);
+    setActionError(null);
+    try {
+      const summary = await setReviewReaction(review.id, nextReaction);
+      onReactionUpdated(review.id, summary);
+    } catch (error) {
+      console.error('Failed to update review reaction:', error);
+      setActionError('Không thể cập nhật cảm xúc. Vui lòng đăng nhập và thử lại.');
+    } finally {
+      setIsReacting(false);
+    }
+  };
+
+  const submitComment = async (parentCommentId?: string | null) => {
+    const content = parentCommentId ? replyDraft.trim() : commentDraft.trim();
+    if (!content || isSubmittingComment) return;
+    const filesToUpload = parentCommentId ? replyFiles : commentFiles;
+
+    setIsSubmittingComment(true);
+    setIsUploadingCommentMedia(filesToUpload.length > 0);
+    setActionError(null);
+    try {
+      const uploadResults =
+        filesToUpload.length > 0 ? await uploadMedia(filesToUpload) : [];
+      const media = uploadResults.map((result) => result.url);
+      const comment = await createReviewComment(review.id, {
+        content,
+        parent_comment_id: parentCommentId ?? null,
+        media,
+      });
+      onCommentCreated(review.id, comment);
+      if (parentCommentId) {
+        replyPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+        setReplyDraft('');
+        setReplyFiles([]);
+        setReplyPreviews([]);
+        setActiveReplyId(null);
+      } else {
+        commentPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+        setCommentDraft('');
+        setCommentFiles([]);
+        setCommentPreviews([]);
+        setCommentOpen(true);
+        if (commentFileInputRef.current) commentFileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Failed to create review comment:', error);
+      setActionError('Không thể gửi bình luận. Vui lòng đăng nhập và thử lại.');
+    } finally {
+      setIsSubmittingComment(false);
+      setIsUploadingCommentMedia(false);
+    }
+  };
+
+  const closePhoto = () => setActivePhotoIndex(null);
+  const showPreviousPhoto = () => {
+    setActivePhotoIndex((current) => {
+      if (current === null) return current;
+      return current === 0 ? review.media.length - 1 : current - 1;
+    });
+  };
+  const showNextPhoto = () => {
+    setActivePhotoIndex((current) => {
+      if (current === null) return current;
+      return current === review.media.length - 1 ? 0 : current + 1;
+    });
+  };
+
+  useEffect(() => {
+    if (activePhotoIndex === null) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closePhoto();
+      if (event.key === 'ArrowLeft') showPreviousPhoto();
+      if (event.key === 'ArrowRight') showNextPhoto();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [activePhotoIndex, review.media.length]);
+
+  useEffect(() => {
+    commentPreviewsRef.current = commentPreviews;
+    replyPreviewsRef.current = replyPreviews;
+  }, [commentPreviews, replyPreviews]);
+
+  useEffect(() => {
+    return () => {
+      commentPreviewsRef.current.forEach((preview) => URL.revokeObjectURL(preview));
+      replyPreviewsRef.current.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, []);
 
   return (
     <div className="py-5 border-b border-slate-100 dark:border-slate-700 last:border-0">
@@ -167,10 +537,225 @@ function ReviewCard({ review }: { review: Review }) {
       {review.media && review.media.length > 0 && (
         <div className="flex gap-2 mt-3">
           {review.media.map((url, i) => (
-            <div key={i} className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              key={`${url}-${i}`}
+              onClick={() => setActivePhotoIndex(i)}
+              className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-[#e9590c]/60 transition-colors"
+            >
               <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
-            </div>
+            </button>
           ))}
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={isReacting}
+          onClick={() => handleReaction('like')}
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+            review.my_reaction === 'like'
+              ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-900/30 dark:text-green-300'
+              : 'border-slate-200 text-slate-500 hover:border-green-200 hover:text-green-700 dark:border-slate-700 dark:text-slate-400'
+          }`}
+        >
+          <ThumbsUp size={14} />
+          {review.like_count ?? 0}
+        </button>
+        <button
+          type="button"
+          disabled={isReacting}
+          onClick={() => handleReaction('dislike')}
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+            review.my_reaction === 'dislike'
+              ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-900/30 dark:text-red-300'
+              : 'border-slate-200 text-slate-500 hover:border-red-200 hover:text-red-700 dark:border-slate-700 dark:text-slate-400'
+          }`}
+        >
+          <ThumbsDown size={14} />
+          {review.dislike_count ?? 0}
+        </button>
+        <button
+          type="button"
+          onClick={() => setCommentOpen((value) => !value)}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-[#e9590c]/40 hover:text-[#e9590c] dark:border-slate-700 dark:text-slate-400"
+        >
+          <MessageSquare size={14} />
+          {review.comment_count ?? 0}
+        </button>
+      </div>
+
+      {actionError && !commentOpen && comments.length === 0 && (
+        <p className="mt-2 text-xs text-red-500">{actionError}</p>
+      )}
+
+      {(commentOpen || comments.length > 0) && (
+        <div className="mt-3 rounded-xl border border-slate-100 bg-white/60 p-3 dark:border-slate-700 dark:bg-slate-900/30">
+          <div className="flex gap-2">
+            <input
+              value={commentDraft}
+              onChange={(event) => setCommentDraft(event.target.value)}
+              onFocus={() => setCommentOpen(true)}
+              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#e9590c] dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              placeholder="Viết bình luận..."
+            />
+            <button
+              type="button"
+              onClick={() => commentFileInputRef.current?.click()}
+              className="size-9 rounded-lg border border-slate-200 text-slate-500 hover:border-[#e9590c]/40 hover:text-[#e9590c] dark:border-slate-700 flex items-center justify-center"
+              aria-label="Add comment media"
+            >
+              <ImagePlus size={15} />
+            </button>
+            <input
+              ref={commentFileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={(event) => {
+                addSelectedFiles(
+                  event.target.files,
+                  commentFiles,
+                  setCommentFiles,
+                  setCommentPreviews,
+                  commentPreviews,
+                );
+                event.target.value = '';
+              }}
+              className="hidden"
+            />
+            <button
+              type="button"
+              disabled={isSubmittingComment || isUploadingCommentMedia || commentDraft.trim().length === 0}
+              onClick={() => submitComment(null)}
+              className="size-9 rounded-lg bg-[#e9590c] text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center hover:bg-[#c2410b]"
+              aria-label="Send comment"
+            >
+              {isUploadingCommentMedia ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            </button>
+          </div>
+          <SelectedMediaPreview
+            files={commentFiles}
+            previews={commentPreviews}
+            onRemove={(index) =>
+              removeSelectedFile(
+                index,
+                commentFiles,
+                commentPreviews,
+                setCommentFiles,
+                setCommentPreviews,
+              )
+            }
+          />
+
+          {actionError && (
+            <p className="mt-2 text-xs text-red-500">{actionError}</p>
+          )}
+
+          {comments.length > 0 && (
+            <div className="mt-3">
+              {comments.map((comment) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  activeReplyId={activeReplyId}
+                  replyDraft={replyDraft}
+                  replyFiles={replyFiles}
+                  replyPreviews={replyPreviews}
+                  isSubmitting={isSubmittingComment}
+                  isUploading={isUploadingCommentMedia}
+                  onReplyStart={(commentId) => {
+                    setActiveReplyId((current) => (current === commentId ? null : commentId));
+                    setReplyDraft('');
+                    replyPreviews.forEach((preview) => URL.revokeObjectURL(preview));
+                    setReplyFiles([]);
+                    setReplyPreviews([]);
+                  }}
+                  onReplyDraftChange={setReplyDraft}
+                  onReplyFileSelect={(files) =>
+                    addSelectedFiles(
+                      files,
+                      replyFiles,
+                      setReplyFiles,
+                      setReplyPreviews,
+                      replyPreviews,
+                    )
+                  }
+                  onReplyMediaRemove={(index) =>
+                    removeSelectedFile(
+                      index,
+                      replyFiles,
+                      replyPreviews,
+                      setReplyFiles,
+                      setReplyPreviews,
+                    )
+                  }
+                  onReplySubmit={submitComment}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activePhoto && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={closePhoto}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Review photos"
+        >
+          <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
+            {(activePhotoIndex ?? 0) + 1} / {review.media.length}
+          </div>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              closePhoto();
+            }}
+            className="absolute right-4 top-4 size-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+            aria-label="Close review photo"
+          >
+            <X size={22} />
+          </button>
+
+          {review.media.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  showPreviousPhoto();
+                }}
+                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 size-11 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                aria-label="Previous review photo"
+              >
+                <ChevronLeft size={28} />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  showNextPhoto();
+                }}
+                className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 size-11 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                aria-label="Next review photo"
+              >
+                <ChevronRight size={28} />
+              </button>
+            </>
+          )}
+
+          <img
+            src={activePhoto}
+            alt={`Review photo ${(activePhotoIndex ?? 0) + 1}`}
+            className="max-h-[88vh] max-w-[92vw] object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
         </div>
       )}
 
@@ -180,6 +765,26 @@ function ReviewCard({ review }: { review: Review }) {
       )}
     </div>
   );
+}
+
+function appendComment(comments: ReviewComment[], newComment: ReviewComment): ReviewComment[] {
+  if (!newComment.parent_comment_id) {
+    return [...comments, newComment];
+  }
+
+  return comments.map((comment) => {
+    if (comment.id === newComment.parent_comment_id) {
+      return {
+        ...comment,
+        replies: [...(comment.replies ?? []), newComment],
+      };
+    }
+
+    return {
+      ...comment,
+      replies: appendComment(comment.replies ?? [], newComment),
+    };
+  });
 }
 
 function RatingDistribution({ reviews }: { reviews: Review[] }) {
@@ -212,19 +817,60 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
 export function VenueReviews({ venueId, venueName, initialReviews }: VenueReviewsProps) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [showWriteModal, setShowWriteModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(initialReviews.length === 0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refreshReviews = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await getVenueReviews(venueId);
       setReviews(data);
-    } catch {
-      // keep existing reviews on error
+    } catch (error) {
+      console.error('Failed to refresh venue reviews:', error);
+      setLoadError('Không tải được danh sách review. Vui lòng thử lại.');
     }
+    setIsLoading(false);
   }, [venueId]);
 
   useEffect(() => {
     refreshReviews();
   }, [refreshReviews]);
+
+  const handleReactionUpdated = useCallback(
+    (
+      reviewId: string,
+      summary: { like_count: number; dislike_count: number; my_reaction: ReviewReaction | null },
+    ) => {
+      setReviews((current) =>
+        current.map((review) =>
+          review.id === reviewId
+            ? {
+                ...review,
+                like_count: summary.like_count,
+                dislike_count: summary.dislike_count,
+                my_reaction: summary.my_reaction,
+              }
+            : review,
+        ),
+      );
+    },
+    [],
+  );
+
+  const handleCommentCreated = useCallback((reviewId: string, comment: ReviewComment) => {
+    setReviews((current) =>
+      current.map((review) =>
+        review.id === reviewId
+          ? {
+              ...review,
+              comment_count: (review.comment_count ?? 0) + 1,
+              comments: appendComment(review.comments ?? [], comment),
+            }
+          : review,
+      ),
+    );
+  }, []);
 
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
@@ -251,7 +897,23 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
         </button>
       </div>
 
-      {reviews.length > 0 ? (
+      {isLoading && reviews.length === 0 ? (
+        <div className="py-12 text-center bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl">
+          <div className="mx-auto mb-3 size-8 rounded-full border-2 border-slate-200 border-t-[#e9590c] animate-spin" />
+          <p className="text-sm text-slate-400">Đang tải review...</p>
+        </div>
+      ) : loadError && reviews.length === 0 ? (
+        <div className="py-12 text-center bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/40 rounded-xl">
+          <AlertCircle size={32} className="mx-auto mb-3 text-red-400" />
+          <p className="text-slate-500 mb-3">{loadError}</p>
+          <button
+            onClick={refreshReviews}
+            className="text-sm font-bold text-[#e9590c] hover:underline"
+          >
+            Tải lại
+          </button>
+        </div>
+      ) : reviews.length > 0 ? (
         <>
           {/* Summary */}
           <div className="flex gap-8 items-start mb-6 p-5 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-sm">
@@ -280,7 +942,12 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
           {/* Review list */}
           <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-sm px-5">
             {reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
+              <ReviewCard
+                key={review.id}
+                review={review}
+                onReactionUpdated={handleReactionUpdated}
+                onCommentCreated={handleCommentCreated}
+              />
             ))}
           </div>
         </>

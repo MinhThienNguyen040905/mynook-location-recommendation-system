@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { VenueManagerTabs } from '@/components/owner/venue-manager-tabs';
 import { MenuManagement } from '@/components/owner/menu-management';
 
@@ -8,8 +9,10 @@ import { MenuManagement } from '@/components/owner/menu-management';
 export default function MenuPage() {
   return (
     <div className="max-w-7xl mx-auto w-full px-6 py-6 pb-32">
-      <VenueManagerTabs />
-      <MenuManagement />
+      <Suspense fallback={null}>
+        <VenueManagerTabs />
+        <MenuManagement />
+      </Suspense>
     </div>
   );
 }

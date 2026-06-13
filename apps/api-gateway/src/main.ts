@@ -15,7 +15,10 @@ async function bootstrap() {
   const googleMapsOriginPattern = /^https:\/\/(www\.)?google\.[a-z.]+$/;
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       if (googleMapsOriginPattern.test(origin)) return callback(null, true);

@@ -12,6 +12,7 @@ import {
   City,
   District,
 } from '@mynook/database';
+import { RedisCacheModule } from '@mynook/redis-cache';
 import { SearchModule } from './modules/search/search.module.js';
 import { ReviewProcessingModule } from './modules/review-processing/review-processing.module.js';
 import { DescriptionTaggingModule } from './modules/description-tagging/description-tagging.module.js';
@@ -33,6 +34,7 @@ import { TagModule } from './modules/tag/tag.module.js';
         District,
       ],
     }),
+    RedisCacheModule,
     SearchModule,
     ReviewProcessingModule,
     DescriptionTaggingModule,

@@ -46,6 +46,10 @@ export interface RecommendedVenue {
   similarity: number;
 }
 
+export interface InteractionStats {
+  viewed_count: number;
+}
+
 /** Server-side: ghi nhận user vừa xem một venue. Yêu cầu auth. */
 export async function trackVenueView(venueId: string): Promise<void> {
   await apiClient.post(API_ENDPOINTS.INTERACTIONS.TRACK_VIEW, {
@@ -60,6 +64,13 @@ export async function getRecentlyViewed(
   const { data } = await apiClient.get<RecentlyViewedVenue[]>(
     API_ENDPOINTS.INTERACTIONS.RECENTLY_VIEWED,
     { params: { limit } },
+  );
+  return data;
+}
+
+export async function getInteractionStats(): Promise<InteractionStats> {
+  const { data } = await apiClient.get<InteractionStats>(
+    API_ENDPOINTS.INTERACTIONS.STATS,
   );
   return data;
 }

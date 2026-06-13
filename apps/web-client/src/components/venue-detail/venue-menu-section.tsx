@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   UtensilsCrossed, Plus, Edit3, Trash2, FolderPlus,
   Check, X, Image as ImageIcon, Pencil, Sparkles, Loader2,
+  Maximize2, ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
@@ -375,8 +376,10 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'items' | 'image'>('items');
   const [editMode, setEditMode] = useState(false);
   const [currentMenuImageUrl, setCurrentMenuImageUrl] = useState(menuImageUrl);
+  const [menuImageOpen, setMenuImageOpen] = useState(false);
 
   // New category form
   const [showNewCat, setShowNewCat] = useState(false);
@@ -400,6 +403,12 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
       if (venue.menu_image_url) {
         setCurrentMenuImageUrl(venue.menu_image_url);
       }
+      const loadedHasMenu = cats.some(c => c.items && c.items.length > 0);
+      if (loadedHasMenu) {
+        setActiveView('items');
+      } else if (venue.menu_image_url || currentMenuImageUrl) {
+        setActiveView('image');
+      }
     } catch { /* ignore */ } finally {
       setLoading(false);
     }
@@ -412,6 +421,32 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
 
   const activeCategory = categories.find(c => c.id === activeCatId);
   const items = activeCategory?.items ?? [];
+  const hasMenu = categories.length > 0 && categories.some(c => c.items && c.items.length > 0);
+  const canShowItemsView = hasMenu || editMode || categories.length > 0;
+
+  useEffect(() => {
+    if (!hasMenu && currentMenuImageUrl) {
+      setActiveView('image');
+    } else if (hasMenu && !currentMenuImageUrl) {
+      setActiveView('items');
+    }
+  }, [hasMenu, currentMenuImageUrl]);
+
+  useEffect(() => {
+    if (!menuImageOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuImageOpen(false);
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuImageOpen]);
 
   async function handleCreateCategory() {
     if (!newCatName.trim()) return;
@@ -459,8 +494,6 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
     );
   }
 
-  const hasMenu = categories.length > 0 && categories.some(c => c.items && c.items.length > 0);
-
   // Hide section only for non-community venues that have neither menu items nor a menu image.
   if (!hasMenu && !currentMenuImageUrl && !isCommunityContributed) return null;
 
@@ -487,20 +520,46 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
         )}
       </div>
 
-      {/* Menu image */}
-      {currentMenuImageUrl && (
-        <div className="mb-5">
-          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600">
-            <img src={currentMenuImageUrl} alt="Ảnh menu" className="w-full object-contain max-h-[500px]" />
-          </div>
-        </div>
-      )}
-
       {/* AI Menu Analyzer (edit mode) */}
       {editMode && <MenuImageAnalyzer venueId={venueId} onSaved={loadCategories} />}
 
+      {(canShowItemsView || currentMenuImageUrl) && (
+        <div className="mb-5 flex w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-700 dark:bg-slate-800 sm:w-fit">
+          {canShowItemsView && (
+            <button
+              type="button"
+              onClick={() => setActiveView('items')}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none',
+                activeView === 'items'
+                  ? 'bg-[#e9590c] text-white'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-700',
+              )}
+            >
+              <ClipboardList size={16} />
+              Danh sách món
+            </button>
+          )}
+          {currentMenuImageUrl && (
+            <button
+              type="button"
+              onClick={() => setActiveView('image')}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors sm:flex-none',
+                activeView === 'image'
+                  ? 'bg-[#e9590c] text-white'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-300 dark:hover:bg-slate-700',
+              )}
+            >
+              <ImageIcon size={16} />
+              Ảnh menu
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Add category (edit mode) */}
-      {editMode && (
+      {editMode && activeView === 'items' && (
         <div className="mb-4">
           {showNewCat ? (
             <div className="flex items-center gap-2">
@@ -530,8 +589,29 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
         </div>
       )}
 
+      {/* Menu image */}
+      {activeView === 'image' && currentMenuImageUrl && (
+        <div className="mx-auto mb-5 w-fit max-w-full rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <button
+            type="button"
+            onClick={() => setMenuImageOpen(true)}
+            className="group relative flex w-fit max-w-full items-center justify-center overflow-hidden rounded-lg bg-slate-950"
+          >
+            <img
+              src={currentMenuImageUrl}
+              alt="Ảnh menu"
+              className="block h-auto max-h-[520px] max-w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+            <span className="absolute right-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 text-xs font-bold text-white backdrop-blur">
+              <Maximize2 size={14} />
+              Phóng to
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Category tabs */}
-      {categories.length > 0 && (
+      {activeView === 'items' && categories.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-5">
           {categories.map(cat => (
             <div key={cat.id} className="flex items-center gap-1">
@@ -561,10 +641,10 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
       )}
 
       {/* Items */}
-      {activeCategory && (
-        <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
+      {activeView === 'items' && activeCategory && (
+        <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           {editMode && (
-            <div className="flex items-center justify-end px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-end pb-4">
               <button
                 onClick={() => { setEditingItem(undefined); setShowItemModal(true); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-[#e9590c] text-white font-bold rounded-lg text-xs hover:bg-[#c2410b] transition-colors"
@@ -580,16 +660,20 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
               <p className="text-sm font-medium">Chưa có món nào</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-700">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {items.map(item => (
-                <div key={item.id} className="flex items-center gap-4 px-4 py-3">
-                  {item.image_url ? (
-                    <div className="size-14 rounded-lg overflow-hidden shrink-0 border border-slate-100 dark:border-slate-600">
+                <div
+                  key={item.id}
+                  className={cn(
+                    'flex min-h-24 items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/70 p-3 transition-colors dark:border-slate-700 dark:bg-slate-900/30',
+                    item.is_available
+                      ? 'hover:border-[#e9590c]/30 hover:bg-white dark:hover:bg-slate-800'
+                      : 'opacity-70',
+                  )}
+                >
+                  {item.image_url && (
+                    <div className="size-20 rounded-lg overflow-hidden shrink-0 border border-slate-100 dark:border-slate-600">
                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    </div>
-                  ) : (
-                    <div className="size-14 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
-                      <ImageIcon size={18} className="text-slate-300 dark:text-slate-500" />
                     </div>
                   )}
 
@@ -600,7 +684,7 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
                         <span className="px-2 py-0.5 bg-red-50 dark:bg-red-900/30 text-red-500 text-[10px] font-bold rounded-full">Hết hàng</span>
                       )}
                     </div>
-                    <p className="text-[#e9590c] font-bold text-sm mt-0.5">{formatPrice(item.price)}</p>
+                    <p className="text-[#e9590c] font-bold text-base mt-1">{formatPrice(item.price)}</p>
                   </div>
 
                   {editMode && (
@@ -627,7 +711,7 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
       )}
 
       {/* Empty state — no categories yet */}
-      {categories.length === 0 && (
+      {activeView === 'items' && categories.length === 0 && (
         <div className="py-10 text-center text-slate-400 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl">
           <UtensilsCrossed size={32} className="mx-auto mb-2 opacity-30" />
           <p className="text-sm font-medium">
@@ -636,6 +720,34 @@ export function VenueMenuSection({ venueId, isCommunityContributed, menuImageUrl
           {isCommunityContributed && !user && (
             <p className="text-xs mt-1">Đăng nhập để đóng góp menu cho địa điểm này.</p>
           )}
+        </div>
+      )}
+
+      {menuImageOpen && currentMenuImageUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4"
+          onClick={() => setMenuImageOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ảnh menu"
+        >
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setMenuImageOpen(false);
+            }}
+            className="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            aria-label="Đóng ảnh menu"
+          >
+            <X size={22} />
+          </button>
+          <img
+            src={currentMenuImageUrl}
+            alt="Ảnh menu"
+            className="max-h-[90vh] max-w-[94vw] object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
         </div>
       )}
 

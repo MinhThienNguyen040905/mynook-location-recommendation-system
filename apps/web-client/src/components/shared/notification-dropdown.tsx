@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, Check, CheckCheck, Info, MessageSquare, Tag, Clock } from 'lucide-react';
+import { Bell, CheckCheck, Info, MessageSquare, Tag, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';

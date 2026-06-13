@@ -69,4 +69,19 @@ export class InteractionsController {
     );
     return data;
   }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Get('stats')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Interaction stats for the current user' })
+  @ApiResponse({ status: 200 })
+  async stats(@Request() req: { authHeaders: Record<string, string> }) {
+    const { data } = await firstValueFrom(
+      this.http.get(`${INTERACTION_SERVICE_URL}/interactions/stats`, {
+        headers: req.authHeaders,
+      }),
+    );
+    return data;
+  }
 }

@@ -25,6 +25,8 @@ export { Tag, VenueTag, SearchLog, TimeContext } from './search.entity.js';
 // Interaction schema
 export {
   Review,
+  ReviewComment,
+  ReviewReaction,
   UserFavorite,
   UserInteraction,
   Notification,

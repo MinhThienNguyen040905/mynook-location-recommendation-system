@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
 
 export interface ReviewAnalysis {
@@ -11,43 +12,58 @@ export interface ReviewAnalysis {
   summary: string; // one-line summary of the review
 }
 
-const SYSTEM_PROMPT = `Bạn là AI phân tích review địa điểm (quán cà phê, nhà hàng, coworking, v.v.) tại Việt Nam.
+export class ReviewAnalysisFailedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ReviewAnalysisFailedError';
+  }
+}
 
-Nhiệm vụ: Phân tích review của khách hàng, trích xuất thông tin có cấu trúc.
+const SYSTEM_PROMPT = `You analyze Vietnamese location reviews for cafes, restaurants, coworking spaces, and similar venues.
 
-Quy tắc:
-1. Tag keys PHẢI là snake_case tiếng Anh (VD: good_coffee, quiet_space, friendly_staff).
-2. Nếu review nhắc đến thời gian (sáng/trưa/tối), set time_context tương ứng. Không nhắc → null.
-3. sentiment_score: -1.0 (rất tiêu cực) đến 1.0 (rất tích cực).
-4. new_tags chỉ chứa tag CHƯA có trong danh sách existing_tags được cung cấp.
-5. Trả về JSON object duy nhất, KHÔNG có text/markdown bao quanh.
+Task: extract structured review analysis for recommendation/search ranking.
 
-JSON schema bắt buộc:
+Rules:
+1. Tag keys MUST be English snake_case, for example good_coffee, quiet_space, friendly_staff.
+2. If the review mentions a time of day, set time_context to morning, afternoon, evening, or all_day. If not mentioned, use null.
+3. sentiment_score ranges from -1.0 (very negative) to 1.0 (very positive).
+4. new_tags must only contain tags that are not present in existing_tags.
+5. Return exactly one JSON object. Do not include markdown or surrounding text.
+
+Required JSON schema:
 {
   "sentiment": "positive" | "negative" | "neutral" | "mixed",
   "sentiment_score": number,
-  "positive_tags": ["tag_key", ...],
-  "negative_tags": ["tag_key", ...],
-  "new_tags": [{"key": "snake_case", "display_name": "Tên hiển thị", "category": "category"}],
+  "positive_tags": ["tag_key"],
+  "negative_tags": ["tag_key"],
+  "new_tags": [{"key": "snake_case", "display_name": "Display name", "category": "category"}],
   "time_context": "morning" | "afternoon" | "evening" | "all_day" | null,
-  "summary": "Tóm tắt ngắn 1 dòng"
+  "summary": "Short one-line summary"
 }`;
 
 @Injectable()
 export class GroqAiService implements OnModuleInit {
   private readonly logger = new Logger(GroqAiService.name);
   private groq!: Groq;
+  private apiKey = '';
+
+  constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
-    const apiKey = process.env['GROQ_API_KEY'];
-    if (!apiKey) {
-      this.logger.warn('GROQ_API_KEY not set — AI analysis will be skipped');
+    this.apiKey =
+      this.configService.get<string>('GROQ_API_KEY') ||
+      process.env['GROQ_API_KEY'] ||
+      '';
+
+    if (!this.apiKey) {
+      this.logger.warn('GROQ_API_KEY not set - AI analysis will be skipped');
     }
-    this.groq = new Groq({ apiKey: apiKey || '' });
+
+    this.groq = new Groq({ apiKey: this.apiKey });
   }
 
   /**
-   * Analyze a review using Groq LLM (Llama 3 / Mixtral).
+   * Analyze a review using Groq LLM.
    * Returns structured analysis with sentiment, tags, time context.
    */
   async analyzeReview(
@@ -55,17 +71,19 @@ export class GroqAiService implements OnModuleInit {
     rating: number,
     existingTagKeys: string[],
   ): Promise<ReviewAnalysis | null> {
-    if (!process.env['GROQ_API_KEY']) {
-      this.logger.warn('Skipping AI analysis — no GROQ_API_KEY');
-      return null;
+    if (!this.apiKey) {
+      throw new ReviewAnalysisFailedError(
+        'GROQ_API_KEY is not available in the running search-ai-service process. Restart the service after adding it to .env.',
+      );
     }
 
+    const promptReviewContent = reviewContent.trim().slice(0, 2000);
     const userPrompt = `Review (rating ${rating}/5):
-"${reviewContent}"
+"${promptReviewContent}"
 
-Existing tags trong hệ thống: [${existingTagKeys.join(', ')}]
+existing_tags: [${existingTagKeys.join(', ')}]
 
-Hãy phân tích review này và trả về JSON theo schema đã quy định.`;
+Analyze this review and return JSON using the required schema.`;
 
     try {
       const completion = await this.groq.chat.completions.create({
@@ -76,20 +94,25 @@ Hãy phân tích review này và trả về JSON theo schema đã quy định.`;
         ],
         response_format: { type: 'json_object' },
         temperature: 0.3,
-        max_tokens: 1024,
+        max_tokens: 512,
       });
 
       const content = completion.choices[0]?.message?.content;
       if (!content) {
-        this.logger.warn('Empty response from Groq');
-        return null;
+        throw new ReviewAnalysisFailedError('Groq returned an empty response');
       }
 
       const parsed = JSON.parse(content) as ReviewAnalysis;
       return this.validateAnalysis(parsed);
     } catch (error) {
-      this.logger.error(`Groq AI analysis failed: ${error}`);
-      return null;
+      if (error instanceof ReviewAnalysisFailedError) {
+        this.logger.error(error.message);
+        throw error;
+      }
+
+      const message = this.formatError(error);
+      this.logger.error(`Groq AI analysis failed: ${message}`);
+      throw new ReviewAnalysisFailedError(message);
     }
   }
 
@@ -121,5 +144,12 @@ Hãy phân tích review này và trả về JSON theo schema đã quy định.`;
       summary:
         typeof data.summary === 'string' ? data.summary : 'No summary',
     };
+  }
+
+  private formatError(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
   }
 }

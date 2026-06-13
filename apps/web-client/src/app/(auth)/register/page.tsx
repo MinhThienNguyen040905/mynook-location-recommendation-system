@@ -28,8 +28,6 @@ export default function RegisterPage() {
   const {
     register: registerField,
     handleSubmit,
-    watch,
-    setValue,
     getValues,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
