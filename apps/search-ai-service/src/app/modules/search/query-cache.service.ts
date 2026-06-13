@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { RedisCacheService } from '@mynook/redis-cache';
 import type { ExtractedQuery } from './query-extraction.service.js';
 
 interface CacheEntry {
@@ -18,9 +19,13 @@ interface CacheEntry {
 export class QueryCacheService {
   private readonly MAX_ENTRIES = 5000;
   private readonly TTL_MS = 60 * 60 * 1000;
+  private readonly TTL_SECONDS = 60 * 60;
+  private readonly REDIS_PREFIX = 'mynook:search:query-extraction:v1';
 
   private cache = new Map<string, CacheEntry>();
   private inflight = new Map<string, Promise<ExtractedQuery>>();
+
+  constructor(private readonly redis: RedisCacheService) {}
 
   private normalize(q: string): string {
     return q.toLowerCase().normalize('NFC').replace(/\s+/g, ' ').trim();
@@ -63,6 +68,14 @@ export class QueryCacheService {
     const cached = this.get(query);
     if (cached) return cached;
 
+    const redisCached = await this.redis.getJson<ExtractedQuery>(
+      this.redisKey(key),
+    );
+    if (redisCached) {
+      this.set(query, redisCached);
+      return redisCached;
+    }
+
     const existing = this.inflight.get(key);
     if (existing) return existing;
 
@@ -70,6 +83,7 @@ export class QueryCacheService {
       try {
         const value = await loader();
         this.set(query, value);
+        await this.redis.setJson(this.redisKey(key), value, this.TTL_SECONDS);
         return value;
       } finally {
         this.inflight.delete(key);
@@ -77,5 +91,9 @@ export class QueryCacheService {
     })();
     this.inflight.set(key, promise);
     return promise;
+  }
+
+  private redisKey(normalizedQuery: string): string {
+    return `${this.REDIS_PREFIX}:${Buffer.from(normalizedQuery).toString('base64url')}`;
   }
 }
