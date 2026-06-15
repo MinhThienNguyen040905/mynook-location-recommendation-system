@@ -5,8 +5,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { VenueReport, VenueReportStatus } from '@mynook/database';
+import { NotificationType, VenueReport, VenueReportStatus } from '@mynook/database';
 import { CreateVenueReportDto } from './dto/venue-report.dto.js';
+import { NotificationService } from '../notification/notification.service.js';
 
 export interface ListVenueReportsQuery {
   status?: VenueReportStatus;
@@ -20,6 +21,7 @@ export class VenueReportService {
   constructor(
     @InjectRepository(VenueReport)
     private readonly repo: Repository<VenueReport>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(reporterId: string, dto: CreateVenueReportDto) {
@@ -75,7 +77,10 @@ export class VenueReportService {
     report.status = status;
     report.resolved_by = adminId;
     report.resolved_at = new Date();
-    return this.repo.save(report);
+    const saved = await this.repo.save(report);
+
+    await this.notifyVenueReportResolved([saved], status);
+    return saved;
   }
 
   async bulkResolveByVenue(
@@ -83,6 +88,13 @@ export class VenueReportService {
     adminId: string,
     status: VenueReportStatus,
   ) {
+    const pendingReports = await this.repo.find({
+      where: {
+        venue_id: venueId,
+        status: VenueReportStatus.PENDING,
+      },
+    });
+
     const res = await this.repo
       .createQueryBuilder()
       .update(VenueReport)
@@ -92,7 +104,29 @@ export class VenueReportService {
         pending: VenueReportStatus.PENDING,
       })
       .execute();
+    await this.notifyVenueReportResolved(pendingReports, status);
     return { affected: res.affected ?? 0 };
+  }
+
+  private async notifyVenueReportResolved(
+    reports: VenueReport[],
+    status: VenueReportStatus,
+  ): Promise<void> {
+    const accepted = status === VenueReportStatus.RESOLVED_DEACTIVATED;
+    await this.notificationService.createManyForAccounts(
+      reports.map((report) => ({
+        accountId: report.reporter_account_id,
+        title: accepted
+          ? 'Báo cáo địa điểm của bạn đã được chấp nhận'
+          : 'Báo cáo địa điểm của bạn đã được xem xét',
+        message: accepted
+          ? 'Cảm ơn bạn đã báo cáo. Địa điểm vi phạm đã được xử lý.'
+          : 'Cảm ơn bạn đã báo cáo. Sau khi xem xét, chúng tôi chưa thấy cần vô hiệu hóa địa điểm này.',
+        type: NotificationType.SYSTEM,
+        relatedEntityId: report.venue_id,
+        relatedEntityType: 'venue',
+      })),
+    );
   }
 
   async stats() {

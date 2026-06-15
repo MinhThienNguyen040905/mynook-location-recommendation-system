@@ -9,9 +9,15 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
 import { Repository } from 'typeorm';
-import { Review, ReviewComment, ReviewReaction } from '@mynook/database';
+import {
+  NotificationType,
+  Review,
+  ReviewComment,
+  ReviewReaction,
+} from '@mynook/database';
 import { RMQ_EVENTS, VenueReviewDeletedEvent } from '@mynook/shared-types';
 import { CreateReviewDto } from './dto/create-review.dto.js';
+import { NotificationService } from '../notification/notification.service.js';
 
 interface SeedGoogleMapsReviewInput {
   source_review_id?: string | null;
@@ -119,6 +125,7 @@ export class ReviewService implements OnModuleInit {
     private readonly reactionRepo: Repository<ReviewReaction>,
     @Inject('EVENTS_SERVICE')
     private readonly events: ClientProxy,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async onModuleInit() {
@@ -201,7 +208,7 @@ export class ReviewService implements OnModuleInit {
       venue_id: row['venue_id'] as string,
       content: (row['content'] as string | null) ?? null,
       rating: Number(row['rating']),
-      media: (row['media'] as string[]) ?? [],
+      media: this.normalizeMedia(row['media']),
       ai_analysis_json: row['ai_analysis_json'] ?? null,
       is_verified_visit: row['is_verified_visit'] === true,
       created_at: new Date(row['created_at'] as string | Date).toISOString(),
@@ -281,7 +288,7 @@ export class ReviewService implements OnModuleInit {
         venue_id: row.venue_id as string,
         content: row.content as string | null,
         rating: Number(row.rating),
-        media: (row.media as string[]) ?? [],
+        media: this.normalizeMedia(row.media),
         ai_analysis_json: row.ai_analysis_json ?? null,
         is_verified_visit: row.is_verified_visit === true,
         created_at: new Date(row.created_at as string | Date).toISOString(),
@@ -294,7 +301,7 @@ export class ReviewService implements OnModuleInit {
               ward: row.venue_ward as string | null,
               city_name: row.venue_city_name as string | null,
               district_name: row.venue_district_name as string | null,
-              media: (row.venue_media as string[]) ?? [],
+              media: this.normalizeMedia(row.venue_media),
               rating_avg: Number(row.venue_rating_avg ?? 0),
               review_count: Number(row.venue_review_count ?? 0),
             }
@@ -382,14 +389,19 @@ export class ReviewService implements OnModuleInit {
       `
       INSERT INTO interaction_schema.review_comments
         (review_id, account_id, parent_comment_id, content, media, created_at)
-      VALUES ($1, $2, $3, $4, $5, now())
+      VALUES ($1, $2, $3, $4, $5::jsonb, now())
       RETURNING id
       `,
-      [reviewId, accountId, parentCommentId ?? null, trimmed, safeMedia],
+      [reviewId, accountId, parentCommentId ?? null, trimmed, JSON.stringify(safeMedia)],
     );
 
     const comment = await this.getCommentById(rows[0].id);
     if (!comment) throw new NotFoundException('Comment not found after create');
+    await this.notifyReviewComment({
+      actorId: accountId,
+      reviewId,
+      parentCommentId: parentCommentId ?? null,
+    });
     return comment;
   }
 
@@ -418,6 +430,7 @@ export class ReviewService implements OnModuleInit {
         content: review.content,
         media: reviewMedia,
         isVerifiedVisit: false,
+        notifyOwner: false,
       });
       created.push({
         ...saved,
@@ -627,6 +640,15 @@ export class ReviewService implements OnModuleInit {
   }
 
   private normalizeMedia(media: unknown): string[] {
+    if (typeof media === 'string') {
+      try {
+        return this.normalizeMedia(JSON.parse(media));
+      } catch {
+        const trimmed = media.trim();
+        return trimmed ? [trimmed] : [];
+      }
+    }
+
     if (!Array.isArray(media)) return [];
     return media
       .filter((url): url is string => typeof url === 'string')
@@ -642,18 +664,125 @@ export class ReviewService implements OnModuleInit {
     content: string | null;
     media: unknown[];
     isVerifiedVisit: boolean;
+    notifyOwner?: boolean;
   }): Promise<Review> {
     const review = this.reviewRepo.create({
       account_id: input.accountId,
       venue_id: input.venueId,
       rating: input.rating,
       content: input.content,
-      media: input.media,
+      media: this.normalizeMedia(input.media),
       is_verified_visit: input.isVerifiedVisit,
     });
     const saved = await this.reviewRepo.save(review);
     await this.emitVenueReviewed(saved);
+    if (input.notifyOwner !== false) {
+      await this.notifyVenueOwnerAboutReview(saved);
+    }
     return saved;
+  }
+
+  private async notifyVenueOwnerAboutReview(review: Review): Promise<void> {
+    const rows: Array<{
+      owner_id: string | null;
+      venue_name: string | null;
+      author_display_name: string | null;
+    }> = await this.reviewRepo.manager.query(
+      `
+      SELECT v.owner_id,
+             v.name AS venue_name,
+             COALESCE(
+               NULLIF(TRIM(a.full_name), ''),
+               NULLIF(split_part(a.email, '@', 1), ''),
+               'Người dùng'
+             ) AS author_display_name
+      FROM venue_schema.venues v
+      LEFT JOIN auth_schema.accounts a ON a.id = $2
+      WHERE v.id = $1
+      `,
+      [review.venue_id, review.account_id],
+    );
+
+    const context = rows[0];
+    if (!context?.owner_id || context.owner_id === review.account_id) return;
+
+    await this.notificationService.createForAccount({
+      accountId: context.owner_id,
+      title: 'Venue của bạn có đánh giá mới',
+      message: `${context.author_display_name ?? 'Người dùng'} đã đánh giá ${review.rating} sao cho ${context.venue_name ?? 'venue của bạn'}.`,
+      type: NotificationType.SYSTEM,
+      relatedEntityId: review.venue_id,
+      relatedEntityType: 'venue',
+    });
+  }
+
+  private async notifyReviewComment(input: {
+    actorId: string;
+    reviewId: string;
+    parentCommentId: string | null;
+  }): Promise<void> {
+    const rows: Array<{
+      review_author_id: string;
+      venue_id: string;
+      venue_name: string | null;
+      actor_display_name: string | null;
+      parent_author_id: string | null;
+    }> = await this.commentRepo.manager.query(
+      `
+      SELECT r.account_id AS review_author_id,
+             r.venue_id,
+             v.name AS venue_name,
+             COALESCE(
+               NULLIF(TRIM(a.full_name), ''),
+               NULLIF(split_part(a.email, '@', 1), ''),
+               'Người dùng'
+             ) AS actor_display_name,
+             pc.account_id AS parent_author_id
+      FROM interaction_schema.reviews r
+      LEFT JOIN venue_schema.venues v ON v.id = r.venue_id
+      LEFT JOIN auth_schema.accounts a ON a.id = $2
+      LEFT JOIN interaction_schema.review_comments pc ON pc.id = $3
+      WHERE r.id = $1
+      `,
+      [input.reviewId, input.actorId, input.parentCommentId],
+    );
+
+    const context = rows[0];
+    if (!context) return;
+
+    const actor = context.actor_display_name ?? 'Người dùng';
+    const venueName = context.venue_name ?? 'địa điểm này';
+    const notified = new Set<string>();
+
+    if (
+      input.parentCommentId &&
+      context.parent_author_id &&
+      context.parent_author_id !== input.actorId
+    ) {
+      await this.notificationService.createForAccount({
+        accountId: context.parent_author_id,
+        title: 'Có phản hồi mới cho bình luận của bạn',
+        message: `${actor} đã trả lời bình luận của bạn tại ${venueName}.`,
+        type: NotificationType.REVIEW_REPLY,
+        relatedEntityId: context.venue_id,
+        relatedEntityType: 'venue',
+      });
+      notified.add(context.parent_author_id);
+    }
+
+    if (
+      context.review_author_id !== input.actorId &&
+      !notified.has(context.review_author_id)
+    ) {
+      await this.notificationService.createForAccount({
+        accountId: context.review_author_id,
+        title: 'Có bình luận mới trên đánh giá của bạn',
+        message: `${actor} đã bình luận về đánh giá của bạn tại ${venueName}.`,
+        type: NotificationType.REVIEW_REPLY,
+        relatedEntityId: context.venue_id,
+        relatedEntityType: 'venue',
+      });
+    }
   }
 
   private async pickSeedAccounts(limit: number): Promise<string[]> {

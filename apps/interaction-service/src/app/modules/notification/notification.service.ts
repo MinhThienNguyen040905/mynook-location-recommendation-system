@@ -4,6 +4,15 @@ import { Repository } from 'typeorm';
 import { Notification, NotificationType } from '@mynook/database';
 import type { UserRegisteredEvent } from '@mynook/shared-types';
 
+export interface CreateNotificationInput {
+  accountId: string;
+  title: string;
+  message: string;
+  type?: NotificationType;
+  relatedEntityId?: string | null;
+  relatedEntityType?: string | null;
+}
+
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
@@ -13,7 +22,6 @@ export class NotificationService {
     private readonly notifRepo: Repository<Notification>,
   ) {}
 
-  /** Lấy danh sách thông báo của account (mới nhất trước) */
   async findByAccount(accountId: string): Promise<Notification[]> {
     return this.notifRepo.find({
       where: { account_id: accountId },
@@ -22,14 +30,12 @@ export class NotificationService {
     });
   }
 
-  /** Đếm số thông báo chưa đọc */
   async countUnread(accountId: string): Promise<number> {
     return this.notifRepo.count({
       where: { account_id: accountId, is_read: false },
     });
   }
 
-  /** Đánh dấu một thông báo đã đọc */
   async markAsRead(notifId: string, accountId: string): Promise<Notification> {
     const notif = await this.notifRepo.findOne({
       where: { id: notifId, account_id: accountId },
@@ -39,7 +45,6 @@ export class NotificationService {
     return this.notifRepo.save(notif);
   }
 
-  /** Đánh dấu tất cả thông báo đã đọc */
   async markAllAsRead(accountId: string): Promise<void> {
     await this.notifRepo.update(
       { account_id: accountId, is_read: false },
@@ -47,18 +52,47 @@ export class NotificationService {
     );
   }
 
-  /** Tạo thông báo chào mừng khi user đăng ký thành công */
+  async createForAccount(input: CreateNotificationInput): Promise<Notification> {
+    const notification = this.notifRepo.create({
+      account_id: input.accountId,
+      title: input.title,
+      message: input.message,
+      type: input.type ?? NotificationType.SYSTEM,
+      related_entity_id: input.relatedEntityId ?? null,
+      related_entity_type: input.relatedEntityType ?? null,
+    });
+
+    return this.notifRepo.save(notification);
+  }
+
+  async createManyForAccounts(inputs: CreateNotificationInput[]): Promise<number> {
+    const rows = inputs
+      .filter((input) => input.accountId)
+      .map((input) => ({
+        account_id: input.accountId,
+        title: input.title,
+        message: input.message,
+        type: input.type ?? NotificationType.SYSTEM,
+        related_entity_id: input.relatedEntityId ?? null,
+        related_entity_type: input.relatedEntityType ?? null,
+      }));
+
+    if (rows.length === 0) return 0;
+
+    const res = await this.notifRepo.insert(rows);
+    return res.identifiers.length;
+  }
+
   async createWelcomeNotification(event: UserRegisteredEvent): Promise<void> {
     const displayName = event.fullName || event.email;
 
-    const notification = this.notifRepo.create({
-      account_id: event.accountId,
+    await this.createForAccount({
+      accountId: event.accountId,
       title: 'Chào mừng bạn đến MyNook!',
       message: `Xin chào ${displayName}! Cảm ơn bạn đã đăng ký tài khoản MyNook. Hãy bắt đầu khám phá những địa điểm tuyệt vời xung quanh bạn nhé!`,
       type: NotificationType.SYSTEM,
     });
 
-    await this.notifRepo.save(notification);
     this.logger.log(`Welcome notification created for account ${event.accountId}`);
   }
 }

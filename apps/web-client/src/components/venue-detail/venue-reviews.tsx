@@ -67,12 +67,30 @@ function isVideoUrl(url: string): boolean {
   return /\/video\/upload\//.test(url) || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url);
 }
 
-function MediaStrip({ media }: { media: string[] }) {
-  if (!media || media.length === 0) return null;
+function normalizeMediaInput(media: unknown): string[] {
+  if (Array.isArray(media)) {
+    return media.filter((url): url is string => typeof url === 'string' && url.trim().length > 0);
+  }
+
+  if (typeof media === 'string') {
+    try {
+      return normalizeMediaInput(JSON.parse(media));
+    } catch {
+      const trimmed = media.trim();
+      return trimmed ? [trimmed] : [];
+    }
+  }
+
+  return [];
+}
+
+function MediaStrip({ media }: { media: unknown }) {
+  const safeMedia = normalizeMediaInput(media);
+  if (safeMedia.length === 0) return null;
 
   return (
     <div className="mt-2 flex flex-wrap gap-2">
-      {media.map((url, index) => (
+      {safeMedia.map((url, index) => (
         <div
           key={`${url}-${index}`}
           className="h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800"
@@ -235,7 +253,7 @@ function CommentItem({
               <span className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                 {authorName}
               </span>
-              <span className="text-[11px] text-slate-400 shrink-0">
+              <span className="text-[11px] text-slate-400 shrink-0" suppressHydrationWarning>
                 {timeAgo(comment.created_at)}
               </span>
             </div>
@@ -345,7 +363,8 @@ function ReviewCard({
   const isLong = (review.content?.length ?? 0) > 150;
   const authorName = review.author?.display_name || 'Người dùng ẩn danh';
   const initial = authorName.charAt(0).toUpperCase();
-  const activePhoto = activePhotoIndex === null ? null : review.media[activePhotoIndex];
+  const reviewMedia = normalizeMediaInput(review.media);
+  const activePhoto = activePhotoIndex === null ? null : reviewMedia[activePhotoIndex];
   const comments = review.comments ?? [];
   const maxCommentFiles = 4;
 
@@ -437,13 +456,13 @@ function ReviewCard({
   const showPreviousPhoto = () => {
     setActivePhotoIndex((current) => {
       if (current === null) return current;
-      return current === 0 ? review.media.length - 1 : current - 1;
+      return current === 0 ? reviewMedia.length - 1 : current - 1;
     });
   };
   const showNextPhoto = () => {
     setActivePhotoIndex((current) => {
       if (current === null) return current;
-      return current === review.media.length - 1 ? 0 : current + 1;
+      return current === reviewMedia.length - 1 ? 0 : current + 1;
     });
   };
 
@@ -463,7 +482,7 @@ function ReviewCard({
       document.body.style.overflow = '';
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [activePhotoIndex, review.media.length]);
+  }, [activePhotoIndex, reviewMedia.length]);
 
   useEffect(() => {
     commentPreviewsRef.current = commentPreviews;
@@ -514,7 +533,9 @@ function ReviewCard({
                   />
                 ))}
               </div>
-              <span className="text-xs text-slate-400">{timeAgo(review.created_at)}</span>
+              <span className="text-xs text-slate-400" suppressHydrationWarning>
+                {timeAgo(review.created_at)}
+              </span>
             </div>
           </div>
         </div>
@@ -534,9 +555,9 @@ function ReviewCard({
         </button>
       )}
 
-      {review.media && review.media.length > 0 && (
+      {reviewMedia.length > 0 && (
         <div className="flex gap-2 mt-3">
-          {review.media.map((url, i) => (
+          {reviewMedia.map((url, i) => (
             <button
               type="button"
               key={`${url}-${i}`}
@@ -708,7 +729,7 @@ function ReviewCard({
           aria-label="Review photos"
         >
           <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
-            {(activePhotoIndex ?? 0) + 1} / {review.media.length}
+            {(activePhotoIndex ?? 0) + 1} / {reviewMedia.length}
           </div>
 
           <button
@@ -723,7 +744,7 @@ function ReviewCard({
             <X size={22} />
           </button>
 
-          {review.media.length > 1 && (
+          {reviewMedia.length > 1 && (
             <>
               <button
                 type="button"

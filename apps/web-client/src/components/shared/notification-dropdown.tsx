@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck, Info, MessageSquare, Tag, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,7 @@ export function NotificationDropdown({
   iconClass = 'text-nook-ink/60 hover:text-nook-olive hover:bg-nook-olive/10',
   badgeClass = 'bg-red-500',
 }: NotificationDropdownProps) {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -94,6 +96,31 @@ export function NotificationDropdown({
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch { /* silent */ }
+  };
+
+  const getNotificationHref = (notification: Notification): string | null => {
+    if (!notification.related_entity_id) return null;
+
+    if (
+      notification.related_entity_type === 'venue' ||
+      notification.related_entity_type === 'venue_report'
+    ) {
+      return `/venues/${notification.related_entity_id}`;
+    }
+
+    return null;
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!notification.is_read) {
+      await handleMarkRead(notification.id);
+    }
+
+    const href = getNotificationHref(notification);
+    if (href) {
+      setOpen(false);
+      router.push(href);
+    }
   };
 
   const handleMarkAllRead = async () => {
@@ -168,7 +195,7 @@ export function NotificationDropdown({
                         'flex gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-50 last:border-0',
                         !notif.is_read && 'bg-blue-50/30',
                       )}
-                      onClick={() => !notif.is_read && handleMarkRead(notif.id)}
+                      onClick={() => handleNotificationClick(notif)}
                     >
                       <div className={cn('size-9 rounded-xl flex items-center justify-center shrink-0', config.color)}>
                         <Icon size={16} />

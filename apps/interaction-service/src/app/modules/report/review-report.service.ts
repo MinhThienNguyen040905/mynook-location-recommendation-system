@@ -5,9 +5,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Review, ReviewReport, ReportStatus } from '@mynook/database';
+import {
+  NotificationType,
+  Review,
+  ReviewReport,
+  ReportStatus,
+} from '@mynook/database';
 import { CreateReviewReportDto } from './dto/review-report.dto.js';
 import { ReviewService } from '../review/review.service.js';
+import { NotificationService } from '../notification/notification.service.js';
 
 export interface ListReviewReportsQuery {
   status?: ReportStatus;
@@ -23,6 +29,7 @@ export class ReviewReportService {
     @InjectRepository(Review)
     private readonly reviewRepo: Repository<Review>,
     private readonly reviewService: ReviewService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createReport(reporterId: string, dto: CreateReviewReportDto) {
@@ -109,6 +116,13 @@ export class ReviewReportService {
     }
 
     if (action === 'delete') {
+      const pendingReports = await this.reportRepo.find({
+        where: {
+          review_id: report.review_id,
+          status: ReportStatus.PENDING,
+        },
+      });
+
       await this.reviewService.delete(report.review_id);
 
       await this.reportRepo
@@ -124,14 +138,43 @@ export class ReviewReportService {
           pending: ReportStatus.PENDING,
         })
         .execute();
+
+      await this.notifyReviewReportResolved(
+        pendingReports,
+        'Báo cáo của bạn đã được chấp nhận',
+        'Cảm ơn bạn đã báo cáo. Đánh giá vi phạm đã được xử lý.',
+      );
     } else {
       report.status = ReportStatus.DISMISSED;
       report.resolved_by = adminId;
       report.resolved_at = new Date();
       await this.reportRepo.save(report);
+
+      await this.notifyReviewReportResolved(
+        [report],
+        'Báo cáo của bạn đã được xem xét',
+        'Cảm ơn bạn đã báo cáo. Sau khi xem xét, chúng tôi chưa thấy cần xóa đánh giá này.',
+      );
     }
 
     return this.findById(reportId);
+  }
+
+  private async notifyReviewReportResolved(
+    reports: ReviewReport[],
+    title: string,
+    message: string,
+  ): Promise<void> {
+    await this.notificationService.createManyForAccounts(
+      reports.map((report) => ({
+        accountId: report.reporter_account_id,
+        title,
+        message,
+        type: NotificationType.SYSTEM,
+        relatedEntityId: report.id,
+        relatedEntityType: 'report',
+      })),
+    );
   }
 
   async stats() {

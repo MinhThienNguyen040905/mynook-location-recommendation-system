@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { HeroSection } from "@/components/home/hero-section";
 import { CategoryPills } from "@/components/home/category-pills";
@@ -11,8 +10,7 @@ import { MarketingBanner } from "@/components/home/marketing-banner";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8f6f5] dark:bg-[#221610] font-sans">
-      <Navbar />
+    <div className="flex flex-col min-h-[calc(100vh-5rem)] bg-[#f8f6f5] dark:bg-[#221610] font-sans">
       <HeroSection />
       <Suspense fallback={null}>
         <CategoryPills />
