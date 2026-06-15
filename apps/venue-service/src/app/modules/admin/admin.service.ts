@@ -219,15 +219,25 @@ export class AdminVenueService {
 
     let ok = 0;
     let failed = 0;
+    let embedded = 0;
+    let docOnly = 0;
     for (const r of rows) {
       try {
         await this.embeddingService.regenerate(r.id);
+        const status = await this.venueRepo
+          .createQueryBuilder('v')
+          .select('v.embedding', 'embedding')
+          .addSelect('v.search_document', 'search_document')
+          .where('v.id = :id', { id: r.id })
+          .getRawOne<{ embedding: string | null; search_document: string | null }>();
+        if (status?.embedding) embedded++;
+        else if (status?.search_document) docOnly++;
         ok++;
       } catch {
         failed++;
       }
     }
-    return { processed: rows.length, ok, failed };
+    return { processed: rows.length, ok, failed, embedded, doc_only: docOnly };
   }
 
   async cityBreakdown() {
