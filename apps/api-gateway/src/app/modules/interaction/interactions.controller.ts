@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Request,
@@ -81,6 +82,25 @@ export class InteractionsController {
       this.http.get(`${INTERACTION_SERVICE_URL}/interactions/stats`, {
         headers: req.authHeaders,
       }),
+    );
+    return data;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthHeadersInterceptor)
+  @Get('venues/:venueId/analytics')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Owner analytics for a venue' })
+  @ApiResponse({ status: 200 })
+  async venueAnalytics(
+    @Request() req: { authHeaders: Record<string, string> },
+    @Param('venueId') venueId: string,
+  ) {
+    const { data } = await firstValueFrom(
+      this.http.get(
+        `${INTERACTION_SERVICE_URL}/interactions/venues/${venueId}/analytics`,
+        { headers: req.authHeaders },
+      ),
     );
     return data;
   }

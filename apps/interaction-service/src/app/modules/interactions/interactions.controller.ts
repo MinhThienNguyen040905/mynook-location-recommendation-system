@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   UnauthorizedException,
@@ -51,5 +52,16 @@ export class InteractionsController {
   async stats(@CurrentUser() user: CurrentUserPayload | undefined) {
     if (!user?.id) throw new UnauthorizedException();
     return this.interactions.stats(user.id);
+  }
+
+  @Get('venues/:venueId/analytics')
+  @ApiOperation({ summary: 'Owner analytics for a venue' })
+  @ApiResponse({ status: 200 })
+  async venueAnalytics(
+    @CurrentUser() user: CurrentUserPayload | undefined,
+    @Param('venueId') venueId: string,
+  ) {
+    if (!user?.id) throw new UnauthorizedException();
+    return this.interactions.venueAnalytics(user.id, venueId);
   }
 }

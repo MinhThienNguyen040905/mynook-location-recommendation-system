@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Info, Menu } from 'lucide-react';
+import { BarChart3, Info, Menu } from 'lucide-react';
 
 const tabs = [
   { label: 'General Info',      icon: Info, href: '/dashboard/venue' },
   { label: 'Menu Management',   icon: Menu, href: '/dashboard/menu'  },
+  { label: 'Analytics',         icon: BarChart3, href: '/dashboard/analytics' },
 ];
 
 /**

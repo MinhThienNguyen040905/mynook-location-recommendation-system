@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
     TRACK_VIEW: '/interactions/view',
     RECENTLY_VIEWED: '/interactions/recently-viewed',
     STATS: '/interactions/stats',
+    VENUE_ANALYTICS: (venueId: string) => `/interactions/venues/${venueId}/analytics`,
   },
 
   // Bookings

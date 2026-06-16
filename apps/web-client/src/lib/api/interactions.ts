@@ -50,6 +50,40 @@ export interface InteractionStats {
   viewed_count: number;
 }
 
+export interface VenueInteractionAnalytics {
+  venue: {
+    id: string;
+    name: string;
+    branch_name: string | null;
+    rating_avg: number;
+    review_count: number;
+  };
+  summary: {
+    unique_viewers: number;
+    viewers_last_7d: number;
+    favorites_count: number;
+    reviews_count: number;
+    average_rating: number;
+    verified_reviews_count: number;
+    review_likes: number;
+    review_dislikes: number;
+    review_comments: number;
+    pending_reports: number;
+    total_reports: number;
+  };
+  rating_distribution: Array<{ rating: number; count: number }>;
+  recent_reviews: Array<{
+    id: string;
+    rating: number;
+    content: string | null;
+    created_at: string;
+    author_name: string | null;
+    like_count: number;
+    dislike_count: number;
+    comment_count: number;
+  }>;
+}
+
 /** Server-side: ghi nhận user vừa xem một venue. Yêu cầu auth. */
 export async function trackVenueView(venueId: string): Promise<void> {
   await apiClient.post(API_ENDPOINTS.INTERACTIONS.TRACK_VIEW, {
@@ -71,6 +105,15 @@ export async function getRecentlyViewed(
 export async function getInteractionStats(): Promise<InteractionStats> {
   const { data } = await apiClient.get<InteractionStats>(
     API_ENDPOINTS.INTERACTIONS.STATS,
+  );
+  return data;
+}
+
+export async function getVenueInteractionAnalytics(
+  venueId: string,
+): Promise<VenueInteractionAnalytics> {
+  const { data } = await apiClient.get<VenueInteractionAnalytics>(
+    API_ENDPOINTS.INTERACTIONS.VENUE_ANALYTICS(venueId),
   );
   return data;
 }

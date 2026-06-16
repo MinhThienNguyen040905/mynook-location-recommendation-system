@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserInteraction } from '@mynook/database';
@@ -25,6 +25,40 @@ export interface RecentlyViewedVenue {
 
 export interface InteractionStats {
   viewed_count: number;
+}
+
+export interface VenueInteractionAnalytics {
+  venue: {
+    id: string;
+    name: string;
+    branch_name: string | null;
+    rating_avg: number;
+    review_count: number;
+  };
+  summary: {
+    unique_viewers: number;
+    viewers_last_7d: number;
+    favorites_count: number;
+    reviews_count: number;
+    average_rating: number;
+    verified_reviews_count: number;
+    review_likes: number;
+    review_dislikes: number;
+    review_comments: number;
+    pending_reports: number;
+    total_reports: number;
+  };
+  rating_distribution: Array<{ rating: number; count: number }>;
+  recent_reviews: Array<{
+    id: string;
+    rating: number;
+    content: string | null;
+    created_at: string;
+    author_name: string | null;
+    like_count: number;
+    dislike_count: number;
+    comment_count: number;
+  }>;
 }
 
 @Injectable()
@@ -140,6 +174,199 @@ export class InteractionsService {
 
     return {
       viewed_count: Number(rows[0]?.viewed_count ?? 0),
+    };
+  }
+
+  async venueAnalytics(
+    accountId: string,
+    venueId: string,
+  ): Promise<VenueInteractionAnalytics> {
+    const venueRows = await this.interactionRepo.manager.query(
+      `
+      SELECT id, owner_id, name, branch_name, rating_avg, review_count
+      FROM venue_schema.venues
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [venueId],
+    );
+
+    const venue = venueRows[0] as
+      | {
+          id: string;
+          owner_id: string | null;
+          name: string;
+          branch_name: string | null;
+          rating_avg: number | string | null;
+          review_count: number | string | null;
+        }
+      | undefined;
+
+    if (!venue) throw new NotFoundException('Venue not found');
+    if (venue.owner_id !== accountId) {
+      throw new ForbiddenException('You can only view analytics for your own venues');
+    }
+
+    const [
+      viewRows,
+      favoriteRows,
+      reviewRows,
+      reactionRows,
+      commentRows,
+      reportRows,
+      ratingRows,
+      recentReviewRows,
+    ] = await Promise.all([
+      this.interactionRepo.manager.query(
+        `
+        SELECT
+          COUNT(DISTINCT account_id)::int AS unique_viewers,
+          COUNT(DISTINCT account_id) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::int AS viewers_last_7d
+        FROM interaction_schema.user_interactions
+        WHERE venue_id = $1 AND interaction_type = 'view'
+        `,
+        [venueId],
+      ),
+      this.interactionRepo.manager.query(
+        `
+        SELECT COUNT(*)::int AS favorites_count
+        FROM interaction_schema.user_favorites
+        WHERE venue_id = $1
+        `,
+        [venueId],
+      ),
+      this.interactionRepo.manager.query(
+        `
+        SELECT
+          COUNT(*)::int AS reviews_count,
+          COALESCE(AVG(rating), 0)::float AS average_rating,
+          COUNT(*) FILTER (WHERE is_verified_visit = true)::int AS verified_reviews_count
+        FROM interaction_schema.reviews
+        WHERE venue_id = $1
+        `,
+        [venueId],
+      ),
+      this.interactionRepo.manager.query(
+        `
+        SELECT
+          COUNT(*) FILTER (WHERE rr.reaction_type = 'like')::int AS review_likes,
+          COUNT(*) FILTER (WHERE rr.reaction_type = 'dislike')::int AS review_dislikes
+        FROM interaction_schema.review_reactions rr
+        JOIN interaction_schema.reviews r ON r.id = rr.review_id
+        WHERE r.venue_id = $1
+        `,
+        [venueId],
+      ),
+      this.interactionRepo.manager.query(
+        `
+        SELECT COUNT(*)::int AS review_comments
+        FROM interaction_schema.review_comments c
+        JOIN interaction_schema.reviews r ON r.id = c.review_id
+        WHERE r.venue_id = $1
+        `,
+        [venueId],
+      ),
+      this.interactionRepo.manager.query(
+        `
+        SELECT
+          COUNT(*)::int AS total_reports,
+          COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_reports
+        FROM interaction_schema.venue_reports
+        WHERE venue_id = $1
+        `,
+        [venueId],
+      ),
+      this.interactionRepo.manager.query(
+        `
+        SELECT rating::int AS rating, COUNT(*)::int AS count
+        FROM interaction_schema.reviews
+        WHERE venue_id = $1
+        GROUP BY rating
+        `,
+        [venueId],
+      ),
+      this.interactionRepo.manager.query(
+        `
+        SELECT
+          r.id,
+          r.rating,
+          r.content,
+          r.created_at,
+          COALESCE(NULLIF(TRIM(a.full_name), ''), split_part(a.email, '@', 1)) AS author_name,
+          COALESCE(reactions.like_count, 0)::int AS like_count,
+          COALESCE(reactions.dislike_count, 0)::int AS dislike_count,
+          COALESCE(comments.comment_count, 0)::int AS comment_count
+        FROM interaction_schema.reviews r
+        LEFT JOIN auth_schema.accounts a ON a.id = r.account_id
+        LEFT JOIN (
+          SELECT
+            review_id,
+            COUNT(*) FILTER (WHERE reaction_type = 'like') AS like_count,
+            COUNT(*) FILTER (WHERE reaction_type = 'dislike') AS dislike_count
+          FROM interaction_schema.review_reactions
+          GROUP BY review_id
+        ) reactions ON reactions.review_id = r.id
+        LEFT JOIN (
+          SELECT review_id, COUNT(*) AS comment_count
+          FROM interaction_schema.review_comments
+          GROUP BY review_id
+        ) comments ON comments.review_id = r.id
+        WHERE r.venue_id = $1
+        ORDER BY r.created_at DESC
+        LIMIT 5
+        `,
+        [venueId],
+      ),
+    ]);
+
+    const viewStats = viewRows[0] as Record<string, unknown> | undefined;
+    const favoriteStats = favoriteRows[0] as Record<string, unknown> | undefined;
+    const reviewStats = reviewRows[0] as Record<string, unknown> | undefined;
+    const reactionStats = reactionRows[0] as Record<string, unknown> | undefined;
+    const commentStats = commentRows[0] as Record<string, unknown> | undefined;
+    const reportStats = reportRows[0] as Record<string, unknown> | undefined;
+    const ratingsByValue = new Map<number, number>(
+      (ratingRows as Array<Record<string, unknown>>).map((row) => [
+        Number(row['rating']),
+        Number(row['count'] ?? 0),
+      ]),
+    );
+
+    return {
+      venue: {
+        id: venue.id,
+        name: venue.name,
+        branch_name: venue.branch_name,
+        rating_avg: Number(venue.rating_avg ?? 0),
+        review_count: Number(venue.review_count ?? 0),
+      },
+      summary: {
+        unique_viewers: Number(viewStats?.['unique_viewers'] ?? 0),
+        viewers_last_7d: Number(viewStats?.['viewers_last_7d'] ?? 0),
+        favorites_count: Number(favoriteStats?.['favorites_count'] ?? 0),
+        reviews_count: Number(reviewStats?.['reviews_count'] ?? 0),
+        average_rating: Number(reviewStats?.['average_rating'] ?? 0),
+        verified_reviews_count: Number(reviewStats?.['verified_reviews_count'] ?? 0),
+        review_likes: Number(reactionStats?.['review_likes'] ?? 0),
+        review_dislikes: Number(reactionStats?.['review_dislikes'] ?? 0),
+        review_comments: Number(commentStats?.['review_comments'] ?? 0),
+        pending_reports: Number(reportStats?.['pending_reports'] ?? 0),
+        total_reports: Number(reportStats?.['total_reports'] ?? 0),
+      },
+      rating_distribution: [5, 4, 3, 2, 1].map((rating) => ({
+        rating,
+        count: ratingsByValue.get(rating) ?? 0,
+      })),
+      recent_reviews: (recentReviewRows as Array<Record<string, unknown>>).map((row) => ({
+        id: row['id'] as string,
+        rating: Number(row['rating'] ?? 0),
+        content: (row['content'] as string | null) ?? null,
+        created_at: new Date(row['created_at'] as string | Date).toISOString(),
+        author_name: (row['author_name'] as string | null) ?? null,
+        like_count: Number(row['like_count'] ?? 0),
+        dislike_count: Number(row['dislike_count'] ?? 0),
+        comment_count: Number(row['comment_count'] ?? 0),
+      })),
     };
   }
 }
