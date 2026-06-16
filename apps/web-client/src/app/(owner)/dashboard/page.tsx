@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Camera, Star, Verified, Edit3, Check, X,
   User, Phone, MapPin,
@@ -260,10 +261,10 @@ export default function OwnerDashboardPage() {
         <StatCard icon={Star}       value={avgRating}      label="Rating trung bình" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
 
         {/* ── Left: Info ── */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6">
             <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-5">
               <User size={16} className="text-orange-500" /> Thông tin cá nhân
@@ -292,22 +293,27 @@ export default function OwnerDashboardPage() {
         {/* ── Right: My Venues ── */}
         <div>
           <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-4">
+              <div>
               <h2 className="font-bold text-gray-900 flex items-center gap-2">
                 <Store size={16} className="text-orange-500" /> Venues của tôi
               </h2>
+              <p className="text-xs text-gray-400 mt-1">Nhấn vào thẻ venue để xem trang chi tiết.</p>
+              </div>
               <button
                 onClick={() => setShowAddVenue(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors"
+                className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors"
               >
                 <Plus size={13} /> Thêm venue
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4">
               {venuesLoading ? (
-                Array.from({ length: 2 }).map((_, i) => (
-                  <Skeleton key={i} className="h-48 rounded-2xl" />
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-64 rounded-2xl" />
+                  ))}
+                </div>
               ) : venues.length === 0 ? (
                 <div className="py-8 text-center text-gray-400">
                   <Store size={32} className="mx-auto mb-2 opacity-30" />
@@ -315,16 +321,22 @@ export default function OwnerDashboardPage() {
                   <p className="text-xs mt-1">Thêm venue đầu tiên của bạn</p>
                 </div>
               ) : (
-                venues.map(venue => (
-                  <div key={venue.id} className="rounded-2xl border border-gray-100 overflow-hidden hover:border-orange-200 transition-all">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {venues.map(venue => (
+                  <article key={venue.id} className="group relative rounded-2xl border border-gray-100 overflow-hidden hover:border-orange-200 hover:shadow-md transition-all">
+                    <Link
+                      href={`/venues/${venue.id}`}
+                      aria-label={`Xem chi tiết ${venue.name}`}
+                      className="absolute inset-0 z-10"
+                    />
                     {venue.media && venue.media.length > 0 ? (
-                      <div className="h-28 bg-cover bg-center" style={{ backgroundImage: `url('${venue.media[0]}')` }} />
+                      <div className="h-36 bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.02]" style={{ backgroundImage: `url('${venue.media[0]}')` }} />
                     ) : (
-                      <div className="h-28 bg-gradient-to-r from-orange-100 to-orange-50 flex items-center justify-center">
+                      <div className="h-36 bg-gradient-to-r from-orange-100 to-orange-50 flex items-center justify-center">
                         <Store size={32} className="text-orange-300" />
                       </div>
                     )}
-                    <div className="p-3">
+                    <div className="relative p-3">
                       <div className="flex items-start justify-between mb-2">
                         <div className="min-w-0">
                           <h3 className="font-bold text-gray-900 text-sm truncate">{venue.name}</h3>
@@ -339,13 +351,14 @@ export default function OwnerDashboardPage() {
                       </div>
                       <button
                         onClick={() => router.push(`/dashboard/venue?id=${venue.id}`)}
-                        className="w-full py-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white font-bold rounded-xl transition-all text-xs"
+                        className="relative z-20 w-full py-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white font-bold rounded-xl transition-all text-xs"
                       >
                         Quản lý Venue →
                       </button>
                     </div>
-                  </div>
-                ))
+                  </article>
+                ))}
+                </div>
               )}
             </div>
           </div>
