@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Camera, Star, Verified, Edit3, Check, X,
   User, Phone, MapPin,
-  TrendingUp, Store, Plus,
+  TrendingUp, Store, Plus, ClipboardList,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatAddress } from '@/lib/utils';
@@ -300,12 +300,20 @@ export default function OwnerDashboardPage() {
               </h2>
               <p className="text-xs text-gray-400 mt-1">Nhấn vào thẻ venue để xem trang chi tiết.</p>
               </div>
-              <button
-                onClick={() => setShowAddVenue(true)}
-                className="flex shrink-0 items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors"
-              >
-                <Plus size={13} /> Thêm venue
-              </button>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <Link
+                  href="/dashboard/imports"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold rounded-lg transition-colors"
+                >
+                  <ClipboardList size={13} /> Import quán
+                </Link>
+                <button
+                  onClick={() => setShowAddVenue(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors"
+                >
+                  <Plus size={13} /> Thêm venue
+                </button>
+              </div>
             </div>
             <div className="p-4">
               {venuesLoading ? (

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  User, Store, UtensilsCrossed, Tag, BarChart3, Settings,
+  User, Store, UtensilsCrossed, Tag, BarChart3, Settings, ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NookLogo } from '@/components/shared/nook-logo';
@@ -11,6 +11,7 @@ import { NookLogo } from '@/components/shared/nook-logo';
 const NAV_ITEMS = [
   { label: 'Hồ sơ của tôi',  href: '/dashboard',            icon: User            },
   { label: 'Quản lý Quán',   href: '/dashboard/venue',      icon: Store           },
+  { label: 'Import quán',    href: '/dashboard/imports',    icon: ClipboardList  },
   { label: 'Thực đơn',       href: '/dashboard/menu',       icon: UtensilsCrossed },
   { label: 'Ưu đãi',         href: '/dashboard/offers',     icon: Tag             },
   { label: 'Phân tích',      href: '/dashboard/analytics',  icon: BarChart3       },
