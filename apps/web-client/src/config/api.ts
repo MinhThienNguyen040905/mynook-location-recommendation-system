@@ -67,6 +67,13 @@ export const API_ENDPOINTS = {
     MY_VENUES: '/venues/owner/my-venues',
     BOOKINGS: '/owner/bookings',
     CROWD: '/owner/crowd-level',
+    IMPORTS: '/imports/google-maps/drafts',
+    IMPORT_RESOLVE: '/imports/google-maps/resolve',
+    IMPORT_DETAIL: (id: string) => `/imports/google-maps/drafts/${id}`,
+    IMPORT_ENRICH: (id: string) => `/imports/google-maps/drafts/${id}/enrich`,
+    IMPORT_REVIEWS: (id: string) => `/imports/google-maps/drafts/${id}/import-reviews`,
+    IMPORT_PUBLISH: (id: string) => `/imports/google-maps/drafts/${id}/publish`,
+    IMPORT_REJECT: (id: string) => `/imports/google-maps/drafts/${id}/reject`,
   },
 
   // Menu (per venue)

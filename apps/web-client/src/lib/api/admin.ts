@@ -609,3 +609,92 @@ export async function rejectGoogleMapsDraft(id: string): Promise<GoogleMapsImpor
   );
   return data;
 }
+
+export async function ownerResolveGoogleMapsImport(
+  body: GoogleMapsImportResolveInput,
+): Promise<GoogleMapsImportNormalizedPayload & {
+  source: string;
+  source_place_id: string | null;
+  source_url: string | null;
+  input: string;
+  confidence: number;
+  matched_venue_id: string | null;
+  duplicate_reason: string | null;
+}> {
+  const { data } = await apiClient.post(API_ENDPOINTS.OWNER.IMPORT_RESOLVE, body);
+  return data;
+}
+
+export async function ownerCreateGoogleMapsDraft(
+  body: GoogleMapsImportResolveInput,
+): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.OWNER.IMPORTS,
+    body,
+  );
+  return data;
+}
+
+export async function ownerListGoogleMapsDrafts(
+  status?: GoogleMapsImportDraft['status'] | 'all',
+): Promise<GoogleMapsImportDraft[]> {
+  const { data } = await apiClient.get<GoogleMapsImportDraft[]>(
+    API_ENDPOINTS.OWNER.IMPORTS,
+    { params: status ? { status } : undefined },
+  );
+  return data;
+}
+
+export async function ownerGetGoogleMapsDraft(id: string): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.get<GoogleMapsImportDraft>(
+    API_ENDPOINTS.OWNER.IMPORT_DETAIL(id),
+  );
+  return data;
+}
+
+export async function ownerUpdateGoogleMapsDraft(
+  id: string,
+  body: Partial<GoogleMapsImportNormalizedPayload>,
+): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.patch<GoogleMapsImportDraft>(
+    API_ENDPOINTS.OWNER.IMPORT_DETAIL(id),
+    body,
+  );
+  return data;
+}
+
+export async function ownerEnrichGoogleMapsDraft(id: string): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.OWNER.IMPORT_ENRICH(id),
+    {},
+  );
+  return data;
+}
+
+export async function ownerSelectGoogleMapsDraftReviews(
+  id: string,
+  reviews: GoogleMapsReviewSnippet[],
+): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.OWNER.IMPORT_REVIEWS(id),
+    { reviews },
+  );
+  return data;
+}
+
+export async function ownerPublishGoogleMapsDraft(id: string): Promise<{
+  draft: GoogleMapsImportDraft;
+  venue: Venue;
+  seeded_reviews: number;
+}> {
+  const { data } = await apiClient.post(API_ENDPOINTS.OWNER.IMPORT_PUBLISH(id), {});
+  return data;
+}
+
+export async function ownerRejectGoogleMapsDraft(id: string): Promise<GoogleMapsImportDraft> {
+  const { data } = await apiClient.post<GoogleMapsImportDraft>(
+    API_ENDPOINTS.OWNER.IMPORT_REJECT(id),
+    {},
+  );
+  return data;
+}

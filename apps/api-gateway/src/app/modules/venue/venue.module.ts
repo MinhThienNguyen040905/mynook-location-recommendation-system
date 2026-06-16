@@ -5,6 +5,7 @@ import { MenuController } from './menu.controller.js';
 import { UploadController } from './upload.controller.js';
 import { CategoryController } from './category.controller.js';
 import { LocationController } from './location.controller.js';
+import { GoogleMapsImportController } from './google-maps-import.controller.js';
 
 @Module({
   imports: [HttpModule],
@@ -14,6 +15,7 @@ import { LocationController } from './location.controller.js';
     UploadController,
     CategoryController,
     LocationController,
+    GoogleMapsImportController,
   ],
 })
 export class VenueModule {}

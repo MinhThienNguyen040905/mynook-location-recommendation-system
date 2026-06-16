@@ -2,11 +2,11 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
   Param,
   Patch,
   Post,
   Query,
-  HttpException,
   Request,
   UseGuards,
   UseInterceptors,
@@ -17,15 +17,14 @@ import type { AxiosError, AxiosResponse } from 'axios';
 import { firstValueFrom, type Observable } from 'rxjs';
 import { VENUE_SERVICE_URL } from '@mynook/shared-types';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
-import { AdminGuard } from '../../common/guards/admin.guard.js';
 import { AuthHeadersInterceptor } from '../../common/interceptors/auth-headers.interceptor.js';
 
-@ApiTags('Admin — Google Maps Imports')
+@ApiTags('Google Maps Imports')
 @ApiBearerAuth()
-@Controller('admin/imports/google-maps')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@Controller('imports/google-maps')
+@UseGuards(JwtAuthGuard)
 @UseInterceptors(AuthHeadersInterceptor)
-export class AdminImportController {
+export class GoogleMapsImportController {
   constructor(private readonly http: HttpService) {}
 
   private async forward<T>(request$: Observable<AxiosResponse<T>>): Promise<T> {
@@ -40,14 +39,10 @@ export class AdminImportController {
   private toHttpException(err: unknown): Error {
     const upstream = err as AxiosError;
     const response = upstream.response;
-    if (!response) {
-      return err instanceof Error ? err : new Error(String(err));
-    }
+    if (!response) return err instanceof Error ? err : new Error(String(err));
 
     const body = response.data;
-    if (body && typeof body === 'object') {
-      return new HttpException(body, response.status);
-    }
+    if (body && typeof body === 'object') return new HttpException(body, response.status);
 
     return new HttpException(
       {
@@ -155,16 +150,18 @@ export class AdminImportController {
   }
 
   @Post('drafts/:id/publish')
-  @ApiOperation({ summary: 'Publish a draft' })
+  @ApiOperation({ summary: 'Publish a draft as an owned venue for owner accounts' })
   async publishDraft(
     @Request() req: { authHeaders: Record<string, string> },
     @Param('id') id: string,
     @Body() body: Record<string, unknown>,
   ) {
     return this.forward(
-      this.http.post(`${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}/publish`, body ?? {}, {
-        headers: req.authHeaders,
-      }),
+      this.http.post(
+        `${VENUE_SERVICE_URL}/imports/google-maps/drafts/${id}/publish`,
+        { ...body, ownership: 'owner' },
+        { headers: req.authHeaders },
+      ),
     );
   }
 

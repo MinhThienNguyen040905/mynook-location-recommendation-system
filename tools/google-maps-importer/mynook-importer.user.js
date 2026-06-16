@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MyNook · Google Maps Importer
 // @namespace    https://mynook.local/
-// @version      0.2.4
+// @version      0.2.5
 // @description  Quét data từ Google Maps place page (info + ảnh + reviews) và đẩy thành draft import vào MyNook
 // @match        https://www.google.com/maps/*
 // @match        https://www.google.com/maps
@@ -35,6 +35,7 @@
 
   const STORAGE_KEY_TOKEN = 'mynook_jwt';
   const STORAGE_KEY_API = 'mynook_api_base';
+  const STORAGE_KEY_IMPORT_TARGET = 'mynook_import_target';
   const WEB_CLIENT_COOKIE_KEY = 'mynook_access_token';
 
   const isWebClient = /^(http:\/\/(localhost|127\.0\.0\.1):3000)/.test(location.origin);
@@ -52,12 +53,26 @@
   function getToken() {
     return GM_getValue(STORAGE_KEY_TOKEN, '');
   }
+  function getImportTarget() {
+    return GM_getValue(STORAGE_KEY_IMPORT_TARGET, 'admin');
+  }
+  function setImportTarget(value) {
+    GM_setValue(STORAGE_KEY_IMPORT_TARGET, value === 'owner' ? 'owner' : 'admin');
+  }
+  function getDraftEndpoint() {
+    return getImportTarget() === 'owner'
+      ? `${getApiBase()}/imports/google-maps/drafts`
+      : `${getApiBase()}/admin/imports/google-maps/drafts`;
+  }
+  function getPublishEndpoint(draftId) {
+    return `${getApiBase()}/imports/google-maps/drafts/${draftId}/publish`;
+  }
 
   function ensureConfig() {
     if (!getToken()) {
       const t = prompt(
         'Chưa có JWT.\n' +
-          'Cách dễ nhất: mở http://localhost:3000 và đăng nhập admin — userscript sẽ tự lấy token.\n' +
+          'Cách dễ nhất: mở http://localhost:3000 và đăng nhập admin/owner — userscript sẽ tự lấy token.\n' +
           'Hoặc paste token thủ công vào đây:',
       );
       if (!t) return false;
@@ -91,6 +106,7 @@
   function resetConfig() {
     GM_deleteValue(STORAGE_KEY_TOKEN);
     GM_deleteValue(STORAGE_KEY_API);
+    GM_deleteValue(STORAGE_KEY_IMPORT_TARGET);
     toast('Đã reset config — bấm Import lại để nhập mới');
   }
 
@@ -775,7 +791,7 @@
     return new Promise((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'POST',
-        url: `${getApiBase()}/admin/imports/google-maps/drafts`,
+        url: getDraftEndpoint(),
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getToken()}`,
@@ -793,6 +809,32 @@
           }
         },
         onerror: () => reject(new Error('Network error khi tạo draft')),
+      });
+    });
+  }
+
+  function publishOwnerDraft(draftId) {
+    return new Promise((resolve, reject) => {
+      GM_xmlhttpRequest({
+        method: 'POST',
+        url: getPublishEndpoint(draftId),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        data: JSON.stringify({}),
+        onload: (res) => {
+          if (res.status >= 200 && res.status < 300) {
+            try {
+              resolve(JSON.parse(res.responseText));
+            } catch (e) {
+              reject(new Error('Response publish không phải JSON'));
+            }
+          } else {
+            reject(new Error(`Publish owner venue HTTP ${res.status}: ${res.responseText.slice(0, 300)}`));
+          }
+        },
+        onerror: () => reject(new Error('Network error khi publish owner venue')),
       });
     });
   }
@@ -852,7 +894,11 @@
       const reviewMediaTotal = reviewsWithMedia.reduce((acc, r) => acc + (r.media?.length || 0), 0);
       log(`Tổng ảnh review đã upload: ${reviewMediaTotal}`);
 
-      setStatus('Tạo draft import…');
+      setStatus(
+        getImportTarget() === 'owner'
+          ? 'Tạo draft import cho venue của owner…'
+          : 'Tạo draft import đóng góp…',
+      );
       const payload = {
         input: info.source_url,
         source_url: info.source_url,
@@ -878,6 +924,20 @@
       };
       const draft = await createDraft(payload);
       log('Draft created:', draft);
+
+      if (getImportTarget() === 'owner') {
+        setStatus('Publish venue cho owner hiện tại…');
+        const published = await publishOwnerDraft(draft.id);
+        log('Owner venue published:', published);
+        setStatus(
+          `✅ Xong! Đã tạo owner venue: ${published.venue?.name || info.name}. ` +
+            `${uploadedVenueMedia.length} ảnh venue` +
+            (uploadedMenuUrl ? ' + 1 menu' : '') +
+            ` + ${reviewsWithMedia.length} review (${reviewMediaTotal} ảnh).`,
+          'ok',
+        );
+        return;
+      }
 
       setStatus(
         `✅ Xong! ${uploadedVenueMedia.length} ảnh venue` +
@@ -906,9 +966,16 @@
     `;
     panelEl.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
-        <strong style="color:#0f172a">📥 MyNook Importer <span style="font-weight:normal;color:#94a3b8;font-size:10px;">v0.2.4</span></strong>
+        <strong style="color:#0f172a">📥 MyNook Importer <span style="font-weight:normal;color:#94a3b8;font-size:10px;">v0.2.5</span></strong>
         <button id="mynook-reset" title="Reset config" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:12px;">⚙</button>
       </div>
+      <label style="display:block;margin-top:8px;color:#334155;font-size:11px;font-weight:600;">Import mode</label>
+      <select id="mynook-target" style="
+        width:100%;margin-top:4px;padding:7px 8px;background:white;color:#0f172a;
+        border:1px solid #cbd5e1;border-radius:8px;font-size:12px;">
+        <option value="admin">Admin contribution draft</option>
+        <option value="owner">Owner venue (publish now)</option>
+      </select>
       <div style="margin-top:8px;display:flex;gap:6px;">
         <button id="mynook-test" style="
           flex:1;padding:8px 10px;background:white;color:#0f172a;
@@ -925,6 +992,17 @@
     `;
     document.body.appendChild(panelEl);
     statusEl = panelEl.querySelector('#mynook-status');
+    const targetSelect = panelEl.querySelector('#mynook-target');
+    targetSelect.value = getImportTarget();
+    targetSelect.addEventListener('change', (event) => {
+      setImportTarget(event.target.value);
+      setStatus(
+        event.target.value === 'owner'
+          ? 'Owner mode: tạo draft rồi publish venue cho owner hiện tại.'
+          : 'Admin mode: draft sẽ được tạo qua /api/admin/imports/google-maps.',
+        'ok',
+      );
+    });
     panelEl.querySelector('#mynook-go').addEventListener('click', runImport);
     panelEl.querySelector('#mynook-test').addEventListener('click', runDiagnose);
     panelEl.querySelector('#mynook-reset').addEventListener('click', resetConfig);

@@ -2,7 +2,7 @@
 
 Tampermonkey userscript scrape data từ Google Maps place page (info + ảnh + reviews kèm ảnh) → upload Cloudinary → tạo draft import trong MyNook.
 
-Mục tiêu: rút gọn flow nhập venue thủ công xuống còn 1 click trên Google Maps + 1 click confirm trong `/admin/imports`.
+Mục tiêu: rút gọn flow nhập venue thủ công xuống còn 1 click trên Google Maps + 1 click confirm trong `/admin/imports`, hoặc publish thẳng thành venue của owner đang đăng nhập.
 
 ---
 
@@ -15,8 +15,10 @@ Mục tiêu: rút gọn flow nhập venue thủ công xuống còn 1 click trên
    - Click tab Ảnh → scroll → grab 10 URL ảnh CDN Google
    - Click tab Đánh giá → scroll → grab 8 review (rating + author + content + ảnh)
    - Download từng ảnh (qua `GM_xmlhttpRequest`, bypass CORS) → POST `/api/upload` → nhận URL Cloudinary
-   - POST `/api/admin/imports/google-maps/drafts` với payload đầy đủ
-4. Bạn vào `http://localhost:3000/admin/imports`, chọn draft vừa tạo, kiểm tra rồi bấm **Publish**
+   - POST `/api/admin/imports/google-maps/drafts` với payload đầy đủ nếu chọn **Admin contribution draft**
+   - Hoặc POST `/api/imports/google-maps/drafts` rồi publish qua `/api/imports/google-maps/drafts/:id/publish` nếu chọn **Owner venue (publish now)**
+4. Nếu chọn **Admin contribution draft**: bạn vào `http://localhost:3000/admin/imports`, chọn draft vừa tạo, kiểm tra rồi bấm **Publish**
+5. Nếu chọn **Owner venue (publish now)** bằng token owner: script tạo draft rồi publish luôn venue đó với `owner_id` là owner hiện tại
 
 Toàn bộ ảnh đã nằm trên Cloudinary của bạn — không phụ thuộc URL Google.
 
@@ -49,7 +51,7 @@ npx nx serve interaction-service # 3004
 
 ### 4. Đăng nhập để auto-sync JWT
 
-Vào `http://localhost:3000` → đăng nhập với account có `type = admin`.
+Vào `http://localhost:3000` → đăng nhập với account có `type = admin` hoặc `type = owner`.
 
 Userscript cũng `@match` localhost:3000 → khi page load nó tự đọc cookie `mynook_access_token` và lưu vào GM storage. Bạn sẽ thấy 1 badge xanh nhỏ ở góc phải dưới: **"✓ MyNook Importer ready"**.
 
@@ -78,7 +80,11 @@ Userscript cũng `@match` localhost:3000 → khi page load nó tự đọc cooki
    …
    ✅ Tạo draft xong! 10 ảnh venue + 8 reviews. Vào /admin/imports để confirm.
    ```
-6. Mở `http://localhost:3000/admin/imports` → draft mới ở đầu danh sách → review + publish
+   Hoặc với owner mode:
+   ```
+   ✅ Xong! Đã tạo owner venue: Tên quán. 10 ảnh venue + 8 reviews.
+   ```
+6. Với **Admin contribution draft**, mở `http://localhost:3000/admin/imports` → draft mới ở đầu danh sách → review + publish. Với **Owner venue (publish now)**, venue được tạo ngay cho owner hiện tại; nếu token không phải owner thì API sẽ trả lỗi 403.
 
 Tổng thời gian: ~30-60s/venue tùy số ảnh + tốc độ mạng.
 
@@ -110,7 +116,7 @@ Reset config (token + apiBase): bấm icon **⚙** trong panel.
 | `❌ Không tìm thấy tên venue` | Selector đổi (Google A/B test UI) | Reload trang, hoặc update selector trong `extractInfo()` |
 | `Upload HTTP 401` | JWT hết hạn | Mở lại http://localhost:3000 → login lại → reload Google Maps page (script tự sync token mới) |
 | Badge "⚠ đăng nhập để sync token" | Cookie `mynook_access_token` không có | Login lại web-client; nếu vẫn thiếu, F12 → Application → Cookies → kiểm tra cookie có tồn tại không |
-| `Upload HTTP 403` | Account không phải admin | Đăng nhập account `type = admin` |
+| `Upload/Publish HTTP 403` | Sai loại account cho mode đang chọn | Chọn **Admin contribution draft** với admin token, hoặc **Owner venue (publish now)** với owner token |
 | `CORS error` trong console | Gateway chưa restart sau khi update CORS config | Restart `nx serve api-gateway` |
 | `❌ Network error` khi upload | Backend chưa chạy hoặc port khác | Check `apiBase` config |
 | Lấy 0 ảnh venue | Tab Ảnh không kịp load hoặc tab name khác | Mở DevTools Console xem log `[MyNookImporter]` — sẽ thấy "Tìm thấy X ảnh trong DOM". Nếu = 0 nghĩa là `harvestImages()` không match. Inspect element 1 ảnh trên trang xem thật sự nó có domain `googleusercontent.com` không |

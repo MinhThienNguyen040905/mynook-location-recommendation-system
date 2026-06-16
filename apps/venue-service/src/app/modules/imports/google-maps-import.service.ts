@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -15,7 +16,7 @@ import {
   VenueImportReviewSource,
   VenueImportStatus,
 } from '@mynook/database';
-import { INTERACTION_SERVICE_URL } from '@mynook/shared-types';
+import { AccountType, INTERACTION_SERVICE_URL } from '@mynook/shared-types';
 import { CategoryService } from '../category/category.service.js';
 import { LocationService } from '../location/location.service.js';
 import { MenuAnalyzeService } from '../menu/menu-analyze.service.js';
@@ -96,6 +97,13 @@ interface PublishReviewSeedResult {
   source_review_id: string | null;
 }
 
+type PublishOwnership = 'community' | 'owner';
+
+interface ImportActor {
+  id: string;
+  type?: string;
+}
+
 @Injectable()
 export class GoogleMapsImportService {
   private readonly logger = new Logger(GoogleMapsImportService.name);
@@ -116,9 +124,12 @@ export class GoogleMapsImportService {
     private readonly http: HttpService,
   ) {}
 
-  async listDrafts(status?: VenueImportStatus | 'all') {
-    const where =
+  async listDrafts(status?: VenueImportStatus | 'all', actor?: ImportActor) {
+    const where: { status?: VenueImportStatus; created_by?: string } =
       status && status !== 'all' ? { status } : {};
+    if (actor && actor.type !== AccountType.ADMIN) {
+      where.created_by = actor.id;
+    }
     const drafts = await this.importRepo.find({
       where,
       order: { created_at: 'DESC' },
@@ -126,9 +137,8 @@ export class GoogleMapsImportService {
     return Promise.all(drafts.map((draft) => this.serializeDraft(draft)));
   }
 
-  async getDraft(id: string) {
-    const draft = await this.importRepo.findOne({ where: { id } });
-    if (!draft) throw new NotFoundException('Import draft not found');
+  async getDraft(id: string, actor?: ImportActor) {
+    const draft = await this.loadDraft(id, actor);
     return this.serializeDraft(draft);
   }
 
@@ -276,8 +286,8 @@ export class GoogleMapsImportService {
     return this.serializeDraft(saved);
   }
 
-  async updateDraft(id: string, patch: Partial<GoogleMapsNormalizedPayload>) {
-    const draft = await this.loadDraft(id);
+  async updateDraft(id: string, patch: Partial<GoogleMapsNormalizedPayload>, actor?: ImportActor) {
+    const draft = await this.loadDraft(id, actor);
     if (
       draft.status === VenueImportStatus.PUBLISHED ||
       draft.status === VenueImportStatus.REJECTED
@@ -320,8 +330,8 @@ export class GoogleMapsImportService {
     return this.serializeDraft(await this.importRepo.save(draft));
   }
 
-  async enrichDraft(id: string) {
-    const draft = await this.loadDraft(id);
+  async enrichDraft(id: string, actor?: ImportActor) {
+    const draft = await this.loadDraft(id, actor);
     if (
       draft.status === VenueImportStatus.PUBLISHED ||
       draft.status === VenueImportStatus.REJECTED
@@ -357,8 +367,8 @@ export class GoogleMapsImportService {
     return this.serializeDraft(await this.importRepo.save(draft));
   }
 
-  async selectReviews(id: string, reviews: GoogleMapsReviewSnippet[]) {
-    const draft = await this.loadDraft(id);
+  async selectReviews(id: string, reviews: GoogleMapsReviewSnippet[], actor?: ImportActor) {
+    const draft = await this.loadDraft(id, actor);
     if (
       draft.status === VenueImportStatus.PUBLISHED ||
       draft.status === VenueImportStatus.REJECTED
@@ -372,14 +382,19 @@ export class GoogleMapsImportService {
     return this.serializeDraft(await this.importRepo.save(draft));
   }
 
-  async rejectDraft(id: string) {
-    const draft = await this.loadDraft(id);
+  async rejectDraft(id: string, actor?: ImportActor) {
+    const draft = await this.loadDraft(id, actor);
     draft.status = VenueImportStatus.REJECTED;
     return this.serializeDraft(await this.importRepo.save(draft));
   }
 
-  async publishDraft(id: string, userId: string) {
-    const draft = await this.loadDraft(id);
+  async publishDraft(
+    id: string,
+    userId: string,
+    userType: string | undefined,
+    ownership: PublishOwnership = 'community',
+  ) {
+    const draft = await this.loadDraft(id, { id: userId, type: userType });
     if (draft.status === VenueImportStatus.PUBLISHED && draft.published_venue_id) {
       await this.safeRecalculateVenueStats(draft.published_venue_id);
       return {
@@ -394,9 +409,16 @@ export class GoogleMapsImportService {
       );
     }
 
+    if (ownership === 'owner' && userType !== AccountType.OWNER) {
+      throw new ForbiddenException('Only owner accounts can publish an import as an owned venue');
+    }
+
     const normalized = draft.normalized_payload as Partial<GoogleMapsNormalizedPayload>;
     const venueDto = this.toCreateVenueDto(normalized);
-    const created = await this.venueService.createCommunity(userId, venueDto);
+    const created =
+      ownership === 'owner'
+        ? await this.venueService.create(userId, venueDto)
+        : await this.venueService.createCommunity(userId, venueDto);
 
     const selectedReviews = this.mergeReviewMedia(
       this.normalizeReviews(normalized.selected_reviews ?? []),
@@ -445,7 +467,9 @@ export class GoogleMapsImportService {
 
     const venue = await this.venueService.findById(created.id);
     return {
-      draft: await this.serializeDraft(await this.loadDraft(id)),
+      draft: await this.serializeDraft(
+        await this.loadDraft(id, { id: userId, type: userType }),
+      ),
       venue,
       seeded_reviews: seededReviews.length,
     };
@@ -650,9 +674,12 @@ export class GoogleMapsImportService {
     });
   }
 
-  private async loadDraft(id: string): Promise<VenueImport> {
+  private async loadDraft(id: string, actor?: ImportActor): Promise<VenueImport> {
     const draft = await this.importRepo.findOne({ where: { id } });
     if (!draft) throw new NotFoundException('Import draft not found');
+    if (actor && actor.type !== AccountType.ADMIN && draft.created_by !== actor.id) {
+      throw new ForbiddenException('You can only access your own import drafts');
+    }
     return draft;
   }
 
