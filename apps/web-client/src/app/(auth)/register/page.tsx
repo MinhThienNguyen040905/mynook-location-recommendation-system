@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, User, Eye, EyeOff, MapPin, Coffee, Loader2, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, MapPin, Coffee, Loader2, ArrowLeft, Store } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { sendOtp, verifyOtp } from "@/lib/api/auth";
@@ -185,6 +185,52 @@ export default function RegisterPage() {
 
               {/* Main Form */}
               <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+                <div>
+                  <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Account type
+                  </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="relative flex cursor-pointer items-center gap-3 rounded-lg border border-gray-300 bg-white p-3 text-sm shadow-sm transition hover:border-orange-300 has-[:checked]:border-[#e9590c] has-[:checked]:bg-orange-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-orange-500/70 dark:has-[:checked]:bg-orange-950/30">
+                      <input
+                        type="radio"
+                        value="customer"
+                        {...registerField("type")}
+                        className="sr-only"
+                      />
+                      <User className="size-5 text-gray-500 has-[:checked]:text-[#e9590c]" />
+                      <span>
+                        <span className="block font-semibold text-gray-900 dark:text-white">
+                          Customer
+                        </span>
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">
+                          Discover spots
+                        </span>
+                      </span>
+                    </label>
+
+                    <label className="relative flex cursor-pointer items-center gap-3 rounded-lg border border-gray-300 bg-white p-3 text-sm shadow-sm transition hover:border-orange-300 has-[:checked]:border-[#e9590c] has-[:checked]:bg-orange-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-orange-500/70 dark:has-[:checked]:bg-orange-950/30">
+                      <input
+                        type="radio"
+                        value="owner"
+                        {...registerField("type")}
+                        className="sr-only"
+                      />
+                      <Store className="size-5 text-gray-500 has-[:checked]:text-[#e9590c]" />
+                      <span>
+                        <span className="block font-semibold text-gray-900 dark:text-white">
+                          Owner
+                        </span>
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">
+                          Manage venues
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                  {errors.type && (
+                    <p className="mt-1 text-xs text-red-500">{errors.type.message}</p>
+                  )}
+                </div>
+
                 <div>
                   <label
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
