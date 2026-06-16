@@ -713,7 +713,7 @@ export class ReviewService implements OnModuleInit {
       message: `${context.author_display_name ?? 'Người dùng'} đã đánh giá ${review.rating} sao cho ${context.venue_name ?? 'venue của bạn'}.`,
       type: NotificationType.SYSTEM,
       relatedEntityId: review.venue_id,
-      relatedEntityType: 'venue',
+      relatedEntityType: `venue_review:${review.id}`,
     });
   }
 

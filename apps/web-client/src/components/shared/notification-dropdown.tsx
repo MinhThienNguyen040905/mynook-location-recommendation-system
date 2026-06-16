@@ -101,6 +101,11 @@ export function NotificationDropdown({
   const getNotificationHref = (notification: Notification): string | null => {
     if (!notification.related_entity_id) return null;
 
+    if (notification.related_entity_type?.startsWith('venue_review:')) {
+      const reviewId = notification.related_entity_type.slice('venue_review:'.length);
+      return `/venues/${notification.related_entity_id}?review=${reviewId}`;
+    }
+
     if (
       notification.related_entity_type === 'venue' ||
       notification.related_entity_type === 'venue_report'

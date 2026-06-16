@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
   BadgeCheck,
@@ -338,11 +339,13 @@ function CommentItem({
 function ReviewCard({
   review,
   isOwnReview,
+  isTargetReview,
   onReactionUpdated,
   onCommentCreated,
 }: {
   review: Review;
   isOwnReview: boolean;
+  isTargetReview: boolean;
   onReactionUpdated: (reviewId: string, summary: { like_count: number; dislike_count: number; my_reaction: ReviewReaction | null }) => void;
   onCommentCreated: (reviewId: string, comment: ReviewComment) => void;
 }) {
@@ -500,7 +503,16 @@ function ReviewCard({
   }, []);
 
   return (
-    <div className={`py-5 border-b border-slate-100 dark:border-slate-700 last:border-0 ${isOwnReview ? 'rounded-xl bg-orange-50/50 px-4 -mx-1 dark:bg-orange-950/10' : ''}`}>
+    <div
+      id={`review-${review.id}`}
+      className={`scroll-mt-24 py-5 border-b border-slate-100 dark:border-slate-700 last:border-0 ${
+        isTargetReview
+          ? 'rounded-xl bg-amber-50 px-4 -mx-1 ring-2 ring-amber-300 dark:bg-amber-950/20 dark:ring-amber-800'
+          : isOwnReview
+            ? 'rounded-xl bg-orange-50/50 px-4 -mx-1 dark:bg-orange-950/10'
+            : ''
+      }`}
+    >
       <div className="flex items-start justify-between mb-2 gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {review.author?.avatar_url ? (
@@ -528,6 +540,11 @@ function ReviewCard({
               {isOwnReview && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-700 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300">
                   Review của bạn
+                </span>
+              )}
+              {isTargetReview && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                  Review từ thông báo
                 </span>
               )}
             </div>
@@ -844,6 +861,8 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
 }
 
 export function VenueReviews({ venueId, venueName, initialReviews }: VenueReviewsProps) {
+  const searchParams = useSearchParams();
+  const targetReviewId = searchParams.get('review');
   const user = useAuthStore((state) => state.user);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [showWriteModal, setShowWriteModal] = useState(false);
@@ -909,14 +928,32 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
   // Count reviews with AI analysis
   const aiAnalyzedCount = reviews.filter((r) => r.ai_analysis_json).length;
   const displayedReviews = useMemo(() => {
-    if (!user?.id) return reviews;
     return [...reviews].sort((a, b) => {
+      const aTarget = !!targetReviewId && a.id === targetReviewId;
+      const bTarget = !!targetReviewId && b.id === targetReviewId;
+      if (aTarget !== bTarget) return aTarget ? -1 : 1;
+
+      if (!user?.id) {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+
       const aOwn = a.account_id === user.id;
       const bOwn = b.account_id === user.id;
       if (aOwn !== bOwn) return aOwn ? -1 : 1;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [reviews, user?.id]);
+  }, [reviews, targetReviewId, user?.id]);
+
+  useEffect(() => {
+    if (!targetReviewId || isLoading) return;
+    const timeout = window.setTimeout(() => {
+      document
+        .getElementById(`review-${targetReviewId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+
+    return () => window.clearTimeout(timeout);
+  }, [targetReviewId, isLoading, displayedReviews]);
 
   return (
     <section>
@@ -985,6 +1022,7 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
                 key={review.id}
                 review={review}
                 isOwnReview={!!user?.id && review.account_id === user.id}
+                isTargetReview={!!targetReviewId && review.id === targetReviewId}
                 onReactionUpdated={handleReactionUpdated}
                 onCommentCreated={handleCommentCreated}
               />
