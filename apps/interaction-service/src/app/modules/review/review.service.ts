@@ -194,7 +194,8 @@ export class ReviewService implements OnModuleInit {
           ON my_reaction.review_id = r.id
          AND my_reaction.account_id = $2
        WHERE r.venue_id = $1
-       ORDER BY r.created_at DESC
+       ORDER BY CASE WHEN r.account_id = $2 THEN 0 ELSE 1 END,
+                r.created_at DESC
       `,
       [venueId, accountId ?? null],
     );

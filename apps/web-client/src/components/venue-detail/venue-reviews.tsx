@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   AlertCircle,
   BadgeCheck,
@@ -24,6 +24,7 @@ import { AnimatePresence } from 'motion/react';
 import { createReviewComment, getVenueReviews, setReviewReaction } from '@/lib/api/reviews';
 import { uploadMedia } from '@/lib/api/upload';
 import { WriteReviewModal } from '@/components/review/write-review-modal';
+import { useAuthStore } from '@/stores/auth-store';
 import type { Review, ReviewAiAnalysis, ReviewComment, ReviewReaction } from '@/types/review';
 
 interface VenueReviewsProps {
@@ -336,10 +337,12 @@ function CommentItem({
 
 function ReviewCard({
   review,
+  isOwnReview,
   onReactionUpdated,
   onCommentCreated,
 }: {
   review: Review;
+  isOwnReview: boolean;
   onReactionUpdated: (reviewId: string, summary: { like_count: number; dislike_count: number; my_reaction: ReviewReaction | null }) => void;
   onCommentCreated: (reviewId: string, comment: ReviewComment) => void;
 }) {
@@ -497,7 +500,7 @@ function ReviewCard({
   }, []);
 
   return (
-    <div className="py-5 border-b border-slate-100 dark:border-slate-700 last:border-0">
+    <div className={`py-5 border-b border-slate-100 dark:border-slate-700 last:border-0 ${isOwnReview ? 'rounded-xl bg-orange-50/50 px-4 -mx-1 dark:bg-orange-950/10' : ''}`}>
       <div className="flex items-start justify-between mb-2 gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {review.author?.avatar_url ? (
@@ -520,6 +523,11 @@ function ReviewCard({
                 <span className="inline-flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 font-medium">
                   <BadgeCheck size={12} />
                   Đã ghé thăm
+                </span>
+              )}
+              {isOwnReview && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-bold text-orange-700 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300">
+                  Review của bạn
                 </span>
               )}
             </div>
@@ -836,6 +844,7 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
 }
 
 export function VenueReviews({ venueId, venueName, initialReviews }: VenueReviewsProps) {
+  const user = useAuthStore((state) => state.user);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [showWriteModal, setShowWriteModal] = useState(false);
   const [isLoading, setIsLoading] = useState(initialReviews.length === 0);
@@ -899,6 +908,15 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
 
   // Count reviews with AI analysis
   const aiAnalyzedCount = reviews.filter((r) => r.ai_analysis_json).length;
+  const displayedReviews = useMemo(() => {
+    if (!user?.id) return reviews;
+    return [...reviews].sort((a, b) => {
+      const aOwn = a.account_id === user.id;
+      const bOwn = b.account_id === user.id;
+      if (aOwn !== bOwn) return aOwn ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [reviews, user?.id]);
 
   return (
     <section>
@@ -962,10 +980,11 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
 
           {/* Review list */}
           <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl shadow-sm px-5">
-            {reviews.map((review) => (
+            {displayedReviews.map((review) => (
               <ReviewCard
                 key={review.id}
                 review={review}
+                isOwnReview={!!user?.id && review.account_id === user.id}
                 onReactionUpdated={handleReactionUpdated}
                 onCommentCreated={handleCommentCreated}
               />
