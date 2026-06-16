@@ -64,9 +64,6 @@
       ? `${getApiBase()}/imports/google-maps/drafts`
       : `${getApiBase()}/admin/imports/google-maps/drafts`;
   }
-  function getPublishEndpoint(draftId) {
-    return `${getApiBase()}/imports/google-maps/drafts/${draftId}/publish`;
-  }
 
   function ensureConfig() {
     if (!getToken()) {
@@ -186,9 +183,14 @@
     return (
       /\/a[-/]/.test(text) ||
       /\/AAAAAAAAAAI\//.test(text) ||
-      /[=/]s\d{1,2}-c/.test(text) ||
-      /[=/]w\d{1,2}-h\d{1,2}/.test(text)
+      /[=/]s\d{1,2}-c/.test(text)
     );
+  }
+
+  function extractGooglePhotoUrls(text) {
+    if (!text) return [];
+    const matches = String(text).match(/https?:\/\/(?:lh[3-6]\.googleusercontent\.com|streetviewpixels-pa\.googleapis\.com)[^\s"'<>),]+/g);
+    return matches || [];
   }
 
   // Pull background-image URL from a style attr
@@ -434,12 +436,24 @@
   function urlsFromElement(el) {
     const out = [];
     if (!el) return out;
-    const attrs = ['src', 'data-src', 'data-image-url', 'data-thumbnail', 'data-large-image-url'];
+    const attrs = [
+      'src',
+      'data-src',
+      'data-image-url',
+      'data-photo-url',
+      'data-thumbnail',
+      'data-large-image-url',
+    ];
     for (const a of attrs) {
       const v = el.getAttribute && el.getAttribute(a);
       if (isGooglePhotoUrl(v)) {
         out.push(v);
       }
+    }
+    if (el.attributes) {
+      Array.from(el.attributes).forEach((attr) => {
+        extractGooglePhotoUrls(attr.value).forEach((url) => out.push(url));
+      });
     }
     // srcset: "url 1x, url 2x"
     const srcset = el.getAttribute && el.getAttribute('srcset');
@@ -459,7 +473,7 @@
   }
 
   // Get every Google CDN image currently in the DOM
-  function harvestImages({ container = document } = {}) {
+  function harvestImages({ container = document, minDimension = 96, minRenderedWidth = 80 } = {}) {
     const out = new Map();
 
     function addPhoto(url, el) {
@@ -467,10 +481,10 @@
       if (isLikelyAvatarUrl(url)) return;
 
       const dim = photoUrlMaxDimension(url);
-      if (dim > 0 && dim < 96) return;
+      if (dim > 0 && dim < minDimension) return;
 
       const w = el?.naturalWidth || 0;
-      if (w > 0 && w < 80) return;
+      if (w > 0 && w < minRenderedWidth) return;
 
       const resized = upsizePhotoUrl(url, DEFAULTS.photoSize);
       out.set(photoUrlKey(resized), resized);
@@ -697,6 +711,12 @@
 
       // Use harvestImages scoped to this card — picks up both <img> and bg-image
       const photoSet = harvestImages({ container: card });
+      const relaxedPhotoSet = harvestImages({
+        container: card,
+        minDimension: 32,
+        minRenderedWidth: 32,
+      });
+      relaxedPhotoSet.forEach((url) => photoSet.add(url));
       const photoUrls = Array.from(photoSet).slice(0, maxPhotosPerReview);
 
       out.push({
@@ -813,32 +833,6 @@
     });
   }
 
-  function publishOwnerDraft(draftId) {
-    return new Promise((resolve, reject) => {
-      GM_xmlhttpRequest({
-        method: 'POST',
-        url: getPublishEndpoint(draftId),
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        data: JSON.stringify({}),
-        onload: (res) => {
-          if (res.status >= 200 && res.status < 300) {
-            try {
-              resolve(JSON.parse(res.responseText));
-            } catch (e) {
-              reject(new Error('Response publish không phải JSON'));
-            }
-          } else {
-            reject(new Error(`Publish owner venue HTTP ${res.status}: ${res.responseText.slice(0, 300)}`));
-          }
-        },
-        onerror: () => reject(new Error('Network error khi publish owner venue')),
-      });
-    });
-  }
-
   // ---- Main flow ----------------------------------------------------------
   async function runImport() {
     if (!ensureConfig()) return;
@@ -926,14 +920,11 @@
       log('Draft created:', draft);
 
       if (getImportTarget() === 'owner') {
-        setStatus('Publish venue cho owner hiện tại…');
-        const published = await publishOwnerDraft(draft.id);
-        log('Owner venue published:', published);
         setStatus(
-          `✅ Xong! Đã tạo owner venue: ${published.venue?.name || info.name}. ` +
+          `✅ Xong! Đã tạo owner draft: ${info.name}. ` +
             `${uploadedVenueMedia.length} ảnh venue` +
             (uploadedMenuUrl ? ' + 1 menu' : '') +
-            ` + ${reviewsWithMedia.length} review (${reviewMediaTotal} ảnh).`,
+            ` + ${reviewsWithMedia.length} review (${reviewMediaTotal} ảnh). Vào /dashboard/imports để chỉnh sửa và xác nhận.`,
           'ok',
         );
         return;
@@ -974,7 +965,7 @@
         width:100%;margin-top:4px;padding:7px 8px;background:white;color:#0f172a;
         border:1px solid #cbd5e1;border-radius:8px;font-size:12px;">
         <option value="admin">Admin contribution draft</option>
-        <option value="owner">Owner venue (publish now)</option>
+        <option value="owner">Owner venue draft</option>
       </select>
       <div style="margin-top:8px;display:flex;gap:6px;">
         <button id="mynook-test" style="
@@ -998,7 +989,7 @@
       setImportTarget(event.target.value);
       setStatus(
         event.target.value === 'owner'
-          ? 'Owner mode: tạo draft rồi publish venue cho owner hiện tại.'
+          ? 'Owner mode: tạo draft để chỉnh sửa và xác nhận ở /dashboard/imports.'
           : 'Admin mode: draft sẽ được tạo qua /api/admin/imports/google-maps.',
         'ok',
       );

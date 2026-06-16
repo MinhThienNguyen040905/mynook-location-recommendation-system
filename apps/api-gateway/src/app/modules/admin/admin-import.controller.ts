@@ -8,6 +8,7 @@ import {
   Query,
   HttpException,
   Request,
+  ServiceUnavailableException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -41,7 +42,11 @@ export class AdminImportController {
     const upstream = err as AxiosError;
     const response = upstream.response;
     if (!response) {
-      return err instanceof Error ? err : new Error(String(err));
+      return new ServiceUnavailableException(
+        `Venue service is unavailable while processing Google Maps import: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
 
     const body = response.data;

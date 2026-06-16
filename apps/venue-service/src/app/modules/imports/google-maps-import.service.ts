@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -245,6 +246,9 @@ export class GoogleMapsImportService {
   }
 
   async createDraft(userId: string, input: GoogleMapsImportInput) {
+    if (!this.isUuid(userId)) {
+      throw new UnauthorizedException('Missing or invalid authenticated user');
+    }
     const resolved = await this.resolve(input);
     const normalized = {
       ...resolved,
@@ -1186,5 +1190,12 @@ export class GoogleMapsImportService {
       return Number.isFinite(parsed) ? parsed : null;
     }
     return null;
+  }
+
+  private isUuid(value: unknown): value is string {
+    return (
+      typeof value === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    );
   }
 }
