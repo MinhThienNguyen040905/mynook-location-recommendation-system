@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Flag,
   ImagePlus,
   Loader2,
   MessageSquare,
@@ -24,6 +25,7 @@ import {
 import { AnimatePresence } from 'motion/react';
 import { createReviewComment, getVenueReviews, setReviewReaction } from '@/lib/api/reviews';
 import { uploadMedia } from '@/lib/api/upload';
+import { ReportDialog } from '@/components/report/report-dialog';
 import { WriteReviewModal } from '@/components/review/write-review-modal';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Review, ReviewAiAnalysis, ReviewComment, ReviewReaction } from '@/types/review';
@@ -630,6 +632,21 @@ function ReviewCard({
           <MessageSquare size={14} />
           {review.comment_count ?? 0}
         </button>
+        {!isOwnReview && (
+          <ReportDialog
+            target="review"
+            targetId={review.id}
+            trigger={
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:border-red-200 hover:text-red-600 dark:border-slate-700 dark:text-slate-400"
+              >
+                <Flag size={14} />
+                Báo cáo
+              </button>
+            }
+          />
+        )}
       </div>
 
       {actionError && !commentOpen && comments.length === 0 && (

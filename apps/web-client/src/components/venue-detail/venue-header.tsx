@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { MapPin, Star } from "lucide-react";
+import { Flag, MapPin, Star } from "lucide-react";
 import { formatAddress } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
+import { ReportDialog } from "@/components/report/report-dialog";
 import type { Venue } from "@/types/venue";
 
 const CROWD_CONFIG: Record<string, { label: string; percent: number; color: string }> = {
@@ -39,7 +40,23 @@ export function VenueHeader({ venue }: { venue: Venue }) {
             <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
               {venue.name}
             </h1>
-            <FavoriteButton venueId={venue.id} className="shrink-0 mt-1" />
+            <div className="flex shrink-0 items-center gap-2 mt-1">
+              <ReportDialog
+                target="venue"
+                targetId={venue.id}
+                trigger={
+                  <button
+                    type="button"
+                    className="inline-flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition-colors hover:border-red-200 hover:text-red-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500"
+                    aria-label="Báo cáo địa điểm"
+                    title="Báo cáo địa điểm"
+                  >
+                    <Flag size={16} />
+                  </button>
+                }
+              />
+              <FavoriteButton venueId={venue.id} className="shrink-0" />
+            </div>
           </div>
           {venue.branch_name && (
             <p className="text-sm text-slate-400 dark:text-slate-500 mb-2">
