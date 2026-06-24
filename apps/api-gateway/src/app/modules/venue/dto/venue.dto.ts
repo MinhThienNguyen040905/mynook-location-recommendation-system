@@ -37,6 +37,12 @@ export class GatewayCreateVenueDto {
   @ApiPropertyOptional({ example: false })
   is_group_friendly?: boolean;
 
+  @ApiPropertyOptional({
+    enum: ['empty', 'moderate', 'crowded', 'full'],
+    example: 'moderate',
+  })
+  current_crowd_level?: 'empty' | 'moderate' | 'crowded' | 'full';
+
   @ApiPropertyOptional({ example: [] })
   media?: unknown[];
 
@@ -86,6 +92,12 @@ export class GatewayUpdateVenueDto {
 
   @ApiPropertyOptional({ example: false })
   is_group_friendly?: boolean;
+
+  @ApiPropertyOptional({
+    enum: ['empty', 'moderate', 'crowded', 'full'],
+    example: 'moderate',
+  })
+  current_crowd_level?: 'empty' | 'moderate' | 'crowded' | 'full';
 
   @ApiPropertyOptional({ example: [] })
   media?: unknown[];

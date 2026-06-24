@@ -96,11 +96,14 @@ export async function deleteVenue(id: string): Promise<void> {
 // ─── Server-side fetchers (dùng trong Server Component với fetch thuần) ──────
 // Không dùng axios — Next.js fetch() có built-in caching và revalidation.
 
-/** Lấy chi tiết địa điểm trên Server Component (có cache 60s) */
+/** Lấy chi tiết địa điểm trên Server Component.
+ * Venue detail includes community-edited fields like live crowd, so avoid
+ * serving stale data after an inline edit.
+ */
 export async function getVenueByIdServer(id: string): Promise<Venue | null> {
   try {
     const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.VENUES.DETAIL(id)}`, {
-      next: { revalidate: 60 }, // ISR: cache 60 giây
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     return res.json();

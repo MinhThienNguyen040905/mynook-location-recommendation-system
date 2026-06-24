@@ -88,6 +88,7 @@ export interface CreateVenueRequest {
   total_capacity?: number;
   max_group_size?: number;
   is_group_friendly?: boolean;
+  current_crowd_level?: CrowdLevel;
   media?: string[];
   menu_image_url?: string;
   opening_hours?: Record<string, { open: string; close: string }>;
