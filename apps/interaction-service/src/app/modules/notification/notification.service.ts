@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Notification, NotificationType } from '@mynook/database';
+import { In, Repository } from 'typeorm';
+import { Account, AccountType, Notification, NotificationType } from '@mynook/database';
 import type { UserRegisteredEvent } from '@mynook/shared-types';
 
 export interface CreateNotificationInput {
@@ -20,6 +20,8 @@ export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private readonly notifRepo: Repository<Notification>,
+    @InjectRepository(Account)
+    private readonly accountRepo: Repository<Account>,
   ) {}
 
   async findByAccount(accountId: string): Promise<Notification[]> {
@@ -81,6 +83,59 @@ export class NotificationService {
 
     const res = await this.notifRepo.insert(rows);
     return res.identifiers.length;
+  }
+
+  async createForAdmins(
+    input: Omit<CreateNotificationInput, 'accountId'>,
+  ): Promise<number> {
+    const adminIds = await this.findActiveAdminAccountIds();
+
+    return this.createManyForAccounts(
+      adminIds.map((accountId) => ({
+        ...input,
+        accountId,
+      })),
+    );
+  }
+
+  async createForAdminsOnce(
+    input: Omit<CreateNotificationInput, 'accountId'>,
+  ): Promise<number> {
+    const adminIds = await this.findActiveAdminAccountIds();
+    if (adminIds.length === 0) return 0;
+
+    if (!input.relatedEntityId || !input.relatedEntityType) {
+      return this.createManyForAccounts(
+        adminIds.map((accountId) => ({ ...input, accountId })),
+      );
+    }
+
+    const existing = await this.notifRepo.find({
+      select: { account_id: true },
+      where: {
+        account_id: In(adminIds),
+        related_entity_id: input.relatedEntityId,
+        related_entity_type: input.relatedEntityType,
+      },
+    });
+    const notifiedAdminIds = new Set(
+      existing.map((notification) => notification.account_id),
+    );
+
+    return this.createManyForAccounts(
+      adminIds
+        .filter((accountId) => !notifiedAdminIds.has(accountId))
+        .map((accountId) => ({ ...input, accountId })),
+    );
+  }
+
+  private async findActiveAdminAccountIds(): Promise<string[]> {
+    const admins = await this.accountRepo.find({
+      select: { id: true },
+      where: { type: AccountType.ADMIN, is_active: true },
+    });
+
+    return admins.map((admin) => admin.id);
   }
 
   async createWelcomeNotification(event: UserRegisteredEvent): Promise<void> {

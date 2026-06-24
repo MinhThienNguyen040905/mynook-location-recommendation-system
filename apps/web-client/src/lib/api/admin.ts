@@ -260,6 +260,11 @@ export async function getVenueReportsStats(): Promise<VenueReportStats> {
   return data;
 }
 
+export async function getVenueReport(id: string): Promise<VenueReport> {
+  const { data } = await apiClient.get<VenueReport>(API_ENDPOINTS.ADMIN.VENUE_REPORT_DETAIL(id));
+  return data;
+}
+
 export async function resolveVenueReport(
   id: string,
   action: 'deactivate' | 'dismiss',

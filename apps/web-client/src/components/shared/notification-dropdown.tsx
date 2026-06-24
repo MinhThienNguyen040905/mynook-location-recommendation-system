@@ -101,15 +101,43 @@ export function NotificationDropdown({
   const getNotificationHref = (notification: Notification): string | null => {
     if (!notification.related_entity_id) return null;
 
-    if (notification.related_entity_type?.startsWith('venue_review:')) {
-      const reviewId = notification.related_entity_type.slice('venue_review:'.length);
+    const relatedType = notification.related_entity_type;
+
+    if (relatedType?.startsWith('venue_review:')) {
+      const reviewId = relatedType.slice('venue_review:'.length);
       return `/venues/${notification.related_entity_id}?review=${reviewId}`;
     }
 
-    if (
-      notification.related_entity_type === 'venue' ||
-      notification.related_entity_type === 'venue_report'
-    ) {
+    if (relatedType?.startsWith('review_report')) {
+      if (user.type === 'admin') {
+        return `/admin/reports?kind=review&report=${notification.related_entity_id}`;
+      }
+
+      const [, venueId, reviewId] = relatedType.split(':');
+      if (venueId) {
+        return `/venues/${venueId}${reviewId ? `?review=${reviewId}` : ''}`;
+      }
+
+      return null;
+    }
+
+    if (relatedType?.startsWith('venue_report')) {
+      const [, venueId] = relatedType.split(':');
+
+      if (user.type === 'admin') {
+        return `/admin/reports?kind=venue&report=${notification.related_entity_id}`;
+      }
+
+      return venueId ? `/venues/${venueId}` : `/venues/${notification.related_entity_id}`;
+    }
+
+    if (relatedType === 'report') {
+      return user.type === 'admin'
+        ? `/admin/reports?kind=review&report=${notification.related_entity_id}`
+        : null;
+    }
+
+    if (relatedType === 'venue') {
       return `/venues/${notification.related_entity_id}`;
     }
 

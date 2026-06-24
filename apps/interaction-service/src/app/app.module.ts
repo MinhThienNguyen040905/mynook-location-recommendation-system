@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import {
   DatabaseModule,
+  Account,
   Review,
   ReviewComment,
   ReviewReaction,
@@ -21,6 +22,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module.js';
   imports: [
     DatabaseModule.forRoot({
       entities: [
+        Account,
         Review,
         ReviewComment,
         ReviewReaction,

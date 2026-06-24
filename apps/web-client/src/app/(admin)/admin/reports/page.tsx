@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Flag, CheckCircle2, Trash2, Eye, X, Loader2, MessageSquare, Store,
   ChevronLeft, ChevronRight, Star,
@@ -11,7 +12,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   listReviewReports, resolveReviewReport, getReviewReport,
-  listVenueReports, resolveVenueReport,
+  listVenueReports, resolveVenueReport, getVenueReport,
   type ReviewReport, type VenueReport,
 } from '@/lib/api/admin';
 
@@ -47,12 +48,44 @@ function shortId(id: string): string {
   return id.slice(0, 8);
 }
 
+function reviewStatusToTab(status: ReviewStatus): 'pending' | 'resolved' | 'dismissed' {
+  if (status === 'resolved_deleted') return 'resolved';
+  if (status === 'dismissed') return 'dismissed';
+  return 'pending';
+}
+
+function venueStatusToTab(status: VenueStatus): 'pending' | 'resolved' | 'dismissed' {
+  if (status === 'resolved_deactivated') return 'resolved';
+  if (status === 'dismissed') return 'dismissed';
+  return 'pending';
+}
+
 export default function AdminReportsPage() {
+  return (
+    <Suspense fallback={<AdminReportsLoading />}>
+      <AdminReportsContent />
+    </Suspense>
+  );
+}
+
+function AdminReportsLoading() {
+  return (
+    <div className="p-6 lg:p-8">
+      <div className="flex items-center gap-2 text-slate-400 py-16 justify-center">
+        <Loader2 size={18} className="animate-spin" /> Đang tải...
+      </div>
+    </div>
+  );
+}
+
+function AdminReportsContent() {
+  const searchParams = useSearchParams();
   const [kind, setKind] = useState<Kind>('review');
   const [statusTab, setStatusTab] = useState<'pending' | 'resolved' | 'dismissed'>('pending');
   const [page, setPage] = useState(1);
   const [reviewDetail, setReviewDetail] = useState<ReviewReport | null>(null);
   const [venueDetail, setVenueDetail] = useState<VenueReport | null>(null);
+  const openedReportKeyRef = useRef<string | null>(null);
 
   const qc = useQueryClient();
 
@@ -76,6 +109,48 @@ export default function AdminReportsPage() {
     placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    const reportId = searchParams.get('report');
+    const reportKind = searchParams.get('kind');
+    if (!reportId || (reportKind !== 'review' && reportKind !== 'venue')) return;
+
+    const linkedReportId = reportId;
+    const linkedReportKind = reportKind;
+    const key = `${linkedReportKind}:${linkedReportId}`;
+    if (openedReportKeyRef.current === key) return;
+    openedReportKeyRef.current = key;
+
+    let cancelled = false;
+    setKind(linkedReportKind);
+    setPage(1);
+
+    async function openLinkedReport() {
+      try {
+        if (linkedReportKind === 'review') {
+          const detail = await getReviewReport(linkedReportId);
+          if (cancelled) return;
+          setReviewDetail(detail);
+          setVenueDetail(null);
+          setStatusTab(reviewStatusToTab(detail.status));
+          return;
+        }
+
+        const detail = await getVenueReport(linkedReportId);
+        if (cancelled) return;
+        setVenueDetail(detail);
+        setReviewDetail(null);
+        setStatusTab(venueStatusToTab(detail.status));
+      } catch {
+        if (!cancelled) toast.error('Không tải được chi tiết báo cáo');
+      }
+    }
+
+    void openLinkedReport();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   const reviewResolveMut = useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'delete' | 'dismiss' }) =>

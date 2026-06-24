@@ -32,7 +32,10 @@ export class VenueReportService {
         status: VenueReportStatus.PENDING,
       },
     });
-    if (existing) return existing;
+    if (existing) {
+      await this.notifyAdminsNewVenueReport(existing);
+      return existing;
+    }
 
     const report = this.repo.create({
       venue_id: dto.venue_id,
@@ -40,7 +43,9 @@ export class VenueReportService {
       reason: dto.reason,
       description: dto.description ?? null,
     });
-    return this.repo.save(report);
+    const saved = await this.repo.save(report);
+    await this.notifyAdminsNewVenueReport(saved);
+    return saved;
   }
 
   async list(query: ListVenueReportsQuery) {
@@ -123,10 +128,24 @@ export class VenueReportService {
           ? 'Cảm ơn bạn đã báo cáo. Địa điểm vi phạm đã được xử lý.'
           : 'Cảm ơn bạn đã báo cáo. Sau khi xem xét, chúng tôi chưa thấy cần vô hiệu hóa địa điểm này.',
         type: NotificationType.SYSTEM,
-        relatedEntityId: report.venue_id,
-        relatedEntityType: 'venue',
+        relatedEntityId: report.id,
+        relatedEntityType: this.buildVenueReportEntityType(report.venue_id),
       })),
     );
+  }
+
+  private async notifyAdminsNewVenueReport(report: VenueReport): Promise<void> {
+    await this.notificationService.createForAdminsOnce({
+      title: 'Có báo cáo venue mới',
+      message: `Venue #${report.venue_id.slice(0, 8)} vừa bị báo cáo vì "${report.reason}".`,
+      type: NotificationType.SYSTEM,
+      relatedEntityId: report.id,
+      relatedEntityType: this.buildVenueReportEntityType(report.venue_id),
+    });
+  }
+
+  private buildVenueReportEntityType(venueId: string): string {
+    return `venue_report:${venueId}`;
   }
 
   async stats() {

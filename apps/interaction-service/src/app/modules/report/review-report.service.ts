@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   NotificationType,
   Review,
@@ -49,7 +49,10 @@ export class ReviewReportService {
         status: ReportStatus.PENDING,
       },
     });
-    if (existing) return existing;
+    if (existing) {
+      await this.notifyAdminsNewReviewReport(existing, review);
+      return existing;
+    }
 
     const report = this.reportRepo.create({
       review_id: dto.review_id,
@@ -57,7 +60,9 @@ export class ReviewReportService {
       reason: dto.reason,
       description: dto.description ?? null,
     });
-    return this.reportRepo.save(report);
+    const saved = await this.reportRepo.save(report);
+    await this.notifyAdminsNewReviewReport(saved, review);
+    return saved;
   }
 
   async list(query: ListReviewReportsQuery) {
@@ -123,6 +128,10 @@ export class ReviewReportService {
         },
       });
 
+      const reviewContext = await this.reviewRepo.findOne({
+        where: { id: report.review_id },
+      });
+
       await this.reviewService.delete(report.review_id);
 
       await this.reportRepo
@@ -143,6 +152,7 @@ export class ReviewReportService {
         pendingReports,
         'Báo cáo của bạn đã được chấp nhận',
         'Cảm ơn bạn đã báo cáo. Đánh giá vi phạm đã được xử lý.',
+        reviewContext,
       );
     } else {
       report.status = ReportStatus.DISMISSED;
@@ -150,31 +160,77 @@ export class ReviewReportService {
       report.resolved_at = new Date();
       await this.reportRepo.save(report);
 
+      const reviewContext = await this.reviewRepo.findOne({
+        where: { id: report.review_id },
+      });
+
       await this.notifyReviewReportResolved(
         [report],
         'Báo cáo của bạn đã được xem xét',
         'Cảm ơn bạn đã báo cáo. Sau khi xem xét, chúng tôi chưa thấy cần xóa đánh giá này.',
+        reviewContext,
       );
     }
 
     return this.findById(reportId);
   }
 
+  private async notifyAdminsNewReviewReport(
+    report: ReviewReport,
+    review: Review,
+  ): Promise<void> {
+    await this.notificationService.createForAdminsOnce({
+      title: 'Có báo cáo review mới',
+      message: `Review #${review.id.slice(0, 8)} vừa bị báo cáo vì "${report.reason}".`,
+      type: NotificationType.SYSTEM,
+      relatedEntityId: report.id,
+      relatedEntityType: this.buildReviewReportEntityType(review),
+    });
+  }
+
   private async notifyReviewReportResolved(
     reports: ReviewReport[],
     title: string,
     message: string,
+    reviewContext?: Review | null,
   ): Promise<void> {
+    const contextMap = reviewContext
+      ? new Map([[reviewContext.id, reviewContext]])
+      : await this.getReviewContextMap(reports);
+
     await this.notificationService.createManyForAccounts(
-      reports.map((report) => ({
-        accountId: report.reporter_account_id,
-        title,
-        message,
-        type: NotificationType.SYSTEM,
-        relatedEntityId: report.id,
-        relatedEntityType: 'report',
-      })),
+      reports.map((report) => {
+        const review = contextMap.get(report.review_id);
+
+        return {
+          accountId: report.reporter_account_id,
+          title,
+          message,
+          type: NotificationType.SYSTEM,
+          relatedEntityId: report.id,
+          relatedEntityType: review
+            ? this.buildReviewReportEntityType(review)
+            : 'review_report',
+        };
+      }),
     );
+  }
+
+  private async getReviewContextMap(
+    reports: ReviewReport[],
+  ): Promise<Map<string, Review>> {
+    const reviewIds = [...new Set(reports.map((report) => report.review_id))];
+    if (reviewIds.length === 0) return new Map();
+
+    const reviews = await this.reviewRepo.find({
+      where: { id: In(reviewIds) },
+    });
+
+    return new Map(reviews.map((review) => [review.id, review]));
+  }
+
+  private buildReviewReportEntityType(review: Review): string {
+    return `review_report:${review.venue_id}:${review.id}`;
   }
 
   async stats() {
