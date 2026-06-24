@@ -1,8 +1,9 @@
 "use client";
-import { useMemo } from "react";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { History, Star, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, History, MapPin, Star } from "lucide-react";
 import { getVenueById } from "@/lib/api/venues";
 import { getRecentlyViewed, type RecentlyViewedVenue } from "@/lib/api/interactions";
 import { useAuthStore } from "@/stores/auth-store";
@@ -16,6 +17,7 @@ const PLACEHOLDER_IMAGES = [
 ];
 
 const VISIBLE = 8;
+const CARD_STEP = 272;
 
 interface CardData {
   id: string;
@@ -66,8 +68,13 @@ function fromVenue(v: Venue): CardData {
 export function RecentlyViewedSection() {
   const user = useAuthStore((s) => s.user);
   const localIds = useRecentlyViewedIds();
+  const trackRef = useRef<HTMLDivElement>(null);
+  const autoDirectionRef = useRef<1 | -1>(1);
+  const [canScroll, setCanScroll] = useState(false);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+  const [paused, setPaused] = useState(false);
 
-  // Logged-in users — pull from server (cross-device).
   const { data: serverRecent = [] } = useQuery({
     queryKey: ["recently-viewed", user?.id],
     queryFn: () => getRecentlyViewed(VISIBLE),
@@ -75,7 +82,6 @@ export function RecentlyViewedSection() {
     staleTime: 1000 * 60,
   });
 
-  // Anonymous users — fall back to localStorage.
   const anonIds = useMemo(
     () => (user ? [] : localIds.slice(0, VISIBLE)),
     [user, localIds],
@@ -98,6 +104,59 @@ export function RecentlyViewedSection() {
       .map(fromVenue);
   }, [user, serverRecent, anonQueries]);
 
+  const updateScrollState = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+
+    const maxScrollLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+    setCanScroll(maxScrollLeft > 4);
+    setAtStart(el.scrollLeft <= 4);
+    setAtEnd(el.scrollLeft >= maxScrollLeft - 4);
+  }, []);
+
+  const scrollByCard = useCallback((direction: 1 | -1) => {
+    const el = trackRef.current;
+    if (!el) return;
+
+    el.scrollBy({ left: direction * CARD_STEP, behavior: "smooth" });
+    window.setTimeout(updateScrollState, 350);
+  }, [updateScrollState]);
+
+  useEffect(() => {
+    updateScrollState();
+
+    const el = trackRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(el);
+    window.addEventListener("resize", updateScrollState);
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateScrollState);
+      el.removeEventListener("scroll", updateScrollState);
+    };
+  }, [cards.length, updateScrollState]);
+
+  useEffect(() => {
+    if (!canScroll || paused) return;
+
+    const interval = window.setInterval(() => {
+      const el = trackRef.current;
+      if (!el) return;
+
+      const maxScrollLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+      if (el.scrollLeft >= maxScrollLeft - 4) autoDirectionRef.current = -1;
+      if (el.scrollLeft <= 4) autoDirectionRef.current = 1;
+
+      scrollByCard(autoDirectionRef.current);
+    }, 3500);
+
+    return () => window.clearInterval(interval);
+  }, [canScroll, paused, scrollByCard]);
+
   if (cards.length === 0) return null;
 
   return (
@@ -114,47 +173,79 @@ export function RecentlyViewedSection() {
         </p>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin">
-        {cards.map((c, i) => (
-          <Link
-            key={c.id}
-            href={`/venues/${c.id}`}
-            className="group shrink-0 w-64 bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#e9590c]/5 transition-all duration-300 border border-slate-100 dark:border-slate-700/50"
-          >
-            <div className="relative h-36 overflow-hidden">
-              <img
-                src={pickImage(c.media, i)}
-                alt={c.name}
-                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60" />
-              {c.rating_avg > 0 && (
-                <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md flex items-center">
-                  <Star size={10} className="text-[#e9590c] mr-1 fill-current" />
-                  <span className="text-[11px] font-bold text-[#e9590c]">
-                    {c.rating_avg.toFixed(1)}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="p-3">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#e9590c] transition-colors truncate">
-                  {c.name}
-                </h3>
-                {c.primary_category_name && (
-                  <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[#e9590c]/10 text-[#e9590c] border border-[#e9590c]/20">
-                    {c.primary_category_name}
-                  </span>
+      <div
+        className="relative -mx-4 px-4 sm:mx-0 sm:px-0"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {canScroll && (
+          <>
+            <button
+              type="button"
+              onClick={() => scrollByCard(-1)}
+              disabled={atStart}
+              aria-label="Previous recently viewed venues"
+              className="absolute left-1 sm:-left-5 top-1/2 z-10 -translate-y-1/2 size-10 rounded-full bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-[#e9590c] hover:border-[#e9590c]/30 disabled:opacity-0 disabled:pointer-events-none transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollByCard(1)}
+              disabled={atEnd}
+              aria-label="Next recently viewed venues"
+              className="absolute right-1 sm:-right-5 top-1/2 z-10 -translate-y-1/2 size-10 rounded-full bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-lg flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-[#e9590c] hover:border-[#e9590c]/30 disabled:opacity-0 disabled:pointer-events-none transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </>
+        )}
+
+        <div
+          ref={trackRef}
+          className="flex gap-4 overflow-hidden scroll-smooth no-scrollbar"
+        >
+          {cards.map((c, i) => (
+            <Link
+              key={c.id}
+              href={`/venues/${c.id}`}
+              className="group shrink-0 w-64 bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#e9590c]/5 transition-all duration-300 border border-slate-100 dark:border-slate-700/50"
+            >
+              <div className="relative h-36 overflow-hidden">
+                <img
+                  src={pickImage(c.media, i)}
+                  alt={c.name}
+                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60" />
+                {c.rating_avg > 0 && (
+                  <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md flex items-center">
+                    <Star size={10} className="text-[#e9590c] mr-1 fill-current" />
+                    <span className="text-[11px] font-bold text-[#e9590c]">
+                      {c.rating_avg.toFixed(1)}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className="flex items-center text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
-                <MapPin size={11} className="mr-1 shrink-0" />
-                <span className="truncate">{shortAddress(c) || "—"}</span>
+              <div className="p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#e9590c] transition-colors truncate">
+                    {c.name}
+                  </h3>
+                  {c.primary_category_name && (
+                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[#e9590c]/10 text-[#e9590c] border border-[#e9590c]/20">
+                      {c.primary_category_name}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                  <MapPin size={11} className="mr-1 shrink-0" />
+                  <span className="truncate">{shortAddress(c) || "—"}</span>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );
