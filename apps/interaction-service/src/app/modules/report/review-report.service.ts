@@ -183,8 +183,8 @@ export class ReviewReportService {
       title: 'Có báo cáo review mới',
       message: `Review #${review.id.slice(0, 8)} vừa bị báo cáo vì "${report.reason}".`,
       type: NotificationType.SYSTEM,
-      relatedEntityId: report.id,
-      relatedEntityType: this.buildReviewReportEntityType(review),
+      relatedEntityId: review.venue_id,
+      relatedEntityType: this.buildReviewReportEntityType(report.id),
     });
   }
 
@@ -207,10 +207,8 @@ export class ReviewReportService {
           title,
           message,
           type: NotificationType.SYSTEM,
-          relatedEntityId: report.id,
-          relatedEntityType: review
-            ? this.buildReviewReportEntityType(review)
-            : 'review_report',
+          relatedEntityId: review?.venue_id ?? report.id,
+          relatedEntityType: this.buildReviewReportEntityType(report.id),
         };
       }),
     );
@@ -229,8 +227,8 @@ export class ReviewReportService {
     return new Map(reviews.map((review) => [review.id, review]));
   }
 
-  private buildReviewReportEntityType(review: Review): string {
-    return `review_report:${review.venue_id}:${review.id}`;
+  private buildReviewReportEntityType(reportId: string): string {
+    return `review_report:${reportId}`;
   }
 
   async stats() {

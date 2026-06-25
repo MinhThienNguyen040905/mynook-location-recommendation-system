@@ -109,13 +109,21 @@ export function NotificationDropdown({
     }
 
     if (relatedType?.startsWith('review_report')) {
+      const parts = relatedType.split(':');
+      const reportId = parts.length === 2 ? parts[1] : notification.related_entity_id;
+
       if (user.type === 'admin') {
-        return `/admin/reports?kind=review&report=${notification.related_entity_id}`;
+        return `/admin/reports?kind=review&report=${reportId}`;
       }
 
-      const [, venueId, reviewId] = relatedType.split(':');
-      if (venueId) {
+      if (parts.length >= 3) {
+        const [, venueId, reviewId] = parts;
         return `/venues/${venueId}${reviewId ? `?review=${reviewId}` : ''}`;
+      }
+
+      const venueId = parts.length === 2 ? notification.related_entity_id : null;
+      if (venueId) {
+        return `/venues/${venueId}`;
       }
 
       return null;
