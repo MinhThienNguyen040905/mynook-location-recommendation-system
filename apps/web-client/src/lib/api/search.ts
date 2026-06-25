@@ -42,7 +42,10 @@ export async function hybridSearchPublic(
   const qs = new URLSearchParams();
   const params = buildQueryParams(query, opts);
   for (const [k, v] of Object.entries(params)) qs.set(k, String(v));
-  const res = await fetch(`${API_BASE_URL}/search/public?${qs.toString()}`);
-  if (!res.ok) throw new Error('Search failed');
+  const res = await fetch(`${API_BASE_URL}/search/public?${qs.toString()}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`Search failed: ${res.status}`);
   return res.json();
 }

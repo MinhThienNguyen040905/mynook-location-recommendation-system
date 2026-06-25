@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { Heart, Star, BadgeCheck, Quote, Tag, Coffee, Navigation } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { SearchResult } from "@/types/venue";
 
 interface SearchVenueCardProps {
   venue: SearchResult;
+  isHighlighted?: boolean;
+  isSelected?: boolean;
+  onHoverChange?: (id: string | null) => void;
 }
 
 const CROWD_CONFIG: Record<
@@ -53,7 +57,12 @@ function formatDistance(m: number | null): string | null {
   return `${(m / 1000).toFixed(1)}km`;
 }
 
-export function SearchVenueCard({ venue }: SearchVenueCardProps) {
+export function SearchVenueCard({
+  venue,
+  isHighlighted = false,
+  isSelected = false,
+  onHoverChange,
+}: SearchVenueCardProps) {
   const crowd = CROWD_CONFIG[venue.current_crowd_level] ?? CROWD_CONFIG.moderate;
   const imageUrl =
     venue.media?.[0] || `https://picsum.photos/seed/${venue.id}/800/600`;
@@ -61,8 +70,20 @@ export function SearchVenueCard({ venue }: SearchVenueCardProps) {
   const distance = formatDistance(venue.distance_m);
 
   return (
-    <Link href={`/venues/${venue.id}`}>
-      <article className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-nook-olive/50 hover:shadow-md transition-all group cursor-pointer flex flex-col sm:flex-row overflow-hidden h-auto sm:h-56">
+    <Link
+      href={`/venues/${venue.id}`}
+      onMouseEnter={() => onHoverChange?.(venue.id)}
+      onMouseLeave={() => onHoverChange?.(null)}
+      onFocus={() => onHoverChange?.(venue.id)}
+      onBlur={() => onHoverChange?.(null)}
+    >
+      <article
+        className={cn(
+          "bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-nook-olive/50 hover:shadow-md transition-all group cursor-pointer flex flex-col sm:flex-row overflow-hidden h-auto sm:h-56",
+          isHighlighted && "border-[#e9590c]/70 bg-[#e9590c]/5 dark:bg-[#e9590c]/10 shadow-md",
+          isSelected && "ring-2 ring-[#e9590c]/50 border-[#e9590c] shadow-lg shadow-[#e9590c]/10",
+        )}
+      >
         {/* Image Section */}
         <div className="w-full sm:w-64 h-48 sm:h-full relative shrink-0">
           <img

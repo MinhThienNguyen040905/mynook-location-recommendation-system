@@ -26,8 +26,10 @@ interface LeafletMapProps {
   zoom?: number;
   markers?: MapMarker[];
   selectedMarkerId?: string | null;
+  fitToMarkers?: boolean;
   showUserLocation?: boolean;
   onMarkerClick?: (id: string) => void;
+  onMarkerHover?: (id: string | null) => void;
   onMoveEnd?: (bounds: {
     north: number;
     south: number;
@@ -42,8 +44,10 @@ export function LeafletMap({
   zoom = 13,
   markers = [],
   selectedMarkerId,
+  fitToMarkers = false,
   showUserLocation = false,
   onMarkerClick,
+  onMarkerHover,
   onMoveEnd,
   className = "",
 }: LeafletMapProps) {
@@ -185,15 +189,53 @@ export function LeafletMap({
       if (onMarkerClick) {
         marker.on("click", () => onMarkerClick(m.id));
       }
+
+      if (onMarkerHover) {
+        marker.on("mouseover", () => onMarkerHover(m.id));
+        marker.on("mouseout", () => onMarkerHover(null));
+      }
     });
-  }, [markers, selectedMarkerId, onMarkerClick]);
+  }, [markers, selectedMarkerId, onMarkerClick, onMarkerHover]);
+
+  // Fit viewport to the current result set
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !fitToMarkers || markers.length === 0) return;
+
+    if (markers.length === 1) {
+      map.flyTo([markers[0].lat, markers[0].lng], Math.max(zoom, 15), {
+        duration: 0.5,
+      });
+      return;
+    }
+
+    const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng]));
+    map.fitBounds(bounds, {
+      padding: [48, 48],
+      maxZoom: 15,
+      animate: true,
+    });
+  }, [fitToMarkers, markers, zoom]);
 
   // Fly to center when it changes
   useEffect(() => {
-    if (mapRef.current) {
+    if (mapRef.current && !fitToMarkers) {
       mapRef.current.setView(center, mapRef.current.getZoom());
     }
-  }, [center]);
+  }, [center, fitToMarkers]);
+
+  // Focus selected venue without losing the surrounding context too much
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !selectedMarkerId) return;
+
+    const selected = markers.find((m) => m.id === selectedMarkerId);
+    if (!selected) return;
+
+    map.flyTo([selected.lat, selected.lng], Math.max(map.getZoom(), 15), {
+      duration: 0.45,
+    });
+  }, [markers, selectedMarkerId]);
 
   return <div ref={containerRef} className={`w-full h-full ${className}`} />;
 }

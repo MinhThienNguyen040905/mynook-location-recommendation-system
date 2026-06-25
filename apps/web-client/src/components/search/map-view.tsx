@@ -12,10 +12,11 @@ interface MapViewProps {
   onClosePanel: () => void;
   searchResults?: SearchResult[];
   selectedVenueId?: string | null;
+  highlightedVenueId?: string | null;
   onVenueSelect?: (id: string) => void;
+  onVenueHover?: (id: string | null) => void;
 }
 
-// Default center: HCMC
 const DEFAULT_CENTER: [number, number] = [10.7769, 106.7009];
 
 export function MapView({
@@ -23,28 +24,31 @@ export function MapView({
   onClosePanel,
   searchResults = [],
   selectedVenueId,
+  highlightedVenueId,
   onVenueSelect,
+  onVenueHover,
 }: MapViewProps) {
   const markers: MapMarker[] = useMemo(
     () =>
-      searchResults.map((v) => ({
-        id: v.id,
-        lat: v.latitude,
-        lng: v.longitude,
-        label: v.rating_avg > 0 ? v.rating_avg.toFixed(1) : "•",
-        popupContent: `<strong>${v.name}</strong><br/>${v.address}`,
-      })),
+      searchResults
+        .filter((v) => Number.isFinite(v.latitude) && Number.isFinite(v.longitude))
+        .map((v) => ({
+          id: v.id,
+          lat: v.latitude,
+          lng: v.longitude,
+          label: v.rating_avg > 0 ? v.rating_avg.toFixed(1) : "•",
+          popupContent: `<strong>${v.name}</strong><br/>${v.address}`,
+        })),
     [searchResults],
   );
 
   const center: [number, number] = useMemo(() => {
-    if (searchResults.length === 0) return DEFAULT_CENTER;
-    const avgLat =
-      searchResults.reduce((s, v) => s + v.latitude, 0) / searchResults.length;
-    const avgLng =
-      searchResults.reduce((s, v) => s + v.longitude, 0) / searchResults.length;
+    if (markers.length === 0) return DEFAULT_CENTER;
+
+    const avgLat = markers.reduce((sum, marker) => sum + marker.lat, 0) / markers.length;
+    const avgLng = markers.reduce((sum, marker) => sum + marker.lng, 0) / markers.length;
     return [avgLat, avgLng];
-  }, [searchResults]);
+  }, [markers]);
 
   return (
     <div className="hidden lg:block w-[40%] h-full relative sticky top-0 overflow-hidden">
@@ -52,12 +56,13 @@ export function MapView({
         center={center}
         zoom={13}
         markers={markers}
-        selectedMarkerId={selectedVenueId}
+        selectedMarkerId={highlightedVenueId ?? selectedVenueId}
+        fitToMarkers={markers.length > 0}
         showUserLocation
         onMarkerClick={onVenueSelect}
+        onMarkerHover={onVenueHover}
       />
 
-      {/* Floating Filter Panel */}
       {isPanelOpen && <FloatingFilterPanel onClose={onClosePanel} />}
     </div>
   );

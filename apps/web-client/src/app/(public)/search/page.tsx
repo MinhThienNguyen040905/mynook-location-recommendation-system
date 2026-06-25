@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ChevronDown, Search, Loader2, MapPin, MapPinOff } from "lucide-react";
 import { SearchVenueCard } from "@/components/search/search-venue-card";
@@ -18,8 +18,13 @@ function SearchContent() {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [hoveredVenueId, setHoveredVenueId] = useState<string | null>(null);
+  const resultRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const geo = useGeolocation();
+  const activeVenueId = hoveredVenueId ?? selectedVenueId;
 
   const doSearch = useCallback(
     async (q: string, lat?: number, lng?: number) => {
@@ -27,22 +32,38 @@ function SearchContent() {
         setResults([]);
         setTotal(0);
         setHasSearched(false);
+        setSearchError(null);
+        setSelectedVenueId(null);
+        setHoveredVenueId(null);
         return;
       }
       setIsLoading(true);
+      setSearchError(null);
       try {
-        const data = await hybridSearchPublic(q.trim(), {
+        let data = await hybridSearchPublic(q.trim(), {
           lat,
           lng,
         });
-        setResults(data.results);
-        setTotal(data.total);
+        let nextResults = Array.isArray(data.results) ? data.results : [];
+
+        if (nextResults.length === 0 && lat !== undefined && lng !== undefined) {
+          data = await hybridSearchPublic(q.trim());
+          nextResults = Array.isArray(data.results) ? data.results : [];
+        }
+
+        setResults(nextResults);
+        setTotal(Number.isFinite(data.total) ? data.total : nextResults.length);
         setHasSearched(true);
+        setSelectedVenueId(null);
+        setHoveredVenueId(null);
       } catch (err) {
         console.error("Search failed:", err);
         setResults([]);
         setTotal(0);
         setHasSearched(true);
+        setSearchError("Không tải được kết quả tìm kiếm. Vui lòng kiểm tra API gateway/search service rồi thử lại.");
+        setSelectedVenueId(null);
+        setHoveredVenueId(null);
       } finally {
         setIsLoading(false);
       }
@@ -70,6 +91,18 @@ function SearchContent() {
       doSearch(query.trim(), geo.coords?.lat, geo.coords?.lng);
     }
   };
+
+  const handleVenueSelectFromMap = useCallback((id: string) => {
+    setSelectedVenueId(id);
+    setHoveredVenueId(null);
+
+    window.requestAnimationFrame(() => {
+      resultRefs.current[id]?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    });
+  }, []);
 
   const gpsLabel = (() => {
     if (geo.status === "pending") return "Đang lấy vị trí...";
@@ -185,13 +218,36 @@ function SearchContent() {
           {!isLoading && results.length > 0 && (
             <div className="grid grid-cols-1 gap-4">
               {results.map((venue) => (
-                <SearchVenueCard key={venue.id} venue={venue} />
+                <div
+                  key={venue.id}
+                  ref={(node) => {
+                    resultRefs.current[venue.id] = node;
+                  }}
+                >
+                  <SearchVenueCard
+                    venue={venue}
+                    isHighlighted={activeVenueId === venue.id}
+                    isSelected={selectedVenueId === venue.id}
+                    onHoverChange={setHoveredVenueId}
+                  />
+                </div>
               ))}
             </div>
           )}
 
+          {!isLoading && searchError && (
+            <div className="py-20 text-center">
+              <p className="text-red-500 text-lg mb-2">
+                Tìm kiếm đang gặp lỗi
+              </p>
+              <p className="text-slate-400 text-sm max-w-md mx-auto">
+                {searchError}
+              </p>
+            </div>
+          )}
+
           {/* Empty State */}
-          {!isLoading && hasSearched && results.length === 0 && (
+          {!isLoading && !searchError && hasSearched && results.length === 0 && (
             <div className="py-20 text-center">
               <p className="text-slate-400 text-lg mb-2">
                 Không tìm thấy kết quả
@@ -221,6 +277,10 @@ function SearchContent() {
           isPanelOpen={false}
           onClosePanel={() => {}}
           searchResults={results}
+          selectedVenueId={selectedVenueId}
+          highlightedVenueId={activeVenueId}
+          onVenueSelect={handleVenueSelectFromMap}
+          onVenueHover={setHoveredVenueId}
         />
       </main>
     </div>
