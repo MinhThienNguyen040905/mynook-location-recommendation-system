@@ -6,12 +6,13 @@ import Link from 'next/link';
 import {
   Camera, Star, MapPin,
   Mail, Phone, Calendar, Edit3, Check, X,
-  MessageSquare, HandHeart,
+  MessageSquare, HandHeart, KeyRound, Eye, EyeOff, Loader2,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 import { cn, formatAddress, formatDate } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
-import { updateProfile } from '@/lib/api/auth';
+import { changePassword, updateProfile } from '@/lib/api/auth';
 import { uploadMedia } from '@/lib/api/upload';
 import { getMyContributions } from '@/lib/api/venues';
 import { getInteractionStats } from '@/lib/api/interactions';
@@ -66,12 +67,66 @@ function formatJoinDate(dateStr: string): string {
 }
 
 /* ── Main Page ───────────────────────────────────────────────── */
+function PasswordField({
+  label,
+  value,
+  visible,
+  autoComplete,
+  onChange,
+  onToggle,
+}: {
+  label: string;
+  value: string;
+  visible: boolean;
+  autoComplete: string;
+  onChange: (value: string) => void;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-nook-ink/50 uppercase tracking-wider">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(e) => onChange(e.target.value)}
+          className="nook-input pr-11"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-nook-ink/35 hover:text-nook-olive transition-colors"
+          aria-label={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+        >
+          {visible ? <EyeOff size={17} /> : <Eye size={17} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function UserProfilePage() {
   const router = useRouter();
   const { user, isLoading, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    old_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+  const [passwordVisible, setPasswordVisible] = useState({
+    old_password: false,
+    new_password: false,
+    confirm_password: false,
+  });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ full_name: '', phone_number: '' });
   const [activeTab, setActiveTab] = useState<'reviews' | 'contributions'>('reviews');
@@ -175,6 +230,68 @@ export default function UserProfilePage() {
     }
   };
 
+  const resetPasswordForm = () => {
+    setPasswordForm({
+      old_password: '',
+      new_password: '',
+      confirm_password: '',
+    });
+    setPasswordVisible({
+      old_password: false,
+      new_password: false,
+      confirm_password: false,
+    });
+    setPasswordError(null);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!passwordForm.old_password || !passwordForm.new_password || !passwordForm.confirm_password) {
+      setPasswordError('Vui lòng nhập đầy đủ các trường mật khẩu.');
+      return;
+    }
+
+    if (passwordForm.new_password.length < 6) {
+      setPasswordError('Mật khẩu mới cần tối thiểu 6 ký tự.');
+      return;
+    }
+
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setPasswordError('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+
+    if (passwordForm.old_password === passwordForm.new_password) {
+      setPasswordError('Mật khẩu mới cần khác mật khẩu hiện tại.');
+      return;
+    }
+
+    setPasswordSaving(true);
+    setPasswordError(null);
+    try {
+      await changePassword({
+        old_password: passwordForm.old_password,
+        new_password: passwordForm.new_password,
+      });
+      toast.success('Đổi mật khẩu thành công.');
+      resetPasswordForm();
+      setPasswordOpen(false);
+    } catch (err) {
+      const data = (err as { response?: { data?: { message?: string | string[] } } }).response?.data;
+      const message = Array.isArray(data?.message)
+        ? data.message[0]
+        : data?.message;
+      setPasswordError(message ?? 'Không thể đổi mật khẩu. Vui lòng thử lại.');
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const togglePasswordVisible = (field: keyof typeof passwordVisible) => {
+    setPasswordVisible((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
 
@@ -275,6 +392,102 @@ export default function UserProfilePage() {
       </motion.div>
 
       {/* ── Stats ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.04 }}
+        className="bg-white rounded-3xl border border-nook-sand shadow-sm overflow-hidden mb-6"
+      >
+        <div className="p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-nook-olive/10 text-nook-olive flex items-center justify-center">
+                <KeyRound size={19} />
+              </div>
+              <div>
+                <h2 className="font-bold text-nook-ink">Bảo mật tài khoản</h2>
+                <p className="text-sm text-nook-ink/50">Cập nhật mật khẩu đăng nhập của bạn.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (passwordOpen) resetPasswordForm();
+                setPasswordOpen((open) => !open);
+              }}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-colors',
+                passwordOpen
+                  ? 'border-nook-sand bg-nook-sand text-nook-ink'
+                  : 'border-nook-olive bg-nook-olive text-white hover:bg-nook-olive/90',
+              )}
+            >
+              {passwordOpen ? <X size={15} /> : <KeyRound size={15} />}
+              {passwordOpen ? 'Đóng' : 'Đổi mật khẩu'}
+            </button>
+          </div>
+
+          {passwordOpen && (
+            <form onSubmit={handleChangePassword} className="mt-5 space-y-4 border-t border-nook-sand pt-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <PasswordField
+                  label="Mật khẩu hiện tại"
+                  value={passwordForm.old_password}
+                  visible={passwordVisible.old_password}
+                  autoComplete="current-password"
+                  onChange={(value) => setPasswordForm((prev) => ({ ...prev, old_password: value }))}
+                  onToggle={() => togglePasswordVisible('old_password')}
+                />
+                <PasswordField
+                  label="Mật khẩu mới"
+                  value={passwordForm.new_password}
+                  visible={passwordVisible.new_password}
+                  autoComplete="new-password"
+                  onChange={(value) => setPasswordForm((prev) => ({ ...prev, new_password: value }))}
+                  onToggle={() => togglePasswordVisible('new_password')}
+                />
+                <PasswordField
+                  label="Xác nhận mật khẩu"
+                  value={passwordForm.confirm_password}
+                  visible={passwordVisible.confirm_password}
+                  autoComplete="new-password"
+                  onChange={(value) => setPasswordForm((prev) => ({ ...prev, confirm_password: value }))}
+                  onToggle={() => togglePasswordVisible('confirm_password')}
+                />
+              </div>
+
+              {passwordError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                  {passwordError}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-nook-olive text-white font-bold rounded-xl hover:bg-nook-olive/90 transition-colors text-sm disabled:opacity-50"
+                >
+                  {passwordSaving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                  {passwordSaving ? 'Đang đổi...' : 'Xác nhận đổi mật khẩu'}
+                </button>
+                <button
+                  type="button"
+                  disabled={passwordSaving}
+                  onClick={() => {
+                    resetPasswordForm();
+                    setPasswordOpen(false);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-nook-sand text-nook-ink font-medium rounded-xl text-sm disabled:opacity-50"
+                >
+                  <X size={15} /> Hủy
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </motion.div>
+
       <div className="grid grid-cols-2 gap-4 mb-6">
         <StatCard icon={MessageSquare} value={reviewTotal} label="Đánh giá" />
         <StatCard icon={MapPin}        value={visitedCount} label="Đã ghé thăm" />
