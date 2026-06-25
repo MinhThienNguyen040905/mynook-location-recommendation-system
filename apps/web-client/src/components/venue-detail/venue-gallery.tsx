@@ -49,7 +49,7 @@ export function VenueGallery({ media, name }: VenueGalleryProps) {
     return (
       <div className="h-[300px] mb-12 rounded-2xl bg-slate-200 dark:bg-slate-800 flex flex-col items-center justify-center text-slate-400">
         <ImageIcon size={48} className="mb-2" />
-        <p className="text-sm">No photos available</p>
+        <p className="text-sm">Chưa có ảnh</p>
       </div>
     );
   }
@@ -60,7 +60,7 @@ export function VenueGallery({ media, name }: VenueGalleryProps) {
       onClick={closeImage}
       role="dialog"
       aria-modal="true"
-      aria-label={`${name} photos`}
+      aria-label={`Ảnh của ${name}`}
     >
       <div className="absolute left-4 top-4 rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
         {(activeIndex ?? 0) + 1} / {media.length}
@@ -73,7 +73,7 @@ export function VenueGallery({ media, name }: VenueGalleryProps) {
           closeImage();
         }}
         className="absolute right-4 top-4 size-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
-        aria-label="Close gallery"
+        aria-label="Đóng thư viện ảnh"
       >
         <X size={22} />
       </button>
@@ -87,7 +87,7 @@ export function VenueGallery({ media, name }: VenueGalleryProps) {
               showPrevious();
             }}
             className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 size-11 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
-            aria-label="Previous photo"
+            aria-label="Ảnh trước"
           >
             <ChevronLeft size={28} />
           </button>
@@ -98,7 +98,7 @@ export function VenueGallery({ media, name }: VenueGalleryProps) {
               showNext();
             }}
             className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 size-11 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
-            aria-label="Next photo"
+            aria-label="Ảnh tiếp theo"
           >
             <ChevronRight size={28} />
           </button>

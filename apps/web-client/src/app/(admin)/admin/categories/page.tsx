@@ -166,7 +166,7 @@ export default function AdminCategoriesPage() {
                 <th className="text-left px-4 py-3 font-semibold">Tên hiển thị</th>
                 <th className="text-left px-4 py-3 font-semibold">Synonyms</th>
                 <th className="text-center px-4 py-3 font-semibold">Order</th>
-                <th className="text-center px-4 py-3 font-semibold">Active</th>
+                <th className="text-center px-4 py-3 font-semibold">Hoạt động</th>
                 <th className="text-right px-4 py-3 font-semibold">Hành động</th>
               </tr>
             </thead>
@@ -309,7 +309,7 @@ export default function AdminCategoriesPage() {
                     onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
                     className="size-4 rounded text-nook-olive"
                   />
-                  <span className="text-sm font-medium">Active</span>
+                  <span className="text-sm font-medium">Hoạt động</span>
                 </label>
               </div>
 

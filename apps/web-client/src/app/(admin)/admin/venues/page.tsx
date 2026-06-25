@@ -179,7 +179,7 @@ export default function AdminVenuesPage() {
                     {v.rating_avg?.toFixed(1) ?? '0.0'}
                   </span>
                   <span>·</span>
-                  <span>{v.review_count} reviews</span>
+                  <span>{v.review_count} đánh giá</span>
                   <span>·</span>
                   <span className="flex items-center gap-1"><Users size={11} /> {v.total_capacity}</span>
                 </div>
@@ -272,12 +272,12 @@ export default function AdminVenuesPage() {
                   {preview.description || <span className="italic text-slate-400">Không có mô tả</span>}
                 </p>
                 <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                  <InfoRow label="Rating" value={`${preview.rating_avg?.toFixed(1) ?? '0.0'} (${preview.review_count} reviews)`} />
+                  <InfoRow label="Đánh giá" value={`${preview.rating_avg?.toFixed(1) ?? '0.0'} (${preview.review_count} lượt đánh giá)`} />
                   <InfoRow label="Sức chứa" value={`${preview.total_capacity} người`} />
                   <InfoRow label="Nhóm tối đa" value={`${preview.max_group_size} người`} />
                   <InfoRow label="Mức đông" value={preview.current_crowd_level} />
                   <InfoRow label="Toạ độ" value={`${preview.latitude.toFixed(4)}, ${preview.longitude.toFixed(4)}`} />
-                  <InfoRow label="Loại" value={preview.is_community_contributed ? 'Cộng đồng' : 'Owner'} />
+                  <InfoRow label="Loại" value={preview.is_community_contributed ? 'Cộng đồng' : 'Chủ quán'} />
                 </div>
               </div>
             </motion.div>

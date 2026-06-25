@@ -48,12 +48,12 @@ export function HeroSection() {
 
       <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white mb-6 drop-shadow-sm font-sans">
-          Find your perfect{" "}
-          <span className="text-[#e9590c] italic font-serif">nook.</span>
+          Tìm{" "}
+          <span className="text-[#e9590c] italic font-serif">góc quen</span>
+          {" "}lý tưởng của bạn.
         </h1>
         <p className="mt-4 max-w-2xl mx-auto text-lg text-slate-700 dark:text-slate-200 font-medium drop-shadow-md">
-          Discover the best spots for dining, working, or simply unwinding
-          nearby.
+          Khám phá những địa điểm phù hợp để ăn uống, làm việc hoặc thư giãn gần bạn.
         </p>
 
         {/* Search Box */}
@@ -75,7 +75,7 @@ export function HeroSection() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="block w-full pl-12 pr-12 py-3 bg-transparent border-none rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-[#e9590c]/20 focus:bg-slate-50 dark:focus:bg-slate-700/50 transition-all text-base outline-none"
-                placeholder="Try 'Quiet cafe in District 1...'"
+                placeholder="Thử 'Quán cà phê yên tĩnh ở Quận 1...'"
               />
               <button
                 type="button"
@@ -83,10 +83,10 @@ export function HeroSection() {
                 disabled={voiceState === "transcribing"}
                 title={
                   voiceState === "recording"
-                    ? "Stop recording"
+                    ? "Dừng ghi âm"
                     : voiceState === "transcribing"
-                      ? "Transcribing..."
-                      : "Search by voice"
+                      ? "Đang chuyển giọng nói..."
+                      : "Tìm bằng giọng nói"
                 }
                 className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${
                   voiceState === "recording"
@@ -109,7 +109,7 @@ export function HeroSection() {
               type="submit"
               className="w-full md:w-auto bg-[#e9590c] hover:bg-[#e9590c]/90 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-[#e9590c]/30 transition-all duration-200 flex items-center justify-center gap-2"
             >
-              <span>Search</span>
+              <span>Tìm kiếm</span>
               <ArrowRight size={18} />
             </button>
           </form>

@@ -134,33 +134,33 @@ export function VenueAnalytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <MetricCard
           icon={Eye}
-          label="Unique viewers"
+          label="Người xem duy nhất"
           value={formatNumber(summary.unique_viewers)}
-          hint={`${formatNumber(summary.viewers_last_7d)} viewers in last 7 days`}
+          hint={`${formatNumber(summary.viewers_last_7d)} người xem trong 7 ngày qua`}
         />
         <MetricCard
           icon={Heart}
-          label="Favorites"
+          label="Yêu thích"
           value={formatNumber(summary.favorites_count)}
-          hint="Users who saved this venue"
+          hint="Người dùng đã lưu địa điểm này"
         />
         <MetricCard
           icon={Star}
-          label="Average rating"
+          label="Đánh giá trung bình"
           value={summary.average_rating.toFixed(1)}
-          hint={`${formatNumber(summary.reviews_count)} total reviews`}
+          hint={`${formatNumber(summary.reviews_count)} đánh giá tổng cộng`}
         />
         <MetricCard
           icon={MessageCircle}
-          label="Comments"
+          label="Bình luận"
           value={formatNumber(summary.review_comments)}
-          hint="Comments on venue reviews"
+          hint="Bình luận trong đánh giá địa điểm"
         />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 rounded-3xl border border-primary/10 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Rating distribution</h2>
+          <h2 className="text-lg font-bold text-slate-900">Phân bố đánh giá</h2>
           <div className="mt-6 space-y-4">
             {data.rating_distribution.map((row) => (
               <div key={row.rating} className="grid grid-cols-[48px_1fr_48px] items-center gap-3">
@@ -181,29 +181,29 @@ export function VenueAnalytics() {
         </div>
 
         <div className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">Engagement report</h2>
+          <h2 className="text-lg font-bold text-slate-900">Báo cáo tương tác</h2>
           <div className="mt-5 space-y-3">
             <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                <Users className="size-4 text-primary" /> Verified reviews
+                <Users className="size-4 text-primary" /> Đánh giá đã xác minh
               </span>
               <span className="font-bold text-slate-900">{summary.verified_reviews_count}</span>
             </div>
             <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                <ThumbsUp className="size-4 text-primary" /> Review likes
+                <ThumbsUp className="size-4 text-primary" /> Lượt thích đánh giá
               </span>
               <span className="font-bold text-slate-900">{summary.review_likes}</span>
             </div>
             <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
               <span className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                <ThumbsDown className="size-4 text-primary" /> Review dislikes
+                <ThumbsDown className="size-4 text-primary" /> Lượt không thích đánh giá
               </span>
               <span className="font-bold text-slate-900">{summary.review_dislikes}</span>
             </div>
             <div className="flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3">
               <span className="flex items-center gap-2 text-sm font-medium text-amber-700">
-                <AlertTriangle className="size-4" /> Pending reports
+                <AlertTriangle className="size-4" /> Báo cáo đang chờ
               </span>
               <span className="font-bold text-amber-700">
                 {summary.pending_reports}/{summary.total_reports}
@@ -214,11 +214,11 @@ export function VenueAnalytics() {
       </div>
 
       <div className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900">Recent reviews</h2>
+        <h2 className="text-lg font-bold text-slate-900">Đánh giá gần đây</h2>
         {data.recent_reviews.length === 0 ? (
           <div className="py-10 text-center text-slate-400">
             <MessageCircle className="mx-auto mb-3 size-8 opacity-30" />
-            <p className="text-sm font-medium">No reviews yet.</p>
+            <p className="text-sm font-medium">Chưa có đánh giá.</p>
           </div>
         ) : (
           <div className="mt-5 divide-y divide-slate-100">
@@ -226,7 +226,7 @@ export function VenueAnalytics() {
               <div key={review.id} className="py-4 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-bold text-slate-900">{review.author_name ?? 'Anonymous user'}</p>
+                    <p className="font-bold text-slate-900">{review.author_name ?? 'Người dùng ẩn danh'}</p>
                     <p className="text-xs text-slate-400">{formatDate(review.created_at)}</p>
                   </div>
                   <div className="flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-sm font-bold text-orange-600">

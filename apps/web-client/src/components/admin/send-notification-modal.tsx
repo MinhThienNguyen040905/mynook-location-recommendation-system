@@ -17,8 +17,8 @@ type NotifType = 'system' | 'promo' | 'reminder' | 'review_reply';
 
 const TARGET_OPTIONS: { key: Target; label: string; desc: string; icon: React.ReactNode }[] = [
   { key: 'all',      label: 'Tất cả',      desc: 'Gửi đến toàn bộ người dùng',   icon: <Bell size={16} />  },
-  { key: 'customer', label: 'Customer',    desc: 'Chỉ tài khoản khách hàng',      icon: <Users size={16} /> },
-  { key: 'owner',    label: 'Owner',       desc: 'Chỉ tài khoản chủ quán',        icon: <Store size={16} /> },
+  { key: 'customer', label: 'Khách hàng',  desc: 'Chỉ tài khoản khách hàng',      icon: <Users size={16} /> },
+  { key: 'owner',    label: 'Chủ quán',    desc: 'Chỉ tài khoản chủ quán',        icon: <Store size={16} /> },
 ];
 
 const TYPE_OPTIONS: { key: NotifType; label: string; color: string; icon: React.ReactNode }[] = [

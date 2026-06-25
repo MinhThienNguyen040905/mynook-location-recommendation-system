@@ -65,12 +65,12 @@ export function DashboardSidebar() {
         <div className="flex items-center gap-3">
           <img
             src="https://picsum.photos/seed/owner-avatar/100/100"
-            alt="Owner"
+            alt="Chủ quán"
             className="size-8 rounded-full border-2 border-white/40 object-cover"
           />
           <div className="min-w-0">
             <p className="text-xs font-semibold text-white truncate">Alex Rivera</p>
-            <p className="text-[10px] text-orange-200">Verified Owner</p>
+            <p className="text-[10px] text-orange-200">Chủ quán đã xác minh</p>
           </div>
         </div>
       </div>

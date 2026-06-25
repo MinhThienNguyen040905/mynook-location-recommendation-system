@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
 
   const STATS = [
     { label: 'Tổng người dùng', value: formatNumber(accounts?.total), sub: `+${accounts?.recent_30d ?? 0} trong 30 ngày`, icon: Users, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Venue đang hoạt động', value: formatNumber(venues?.active), sub: `${venues?.inactive ?? 0} vô hiệu / ${venues?.community ?? 0} cộng đồng`, icon: Store, color: 'bg-nook-olive/10 text-nook-olive' },
+    { label: 'Địa điểm đang hoạt động', value: formatNumber(venues?.active), sub: `${venues?.inactive ?? 0} vô hiệu / ${venues?.community ?? 0} cộng đồng`, icon: Store, color: 'bg-nook-olive/10 text-nook-olive' },
     { label: 'Báo cáo chờ xử lý', value: formatNumber(pendingReports), sub: `${reviewReports?.pending ?? 0} review · ${venueReports?.pending ?? 0} venue`, icon: Flag, color: 'bg-red-50 text-red-500' },
   ];
 
@@ -90,14 +90,14 @@ export default function AdminDashboardPage() {
                 <h2 className="font-bold text-slate-800">Phân bố tài khoản & tương tác</h2>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Mini label="Customer" value={accounts?.by_type.customer} />
-                <Mini label="Owner" value={accounts?.by_type.owner} />
-                <Mini label="Admin" value={accounts?.by_type.admin} />
-                <Mini label="Active / Inactive" value={`${accounts?.active ?? 0} / ${accounts?.inactive ?? 0}`} />
-                <Mini label="Tổng reviews" value={interaction?.total_reviews} icon={<Star size={13} />} />
+                <Mini label="Khách hàng" value={accounts?.by_type.customer} />
+                <Mini label="Chủ quán" value={accounts?.by_type.owner} />
+                <Mini label="Quản trị viên" value={accounts?.by_type.admin} />
+                <Mini label="Hoạt động / Không hoạt động" value={`${accounts?.active ?? 0} / ${accounts?.inactive ?? 0}`} />
+                <Mini label="Tổng đánh giá" value={interaction?.total_reviews} icon={<Star size={13} />} />
                 <Mini label="Reviews 30 ngày" value={interaction?.reviews_recent_30d} />
-                <Mini label="Favorites" value={interaction?.total_favorites} />
-                <Mini label="⭐ Rating TB" value={interaction?.average_rating?.toFixed(2)} />
+                <Mini label="Yêu thích" value={interaction?.total_favorites} />
+                <Mini label="Đánh giá TB" value={interaction?.average_rating?.toFixed(2)} />
               </div>
             </div>
 
@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
                         <Star size={12} className="fill-amber-400 text-amber-400" />
                         {v.rating_avg?.toFixed(1) ?? '0.0'}
                       </p>
-                      <p className="text-xs text-slate-400">{v.review_count} reviews</p>
+                      <p className="text-xs text-slate-400">{v.review_count} đánh giá</p>
                     </div>
                   </div>
                 ))}

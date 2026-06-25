@@ -37,18 +37,19 @@ const STORAGE_KEY = 'mynook:last-coords';
  *   can use the last known position immediately while a fresh fix arrives.
  */
 export function useGeolocation(): UseGeolocationResult {
-  const [coords, setCoords] = useState<Coords | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as Coords) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [coords, setCoords] = useState<Coords | null>(null);
   const [status, setStatus] = useState<GeolocationStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const watcherRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) setCoords(JSON.parse(raw) as Coords);
+    } catch {
+      // Ignore invalid or unavailable cached coordinates.
+    }
+  }, []);
 
   useEffect(() => {
     return () => {

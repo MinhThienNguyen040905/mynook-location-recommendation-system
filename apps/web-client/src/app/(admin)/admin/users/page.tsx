@@ -96,8 +96,8 @@ export default function AdminUsersPage() {
             className="appearance-none pl-4 pr-8 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:border-nook-olive cursor-pointer"
           >
             <option value="all">Tất cả vai trò</option>
-            <option value="customer">Customer</option>
-            <option value="owner">Owner</option>
+            <option value="customer">Khách hàng</option>
+            <option value="owner">Chủ quán</option>
             <option value="admin">Admin</option>
           </select>
           <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />

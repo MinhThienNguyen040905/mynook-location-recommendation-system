@@ -176,10 +176,10 @@ export default function RegisterPage() {
                   MyNook
                 </h1>
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  Create an account
+                  Tạo tài khoản
                 </h2>
                 <p className="text-gray-500 dark:text-gray-400">
-                  Join the community to discover and share the best spots.
+                  Tham gia cộng đồng để khám phá và chia sẻ những địa điểm tốt nhất.
                 </p>
               </div>
 
@@ -187,7 +187,7 @@ export default function RegisterPage() {
               <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
                 <div>
                   <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Account type
+                    Loại tài khoản
                   </span>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="relative flex cursor-pointer items-center gap-3 rounded-lg border border-gray-300 bg-white p-3 text-sm shadow-sm transition hover:border-orange-300 has-[:checked]:border-[#e9590c] has-[:checked]:bg-orange-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:border-orange-500/70 dark:has-[:checked]:bg-orange-950/30">
@@ -200,10 +200,10 @@ export default function RegisterPage() {
                       <User className="size-5 text-gray-500 has-[:checked]:text-[#e9590c]" />
                       <span>
                         <span className="block font-semibold text-gray-900 dark:text-white">
-                          Customer
+                          Khách hàng
                         </span>
                         <span className="block text-xs text-gray-500 dark:text-gray-400">
-                          Discover spots
+                          Khám phá địa điểm
                         </span>
                       </span>
                     </label>
@@ -218,10 +218,10 @@ export default function RegisterPage() {
                       <Store className="size-5 text-gray-500 has-[:checked]:text-[#e9590c]" />
                       <span>
                         <span className="block font-semibold text-gray-900 dark:text-white">
-                          Owner
+                          Chủ quán
                         </span>
                         <span className="block text-xs text-gray-500 dark:text-gray-400">
-                          Manage venues
+                          Quản lý địa điểm
                         </span>
                       </span>
                     </label>
@@ -236,7 +236,7 @@ export default function RegisterPage() {
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     htmlFor="name"
                   >
-                    Full Name
+                    Họ và tên
                   </label>
                   <div className="relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -245,7 +245,7 @@ export default function RegisterPage() {
                     <input
                       id="name"
                       type="text"
-                      placeholder="John Doe"
+                      placeholder="Nguyễn Văn A"
                       {...registerField("full_name")}
                       className={cn(
                         "block w-full pl-10 pr-3 py-2 border rounded-lg bg-white dark:bg-gray-800 placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#e9590c] focus:border-[#e9590c] sm:text-sm transition duration-150",
@@ -265,7 +265,7 @@ export default function RegisterPage() {
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     htmlFor="email"
                   >
-                    Email address
+                    Địa chỉ email
                   </label>
                   <div className="relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -294,7 +294,7 @@ export default function RegisterPage() {
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                     htmlFor="password"
                   >
-                    Password
+                    Mật khẩu
                   </label>
                   <div className="relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -334,18 +334,18 @@ export default function RegisterPage() {
                   {isSubmitting ? (
                     <Loader2 className="animate-spin" size={20} />
                   ) : (
-                    "Create Account"
+                    "Tạo tài khoản"
                   )}
                 </button>
               </form>
 
               <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-                Already have an account?{" "}
+                Đã có tài khoản?{" "}
                 <Link
                   href="/login"
                   className="font-semibold text-[#e9590c] hover:text-[#c2410b] transition-colors"
                 >
-                  Sign In
+                  Đăng nhập
                 </Link>
               </p>
             </>
@@ -463,7 +463,7 @@ export default function RegisterPage() {
             </blockquote>
             <div className="flex items-center space-x-2 text-sm font-medium text-orange-200">
               <MapPin size={18} />
-              <span>Discover spaces curated just for you.</span>
+              <span>Khám phá những không gian được chọn riêng cho bạn.</span>
             </div>
           </div>
         </div>

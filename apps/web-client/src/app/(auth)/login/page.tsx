@@ -69,10 +69,10 @@ export default function LoginPage() {
               MyNook
             </h1>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Welcome back!
+              Chào mừng bạn quay lại!
             </h2>
             <p className="text-gray-500 dark:text-gray-400">
-              Please enter your details to sign in.
+              Nhập thông tin của bạn để đăng nhập.
             </p>
           </div>
 
@@ -84,7 +84,7 @@ export default function LoginPage() {
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 htmlFor="email"
               >
-                Email address
+                Địa chỉ email
               </label>
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -113,7 +113,7 @@ export default function LoginPage() {
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 htmlFor="password"
               >
-                Password
+                Mật khẩu
               </label>
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -156,7 +156,7 @@ export default function LoginPage() {
                   htmlFor="remember-me"
                   className="ml-2 block text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none"
                 >
-                  Remember me
+                  Ghi nhớ đăng nhập
                 </label>
               </div>
               <div className="text-sm">
@@ -164,7 +164,7 @@ export default function LoginPage() {
                   href="/forgot-password"
                   className="font-medium text-[#e9590c] hover:text-[#c2410b] transition-colors"
                 >
-                  Forgot password?
+                  Quên mật khẩu?
                 </Link>
               </div>
             </div>
@@ -178,18 +178,18 @@ export default function LoginPage() {
               {isSubmitting ? (
                 <Loader2 className="animate-spin" size={20} />
               ) : (
-                "Sign In"
+                "Đăng nhập"
               )}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            Don&apos;t have an account?{" "}
+            Chưa có tài khoản?{" "}
             <Link
               href="/register"
               className="font-semibold text-[#e9590c] hover:text-[#c2410b] transition-colors"
             >
-              Sign Up
+              Đăng ký
             </Link>
           </p>
         </div>
@@ -217,12 +217,11 @@ export default function LoginPage() {
               </h3>
             </div>
             <blockquote className="text-xl font-light italic mb-4 opacity-90 border-l-4 border-[#e9590c] pl-4 leading-relaxed">
-              &ldquo;Find your perfect spot to savor the moment and focus on what
-              matters most.&rdquo;
+              &ldquo;Tìm nơi lý tưởng để tận hưởng khoảnh khắc và tập trung vào điều quan trọng nhất.&rdquo;
             </blockquote>
             <div className="flex items-center space-x-2 text-sm font-medium text-orange-200">
               <MapPin size={18} />
-              <span>Featured Nook: The Daily Grind, Seattle</span>
+              <span>Gợi ý nổi bật: The Daily Grind, Seattle</span>
             </div>
           </div>
         </div>

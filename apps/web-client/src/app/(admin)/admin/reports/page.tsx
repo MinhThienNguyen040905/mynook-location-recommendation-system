@@ -119,7 +119,7 @@ export default function AdminReportsPage() {
     <div className="p-6 lg:p-8 space-y-6">
       <div>
         <h1 className="text-3xl font-serif font-bold text-slate-800">Báo cáo vi phạm</h1>
-        <p className="text-slate-500 mt-1">Xử lý báo cáo về reviews và venues</p>
+        <p className="text-slate-500 mt-1">Xử lý báo cáo về đánh giá và địa điểm</p>
       </div>
 
       {/* Kind tabs */}

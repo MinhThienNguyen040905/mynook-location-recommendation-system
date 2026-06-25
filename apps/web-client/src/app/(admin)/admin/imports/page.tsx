@@ -354,7 +354,7 @@ export default function AdminImportsPage() {
                         <span>{(draft.normalized_payload?.media?.length ?? 0)} ảnh</span>
                         <span>·</span>
                         <span>
-                          {(draft.normalized_payload?.selected_reviews?.length ?? 0)} reviews
+                          {(draft.normalized_payload?.selected_reviews?.length ?? 0)} đánh giá
                         </span>
                       </div>
                     </button>
@@ -531,7 +531,7 @@ export default function AdminImportsPage() {
                     </Field>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="Rating từ Google">
+                    <Field label="Đánh giá từ Google">
                       <Input
                         type="number"
                         step="0.1"

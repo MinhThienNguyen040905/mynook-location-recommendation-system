@@ -75,7 +75,7 @@ function UserMenu({ name, avatar, role }: { name: string | null; avatar: string 
             {isAdmin && (
               <Link href="/admin"
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-nook-ink/70 hover:bg-nook-cream hover:text-nook-olive transition-colors">
-                <Shield size={15} className="text-nook-olive" /> Admin Panel
+                <Shield size={15} className="text-nook-olive" /> Bảng quản trị
               </Link>
             )}
             <hr className="my-1 border-nook-sand" />
@@ -91,7 +91,11 @@ function UserMenu({ name, avatar, role }: { name: string | null; avatar: string 
 }
 
 /* ── Navbar ──────────────────────────────────────────────────── */
-export function Navbar() {
+interface NavbarProps {
+  containerClassName?: string;
+}
+
+export function Navbar({ containerClassName }: NavbarProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showContribute, setShowContribute] = useState(false);
   const user = useAuthStore((s) => s.user);
@@ -120,7 +124,7 @@ export function Navbar() {
   return (
     <>
     <nav className="sticky top-0 z-50 bg-nook-cream/80 backdrop-blur-md border-b border-nook-sand">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className={cn("max-w-5xl mx-auto px-4 sm:px-6 lg:px-8", containerClassName)}>
         <div className="flex justify-between h-20 items-center">
 
           {/* Logo */}

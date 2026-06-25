@@ -208,7 +208,7 @@ export default function OwnerDashboardPage() {
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-gray-900">{user.full_name ?? 'Chưa cập nhật tên'}</h1>
             <span className="flex items-center gap-1 px-2.5 py-0.5 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-100">
-              <Verified size={12} className="fill-current" /> Verified Owner
+              <Verified size={12} className="fill-current" /> Chủ quán đã xác minh
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-2">
@@ -256,9 +256,9 @@ export default function OwnerDashboardPage() {
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <StatCard icon={Store}      value={venues.length}  label="Venues quản lý" />
+        <StatCard icon={Store}      value={venues.length}  label="Địa điểm quản lý" />
         <StatCard icon={TrendingUp} value={totalReviews}   label="Tổng đánh giá" />
-        <StatCard icon={Star}       value={avgRating}      label="Rating trung bình" />
+        <StatCard icon={Star}       value={avgRating}      label="Đánh giá trung bình" />
       </div>
 
       <div className="space-y-6">

@@ -23,7 +23,7 @@ export const navLinks = {
     { label: 'Đánh giá', href: '/dashboard/reviews' },
   ],
   admin: [
-    { label: 'Dashboard', href: '/admin' },
+    { label: 'Bảng điều khiển', href: '/admin' },
     { label: 'Người dùng', href: '/admin/users' },
     { label: 'Địa điểm', href: '/admin/venues' },
     { label: 'Báo cáo', href: '/admin/reports' },

@@ -5,10 +5,10 @@ import { FavoriteButton } from "./favorite-button";
 import type { Venue } from "@/types/venue";
 
 const CROWD_CONFIG: Record<string, { label: string; percent: number; color: string }> = {
-  empty: { label: "Empty - Plenty of space", percent: 10, color: "bg-emerald-500" },
-  moderate: { label: "Moderate - Good for groups", percent: 40, color: "bg-yellow-500" },
-  crowded: { label: "Crowded - Limited seats", percent: 75, color: "bg-orange-500" },
-  full: { label: "Full - No seats available", percent: 100, color: "bg-red-500" },
+  empty: { label: "Vắng - Còn nhiều chỗ", percent: 10, color: "bg-emerald-500" },
+  moderate: { label: "Vừa phải - Phù hợp đi nhóm", percent: 40, color: "bg-yellow-500" },
+  crowded: { label: "Đông - Chỗ ngồi hạn chế", percent: 75, color: "bg-orange-500" },
+  full: { label: "Hết chỗ - Không còn chỗ ngồi", percent: 100, color: "bg-red-500" },
 };
 
 export function VenueHeader({ venue }: { venue: Venue }) {
@@ -20,7 +20,7 @@ export function VenueHeader({ venue }: { venue: Venue }) {
       {/* Breadcrumbs */}
       <nav className="flex mb-6 text-sm text-slate-500 dark:text-slate-400">
         <Link href="/" className="hover:text-[#e9590c] transition-colors">
-          Home
+          Trang chủ
         </Link>
         <span className="mx-2">/</span>
         <Link href="/search" className="hover:text-[#e9590c] transition-colors">
@@ -56,7 +56,7 @@ export function VenueHeader({ venue }: { venue: Venue }) {
                 <Star size={16} className="fill-current" />
                 <span className="font-bold">{venue.rating_avg.toFixed(1)}</span>
                 {venue.review_count > 0 && (
-                  <span className="text-slate-500">({venue.review_count} reviews)</span>
+                  <span className="text-slate-500">({venue.review_count} đánh giá)</span>
                 )}
               </div>
             )}

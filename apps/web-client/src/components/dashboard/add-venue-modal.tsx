@@ -402,7 +402,7 @@ function SuccessScreen({ name, onClose }: { name: string; onClose: () => void })
       </div>
       <h3 className="text-xl font-bold text-gray-900 mb-2">Tạo venue thành công!</h3>
       <p className="text-gray-500 text-sm max-w-xs mx-auto mb-8">
-        Quán <span className="font-bold text-gray-700">"{name}"</span> đã được tạo. Bạn có thể quản lý chi tiết tại trang Dashboard.
+        Quán <span className="font-bold text-gray-700">"{name}"</span> đã được tạo. Bạn có thể quản lý chi tiết tại trang bảng điều khiển.
       </p>
       <button onClick={onClose}
         className="nook-button-primary px-8 py-3 font-bold">

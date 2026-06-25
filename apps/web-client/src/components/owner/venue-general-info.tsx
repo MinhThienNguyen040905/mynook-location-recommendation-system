@@ -193,11 +193,11 @@ export function VenueGeneralInfo() {
       {/* Basic Details */}
       <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
         <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
-          <Info className="text-primary size-5" /> Basic Details
+          <Info className="text-primary size-5" /> Thông tin cơ bản
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">Venue Name</label>
+            <label className="text-sm font-bold text-slate-700">Tên địa điểm</label>
             <input
               type="text"
               value={form.name}
@@ -212,7 +212,7 @@ export function VenueGeneralInfo() {
             </div>
           </div>
           <div className="md:col-span-2 space-y-2">
-            <label className="text-sm font-bold text-slate-700">Address (số nhà + tên đường)</label>
+            <label className="text-sm font-bold text-slate-700">Địa chỉ (số nhà + tên đường)</label>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
               <input
@@ -260,7 +260,7 @@ export function VenueGeneralInfo() {
             </select>
           </div>
           <div className="md:col-span-2 space-y-2">
-            <label className="text-sm font-bold text-slate-700">Description</label>
+            <label className="text-sm font-bold text-slate-700">Mô tả</label>
             <textarea
               rows={4}
               value={form.description}
@@ -290,7 +290,7 @@ export function VenueGeneralInfo() {
       <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold flex items-center gap-2 text-slate-900">
-            <ImageIcon className="text-primary size-5" /> Photo & Media
+            <ImageIcon className="text-primary size-5" /> Hình ảnh và media
           </h3>
           <button
             onClick={() => mediaInputRef.current?.click()}
@@ -300,7 +300,7 @@ export function VenueGeneralInfo() {
             {mediaUploading
               ? <span className="size-3.5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
               : <Plus className="size-4" />}
-            {mediaUploading ? 'Đang tải...' : 'Add Media'}
+            {mediaUploading ? 'Đang tải...' : 'Thêm media'}
           </button>
           <input
             ref={mediaInputRef}
@@ -317,7 +317,7 @@ export function VenueGeneralInfo() {
               <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-slate-200 group relative">
                 <img
                   src={url}
-                  alt={`Venue media ${i + 1}`}
+                  alt={`Media địa điểm ${i + 1}`}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
                 />
@@ -326,7 +326,7 @@ export function VenueGeneralInfo() {
                     onClick={() => handleMediaRemove(i)}
                     className="text-white text-xs font-bold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/30 hover:bg-red-500/60 transition-colors flex items-center gap-1"
                   >
-                    <Trash2 size={12} /> Remove
+                    <Trash2 size={12} /> Xóa
                   </button>
                 </div>
               </div>
@@ -340,7 +340,7 @@ export function VenueGeneralInfo() {
             {mediaUploading
               ? <span className="size-6 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
               : <Plus className="size-8" />}
-            <span className="text-xs font-bold">{mediaUploading ? 'Đang tải...' : 'Upload'}</span>
+            <span className="text-xs font-bold">{mediaUploading ? 'Đang tải...' : 'Tải lên'}</span>
           </button>
         </div>
       </div>
@@ -348,7 +348,7 @@ export function VenueGeneralInfo() {
       {/* Open Hours */}
       <div className="p-8 bg-white rounded-3xl border border-primary/10 shadow-sm">
         <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-900">
-          <Clock className="text-primary size-5" /> Open Hours
+          <Clock className="text-primary size-5" /> Giờ mở cửa
         </h3>
         <div className="space-y-3">
           {Object.keys(hours).length > 0 ? (
@@ -375,7 +375,7 @@ export function VenueGeneralInfo() {
           onClick={handleCancel}
           className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
         >
-          Cancel
+          Hủy
         </button>
         <button
           onClick={handleSave}
@@ -383,7 +383,7 @@ export function VenueGeneralInfo() {
           className="px-8 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all hover:-translate-y-0.5 disabled:opacity-50 flex items-center gap-2"
         >
           {saving && <span className="size-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
         </button>
       </div>
     </div>

@@ -26,7 +26,7 @@ export async function TopRatedSection() {
           <div className="flex items-center gap-2 mb-1">
             <Flame size={22} className="text-[#e9590c]" />
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-              Top Rated This Week
+              Được đánh giá cao tuần này
             </h2>
           </div>
           <p className="text-slate-500 dark:text-slate-400">
@@ -37,7 +37,7 @@ export async function TopRatedSection() {
           href="/search?sort=rating"
           className="hidden sm:flex items-center text-[#e9590c] font-semibold hover:text-[#e9590c]/80 transition-colors"
         >
-          View all <ArrowRight size={16} className="ml-1" />
+          Xem tất cả <ArrowRight size={16} className="ml-1" />
         </Link>
       </div>
 
@@ -59,7 +59,7 @@ export async function TopRatedSection() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
                 <div className="absolute top-3 left-3 bg-[#e9590c]/90 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center shadow-sm">
                   <span className="mr-1">#{i + 1}</span>
-                  Trending
+                  Đang nổi bật
                 </div>
                 <div className="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center">
                   <Star size={12} className="text-[#e9590c] mr-1 fill-current" />

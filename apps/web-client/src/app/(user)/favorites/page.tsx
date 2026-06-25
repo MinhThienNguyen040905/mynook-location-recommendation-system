@@ -164,7 +164,7 @@ function EmptyState({ hasFilter }: { hasFilter: boolean }) {
       </p>
       {!hasFilter && (
         <Link href="/search" className="nook-button-primary inline-flex items-center gap-2 py-3 px-6">
-          <Search size={16} /> Khám phá venues
+          <Search size={16} /> Khám phá địa điểm
         </Link>
       )}
     </motion.div>

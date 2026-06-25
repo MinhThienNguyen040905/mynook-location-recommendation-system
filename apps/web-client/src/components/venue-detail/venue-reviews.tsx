@@ -1004,7 +1004,7 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
                   />
                 ))}
               </div>
-              <p className="text-xs text-slate-400">{reviews.length} reviews</p>
+              <p className="text-xs text-slate-400">{reviews.length} đánh giá</p>
               {aiAnalyzedCount > 0 && (
                 <p className="text-xs text-[#e9590c] mt-1 flex items-center justify-center gap-1">
                   <Sparkles size={10} />

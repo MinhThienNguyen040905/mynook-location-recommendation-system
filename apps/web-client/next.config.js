@@ -16,6 +16,12 @@ const nextConfig = {
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
 
+  // Keep Turbopack scoped to this repo. Without this, Next may infer
+  // C:\Users\ADMIN as the root when another lockfile exists there.
+  turbopack: {
+    root: path.resolve(__dirname, '../..'),
+  },
+
   // Allow next/image to load from external domains used in mock data
   images: {
     remotePatterns: [

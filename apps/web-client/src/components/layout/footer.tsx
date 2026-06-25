@@ -10,16 +10,16 @@ export function Footer() {
               MyNook
             </span>
             <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs">
-              Curating the best local spaces for you to dine, work, and connect.
-              Find your place in the city.
+              Tuyển chọn những không gian địa phương phù hợp để bạn ăn uống,
+              làm việc và kết nối.
             </p>
           </div>
           <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400 shrink-0 pr-32.5">
-            <Link href="#" className="hover:text-[#e9590c] transition-colors">About Us</Link>
+            <Link href="#" className="hover:text-[#e9590c] transition-colors">Về chúng tôi</Link>
             <span className="text-slate-300 dark:text-slate-600">·</span>
-            <Link href="#" className="hover:text-[#e9590c] transition-colors">Privacy Policy</Link>
+            <Link href="#" className="hover:text-[#e9590c] transition-colors">Chính sách bảo mật</Link>
             <span className="text-slate-300 dark:text-slate-600">·</span>
-            <Link href="#" className="hover:text-[#e9590c] transition-colors">Terms of Service</Link>
+            <Link href="#" className="hover:text-[#e9590c] transition-colors">Điều khoản dịch vụ</Link>
           </div>
         </div>
 

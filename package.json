@@ -11,7 +11,7 @@
     "redis:logs": "docker compose logs -f redis",
     "infra:up": "docker compose up -d redis rabbitmq",
     "rabbitmq:up": "docker compose up -d rabbitmq",
-    "rabbitmq:down": "docker compose down",
+    "rabbitmq:down": "docker compose stop rabbitmq",
     "rabbitmq:logs": "docker compose logs -f rabbitmq"
   },
   "private": true,

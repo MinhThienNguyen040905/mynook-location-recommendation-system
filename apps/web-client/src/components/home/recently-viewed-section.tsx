@@ -106,7 +106,7 @@ export function RecentlyViewedSection() {
         <div className="flex items-center gap-2 mb-1">
           <History size={22} className="text-[#e9590c]" />
           <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-            Recently Viewed
+            Đã xem gần đây
           </h2>
         </div>
         <p className="text-slate-500 dark:text-slate-400">

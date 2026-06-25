@@ -197,7 +197,7 @@ function CitiesTab({ onPickCityForDistricts }: { onPickCityForDistricts: (id: st
                 <th className="text-left px-4 py-3">Code</th>
                 <th className="text-left px-4 py-3">Tên</th>
                 <th className="text-left px-4 py-3">Aliases</th>
-                <th className="text-center px-4 py-3">Active</th>
+                <th className="text-center px-4 py-3">Hoạt động</th>
                 <th className="text-right px-4 py-3">Hành động</th>
               </tr>
             </thead>
@@ -380,7 +380,7 @@ function DistrictsTab({
                 <th className="text-left px-4 py-3">Tên</th>
                 <th className="text-left px-4 py-3">City</th>
                 <th className="text-left px-4 py-3">Aliases</th>
-                <th className="text-center px-4 py-3">Active</th>
+                <th className="text-center px-4 py-3">Hoạt động</th>
                 <th className="text-right px-4 py-3">Hành động</th>
               </tr>
             </thead>
@@ -493,7 +493,7 @@ function CityDialog({
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="size-4 rounded text-nook-olive" />
-            <span className="text-sm font-medium">Active</span>
+            <span className="text-sm font-medium">Hoạt động</span>
           </label>
           {error && <p className="text-sm text-red-500">{error.message}</p>}
         </div>
@@ -567,7 +567,7 @@ function DistrictDialog({
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} className="size-4 rounded text-nook-olive" />
-            <span className="text-sm font-medium">Active</span>
+            <span className="text-sm font-medium">Hoạt động</span>
           </label>
           {error && <p className="text-sm text-red-500">{error.message}</p>}
         </div>

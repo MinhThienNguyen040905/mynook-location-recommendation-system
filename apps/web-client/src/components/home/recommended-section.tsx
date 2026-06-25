@@ -39,7 +39,7 @@ export function RecommendedSection() {
           <div className="flex items-center gap-2 mb-1">
             <Sparkles size={22} className="text-[#e9590c]" />
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-              Recommended For You
+              Gợi ý dành cho bạn
             </h2>
           </div>
           <p className="text-slate-500 dark:text-slate-400">
@@ -50,7 +50,7 @@ export function RecommendedSection() {
           href="/search"
           className="hidden sm:flex items-center text-[#e9590c] font-semibold hover:text-[#e9590c]/80 transition-colors"
         >
-          View all <ArrowRight size={16} className="ml-1" />
+          Xem tất cả <ArrowRight size={16} className="ml-1" />
         </Link>
       </div>
 
@@ -69,7 +69,7 @@ export function RecommendedSection() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
               <div className="absolute top-3 left-3 bg-[#e9590c]/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
-                For You
+                Dành cho bạn
               </div>
               {venue.rating_avg > 0 && (
                 <div className="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center">

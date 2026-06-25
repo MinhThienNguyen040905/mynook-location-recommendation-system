@@ -57,12 +57,12 @@ export default async function VenueDetailPage({
                   <p className="text-lg font-bold text-slate-900 dark:text-white">{venue.total_capacity}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Max Group Size</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Số người tối đa</p>
                   <p className="text-lg font-bold text-slate-900 dark:text-white">{venue.max_group_size}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Group Friendly</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{venue.is_group_friendly ? "Yes" : "No"}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Phù hợp đi nhóm</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{venue.is_group_friendly ? "Có" : "Không"}</p>
                 </div>
               </div>
             </section>

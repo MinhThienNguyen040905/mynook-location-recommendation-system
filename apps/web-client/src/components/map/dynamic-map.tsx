@@ -10,7 +10,7 @@ const Map = dynamic(
     ssr: false,
     loading: () => (
       <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 animate-pulse">
-        <div className="text-slate-400 text-sm">Loading map...</div>
+        <div className="text-slate-400 text-sm">Đang tải bản đồ...</div>
       </div>
     ),
   },

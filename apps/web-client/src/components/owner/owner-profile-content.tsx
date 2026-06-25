@@ -39,13 +39,13 @@ export function OwnerProfileContent() {
               <h1 className="text-3xl font-bold text-slate-900">Alex Rivera</h1>
               <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-100">
                 <Verified className="size-4 fill-current" />
-                Verified Owner
+                Chủ quán đã xác minh
               </div>
             </div>
-            <p className="text-slate-500">Managing premier dining spaces in downtown Manhattan</p>
+            <p className="text-slate-500">Quản lý các không gian ăn uống nổi bật tại trung tâm Manhattan</p>
           </div>
           <button className="px-6 py-2.5 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors border border-slate-200">
-            View Public Profile
+            Xem hồ sơ công khai
           </button>
         </div>
 
@@ -53,70 +53,70 @@ export function OwnerProfileContent() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
           <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 text-center sm:text-left">
             <p className="text-3xl font-bold text-primary">2</p>
-            <p className="text-sm font-medium text-slate-600">Total Venues Managed</p>
+            <p className="text-sm font-medium text-slate-600">Tổng địa điểm đang quản lý</p>
           </div>
           <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 text-center sm:text-left">
             <p className="text-3xl font-bold text-primary">14</p>
-            <p className="text-sm font-medium text-slate-600">Active Bookings</p>
+            <p className="text-sm font-medium text-slate-600">Đặt chỗ đang hoạt động</p>
           </div>
           <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <p className="text-3xl font-bold text-primary">4.9</p>
               <Star className="size-5 text-primary fill-current" />
             </div>
-            <p className="text-sm font-medium text-slate-600">Overall Rating</p>
+            <p className="text-sm font-medium text-slate-600">Đánh giá tổng quan</p>
           </div>
         </div>
 
         {/* Personal Information Form */}
         <div className="mt-12 bg-slate-50/50 rounded-3xl p-6 border border-slate-100">
           <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <User className="size-5 text-primary" /> Personal Information
+            <User className="size-5 text-primary" /> Thông tin cá nhân
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Full Name</label>
+              <label className="text-sm font-bold text-slate-700">Họ và tên</label>
               <input
                 type="text"
                 defaultValue="Alex Rivera"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white"
-                placeholder="Enter your full name"
+                placeholder="Nhập họ và tên"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Email Address</label>
+              <label className="text-sm font-bold text-slate-700">Địa chỉ email</label>
               <input
                 type="email"
                 defaultValue="alex.rivera@example.com"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white"
-                placeholder="Enter your email"
+                placeholder="Nhập email"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Phone Number</label>
+              <label className="text-sm font-bold text-slate-700">Số điện thoại</label>
               <input
                 type="tel"
                 defaultValue="+1 (555) 000-1234"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white"
-                placeholder="Enter your phone number"
+                placeholder="Nhập số điện thoại"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Location</label>
+              <label className="text-sm font-bold text-slate-700">Vị trí</label>
               <input
                 type="text"
                 defaultValue="Manhattan, New York, NY"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white"
-                placeholder="City, State"
+                placeholder="Thành phố, khu vực"
               />
             </div>
             <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-bold text-slate-700">Bio / Professional Summary</label>
+              <label className="text-sm font-bold text-slate-700">Giới thiệu / Tóm tắt chuyên môn</label>
               <textarea
                 rows={4}
-                defaultValue="Managing premier dining spaces in downtown Manhattan. Passionate about creating unique culinary experiences and fostering a welcoming atmosphere for all guests."
+                defaultValue="Quản lý các không gian ăn uống nổi bật tại trung tâm Manhattan. Yêu thích tạo ra trải nghiệm ẩm thực độc đáo và không khí thân thiện cho mọi vị khách."
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all bg-white resize-none"
-                placeholder="Tell us about yourself..."
+                placeholder="Chia sẻ đôi điều về bạn..."
               />
             </div>
           </div>
@@ -125,11 +125,11 @@ export function OwnerProfileContent() {
         {/* Social Links */}
         <div className="mt-8 bg-slate-50/50 rounded-3xl p-6 border border-slate-100">
           <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-            <LinkIcon className="size-5 text-primary" /> Social & Professional Links
+            <LinkIcon className="size-5 text-primary" /> Liên kết mạng xã hội và nghề nghiệp
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">LinkedIn Profile</label>
+              <label className="text-sm font-bold text-slate-700">Hồ sơ LinkedIn</label>
               <input
                 type="url"
                 defaultValue="https://linkedin.com/in/alexrivera"
@@ -138,7 +138,7 @@ export function OwnerProfileContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Instagram (Business)</label>
+              <label className="text-sm font-bold text-slate-700">Instagram kinh doanh</label>
               <input
                 type="url"
                 defaultValue="https://instagram.com/alex_venues"
@@ -147,7 +147,7 @@ export function OwnerProfileContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Personal Website</label>
+              <label className="text-sm font-bold text-slate-700">Website cá nhân</label>
               <input
                 type="url"
                 defaultValue="https://alexrivera.me"
@@ -160,7 +160,7 @@ export function OwnerProfileContent() {
 
         {/* My Venues */}
         <div className="mt-12">
-          <h2 className="text-xl font-bold text-slate-900 mb-6">My Venues</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-6">Địa điểm của tôi</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               { name: 'The Greenery', location: 'Upper West Side, NY', rating: '4.9', img: 'https://picsum.photos/seed/greenery/600/300' },
@@ -187,7 +187,7 @@ export function OwnerProfileContent() {
                     onClick={handleManageVenue}
                     className="w-full py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white font-bold rounded-xl transition-all"
                   >
-                    Manage Venue
+                    Quản lý địa điểm
                   </button>
                 </div>
               </div>
@@ -198,10 +198,10 @@ export function OwnerProfileContent() {
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-4 pt-8 mt-8 border-t border-slate-100">
           <button className="px-8 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">
-            Cancel
+            Hủy
           </button>
           <button className="px-8 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all hover:-translate-y-0.5">
-            Save Changes
+            Lưu thay đổi
           </button>
         </div>
       </main>

@@ -274,7 +274,7 @@ export function WriteReviewModal({ venueId, venueName, onClose, onSuccess }: Wri
                       <span>{isUploading ? 'Uploading media...' : 'Submitting...'}</span>
                     </>
                   ) : (
-                    'Submit Review'
+                    'Gửi đánh giá'
                   )}
                 </button>
               </div>

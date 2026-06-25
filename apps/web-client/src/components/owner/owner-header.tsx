@@ -38,7 +38,7 @@ export function OwnerHeader() {
           className="size-10 rounded-full bg-cover bg-center border-2 border-primary/20 overflow-hidden hover:ring-2 hover:ring-primary/40 transition-all"
           style={{ backgroundImage: `url("${avatarUrl}")` }}
         >
-          <span className="sr-only">Owner Profile</span>
+          <span className="sr-only">Hồ sơ chủ quán</span>
         </button>
       </div>
     </header>

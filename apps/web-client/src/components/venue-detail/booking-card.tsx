@@ -84,7 +84,7 @@ export function BookingCard() {
             Reservation Fee
           </span>
           <span className="font-medium text-slate-900 dark:text-white">
-            Free
+            Miễn phí
           </span>
         </div>
 
@@ -92,11 +92,11 @@ export function BookingCard() {
           type="button"
           className="w-full bg-[#e9590c] hover:bg-[#c2410b] text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-[#e9590c]/30 transition-all transform active:scale-95 flex items-center justify-center gap-2"
         >
-          Confirm Booking
+          Xác nhận đặt chỗ
           <ArrowRight size={16} />
         </button>
         <p className="text-center text-xs text-slate-400 mt-2">
-          No credit card required
+          Không cần thẻ tín dụng
         </p>
       </form>
     </div>

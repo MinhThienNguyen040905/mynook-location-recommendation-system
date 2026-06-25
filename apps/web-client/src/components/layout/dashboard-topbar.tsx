@@ -26,7 +26,7 @@ export function DashboardTopbar() {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
 
-  const meta = ROUTE_META[pathname] ?? { label: 'Dashboard', Icon: User };
+  const meta = ROUTE_META[pathname] ?? { label: 'Bảng điều khiển', Icon: User };
   const { label, Icon } = meta;
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export function DashboardTopbar() {
               className="size-7 rounded-full border-2 border-orange-300 object-cover"
             />
             <span className="text-sm font-medium text-gray-700 hidden sm:block">
-              {user?.full_name ?? 'Owner'}
+              {user?.full_name ?? 'Chủ quán'}
             </span>
             <ChevronDown className="size-4 text-orange-400" />
           </button>
@@ -88,7 +88,7 @@ export function DashboardTopbar() {
           {open && (
             <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50">
               <div className="px-4 py-2 border-b border-gray-50 mb-1">
-                <p className="text-sm font-semibold text-gray-800">{user?.full_name ?? 'Owner'}</p>
+                <p className="text-sm font-semibold text-gray-800">{user?.full_name ?? 'Chủ quán'}</p>
                 <p className="text-xs text-gray-400 truncate">{user?.email}</p>
               </div>
               <a href="/dashboard"

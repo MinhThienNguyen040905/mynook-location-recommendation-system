@@ -252,7 +252,7 @@ export default function OwnerImportsPage() {
     <div className="space-y-6 pb-20">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-bold uppercase tracking-wider text-orange-600">Owner imports</p>
+          <p className="text-sm font-bold uppercase tracking-wider text-orange-600">Import của chủ quán</p>
           <h1 className="text-3xl font-bold text-gray-950">Import quán từ Google Maps</h1>
           <p className="mt-2 max-w-2xl text-sm text-gray-500">
             Draft ở đây là của owner hiện tại. Khi publish, venue được tạo vào danh sách quán của bạn.
