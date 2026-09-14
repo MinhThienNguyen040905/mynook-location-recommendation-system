@@ -49,6 +49,8 @@ export interface UpdateProfileRequest {
 }
 
 export interface AuthUser {
+  is_demo?: boolean;
+  demo_venue_id?: string;
   id: string;
   email: string;
   full_name: string | null;

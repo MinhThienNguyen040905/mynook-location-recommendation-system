@@ -7,6 +7,8 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ClientProxy } from '@nestjs/microservices';
@@ -17,6 +19,7 @@ import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import { Account, RegistrationOtp } from '@mynook/database';
 import { AccountType, RMQ_EVENTS } from '@mynook/shared-types';
+import { DEMO_ACCOUNTS, DEMO_VENUE_ID, isDemoAccount } from '@mynook/shared-types';
 import type { UserRegisteredEvent } from '@mynook/shared-types';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -77,6 +80,19 @@ export class AuthService implements OnModuleInit {
     return this.buildResponse(saved);
   }
 
+  async demoLogin(role: unknown) {
+    if (process.env['DEMO_ENABLED'] !== 'true') throw new NotFoundException();
+    if (role !== 'customer' && role !== 'owner') {
+      throw new BadRequestException('Chọn vai trò khách hàng hoặc chủ quán.');
+    }
+    const fixture = DEMO_ACCOUNTS[role];
+    const user = await this.userRepo.findOne({ where: { id: fixture.id } });
+    if (!user || !user.is_active || user.email !== fixture.email || user.type !== role) {
+      throw new ServiceUnavailableException('Tài khoản dùng thử đang được chuẩn bị. Vui lòng thử lại sau.');
+    }
+    return this.buildResponse(user);
+  }
+
   async login(dto: LoginDto) {
     const user = await this.userRepo.findOne({
       where: { email: dto.email },
@@ -134,7 +150,7 @@ export class AuthService implements OnModuleInit {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
 
     // Luôn trả 200 dù email không tồn tại để tránh user enumeration
-    if (!user || !user.is_active) {
+    if (!user || !user.is_active || isDemoAccount(user.id)) {
       return { message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.' };
     }
 
@@ -167,6 +183,7 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('Token không hợp lệ hoặc đã hết hạn');
     }
 
+    this.assertEditableAccount(user.id);
     const salt = await bcrypt.genSalt(10);
     user.password_hash = await bcrypt.hash(dto.new_password, salt);
     user.password_reset_token = null;
@@ -177,6 +194,7 @@ export class AuthService implements OnModuleInit {
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
+    this.assertEditableAccount(userId);
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user || !user.password_hash) {
       throw new NotFoundException('User không tồn tại');
@@ -195,6 +213,7 @@ export class AuthService implements OnModuleInit {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    this.assertEditableAccount(userId);
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User không tồn tại');
@@ -343,7 +362,9 @@ export class AuthService implements OnModuleInit {
   }
 
   private buildTokens(user: Account) {
-    const payload = { sub: user.id, email: user.email, type: user.type };
+    const demo = isDemoAccount(user.id);
+    if (demo && process.env['DEMO_ENABLED'] !== 'true') throw new UnauthorizedException('Chế độ dùng thử đã tắt.');
+    const payload = { sub: user.id, email: user.email, type: user.type, demo };
     return {
       access_token: this.jwtService.sign(payload),
       refresh_token: this.jwtService.sign(payload, {
@@ -356,6 +377,8 @@ export class AuthService implements OnModuleInit {
 
   private sanitizeUser(user: Account) {
     return {
+      is_demo: isDemoAccount(user.id),
+      ...(isDemoAccount(user.id) ? { demo_venue_id: DEMO_VENUE_ID } : {}),
       id: user.id,
       email: user.email,
       full_name: user.full_name,
@@ -365,5 +388,9 @@ export class AuthService implements OnModuleInit {
       trust_score: user.trust_score,
       created_at: user.created_at,
     };
+  }
+
+  private assertEditableAccount(id: string) {
+    if (isDemoAccount(id)) throw new ForbiddenException('Tài khoản dùng thử không được đổi thông tin cá nhân hoặc mật khẩu.');
   }
 }

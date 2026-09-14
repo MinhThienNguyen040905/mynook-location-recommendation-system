@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { createReview } from '@/lib/api/reviews';
 import { uploadMedia } from '@/lib/api/upload';
+import { useAuthStore } from '@/stores/auth-store';
 
 interface WriteReviewModalProps {
   venueId: string;
@@ -15,6 +16,7 @@ interface WriteReviewModalProps {
 }
 
 export function WriteReviewModal({ venueId, venueName, onClose, onSuccess }: WriteReviewModalProps) {
+  const isDemo = useAuthStore(s => s.user?.is_demo);
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [text, setText] = useState('');
@@ -149,12 +151,14 @@ export function WriteReviewModal({ venueId, venueName, onClose, onSuccess }: Wri
             /* ── Form ── */
             <motion.div key="form" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="px-6 py-6 space-y-6">
+                {isDemo && <p className="rounded-xl bg-orange-50 p-3 text-sm text-orange-800">Đánh giá dùng thử sẽ thay thế đánh giá demo trước đó. Tối đa 1000 ký tự, không kèm tệp và không nhập thông tin cá nhân.</p>}
                 {/* Star Rating */}
                 <div className="flex flex-col items-center gap-3">
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
+                        aria-label={`${star} sao`}
                         onMouseEnter={() => setHovered(star)}
                         onMouseLeave={() => setHovered(0)}
                         onClick={() => setRating(star)}
@@ -187,6 +191,8 @@ export function WriteReviewModal({ venueId, venueName, onClose, onSuccess }: Wri
                 {/* Text Area */}
                 <div>
                   <textarea
+                    aria-label="Nội dung đánh giá"
+                    maxLength={isDemo ? 1000 : undefined}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Share your experience... (at least 20 characters)"
@@ -206,7 +212,7 @@ export function WriteReviewModal({ venueId, venueName, onClose, onSuccess }: Wri
                 </div>
 
                 {/* Media Upload */}
-                <div>
+                <div hidden={!!isDemo}>
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
                     Photos / Videos (optional, max {MAX_FILES})
                   </label>
@@ -234,7 +240,7 @@ export function WriteReviewModal({ venueId, venueName, onClose, onSuccess }: Wri
                   )}
 
                   {/* File picker button */}
-                  {files.length < MAX_FILES && (
+                  {!isDemo && files.length < MAX_FILES && (
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
@@ -248,6 +254,7 @@ export function WriteReviewModal({ venueId, venueName, onClose, onSuccess }: Wri
                   <input
                     ref={fileInputRef}
                     type="file"
+                    disabled={!!isDemo}
                     accept="image/*,video/*"
                     multiple
                     onChange={handleFileSelect}

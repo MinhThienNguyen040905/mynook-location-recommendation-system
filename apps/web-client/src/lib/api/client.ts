@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/config/api';
 import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/lib/constants';
+import { toast } from 'sonner';
 
 /**
  * Axios instance dùng cho tất cả request từ Client Component.
@@ -34,11 +35,14 @@ let pendingQueue: Array<{ resolve: (v: string) => void; reject: (e: unknown) => 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (error.response?.status === 403 && typeof error.response?.data?.message === 'string') {
+      toast.error(error.response.data.message);
+    }
     const originalRequest = error.config;
 
     // Không refresh cho các auth endpoint (login, refresh, register...)
     const url: string = originalRequest.url ?? '';
-    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register') || url.includes('/auth/send-otp') || url.includes('/auth/verify-otp');
+    const isAuthEndpoint = url.includes('/auth/demo') || url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register') || url.includes('/auth/send-otp') || url.includes('/auth/verify-otp');
 
     if (error.response?.status !== 401 || originalRequest._retry || isAuthEndpoint) {
       return Promise.reject(error);

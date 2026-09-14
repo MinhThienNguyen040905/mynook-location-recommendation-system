@@ -176,7 +176,7 @@ export default function OwnerDashboardPage() {
               />
               <button
                 onClick={() => avatarInputRef.current?.click()}
-                disabled={avatarUploading}
+                disabled={avatarUploading || !!user.is_demo}
                 className="absolute -bottom-1 -right-1 size-7 bg-orange-600 rounded-lg flex items-center justify-center shadow hover:bg-orange-700 transition-colors disabled:opacity-50"
               >
                 {avatarUploading
@@ -193,6 +193,8 @@ export default function OwnerDashboardPage() {
             </div>
             <button
               onClick={() => setIsEditing(!isEditing)}
+              disabled={!!user.is_demo}
+              title={user.is_demo ? 'Thông tin tài khoản demo được khóa' : undefined}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all',
                 isEditing
@@ -309,6 +311,8 @@ export default function OwnerDashboardPage() {
                 </Link>
                 <button
                   onClick={() => setShowAddVenue(true)}
+                  disabled={!!user.is_demo}
+                  title={user.is_demo ? 'Demo chỉ xem quán mẫu có sẵn' : undefined}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors"
                 >
                   <Plus size={13} /> Thêm venue

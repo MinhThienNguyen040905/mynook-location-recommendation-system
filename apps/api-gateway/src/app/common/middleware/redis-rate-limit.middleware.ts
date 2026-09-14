@@ -12,6 +12,10 @@ interface RateLimitRule {
 
 const RULES: RateLimitRule[] = [
   {
+    name: 'demo-login', limit: 20, windowSeconds: 300,
+    match: (method, path) => method === 'POST' && path.toLowerCase().replace(/\/+$/, '') === '/api/auth/demo',
+  },
+  {
     name: 'voice',
     limit: 10,
     windowSeconds: 60,
@@ -64,7 +68,9 @@ export class RedisRateLimitMiddleware implements NestMiddleware {
     const rule = RULES.find((candidate) => candidate.match(method, path));
     if (!rule) return next();
 
-    const identity = this.identity(req);
+    const identity = rule.name === 'demo-login'
+      ? `ip:${this.hash(req.header('x-forwarded-for')?.split(',')[0]?.trim() || req.ip || 'unknown')}`
+      : this.identity(req);
     const key = `mynook:rate-limit:${rule.name}:${identity}`;
     const redisCount = await this.redis.incrementWithTtl(key, rule.windowSeconds);
     const now = Date.now();

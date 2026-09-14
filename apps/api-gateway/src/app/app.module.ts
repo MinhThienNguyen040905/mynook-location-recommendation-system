@@ -1,4 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { DemoAccessGuard } from './common/guards/demo-access.guard.js';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisCacheModule } from '@mynook/redis-cache';
@@ -25,7 +27,7 @@ import { TagModule } from './modules/tag/tag.module.js';
     AdminModule,
     TagModule,
   ],
-  providers: [JwtStrategy],
+  providers: [JwtStrategy, { provide: APP_GUARD, useClass: DemoAccessGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

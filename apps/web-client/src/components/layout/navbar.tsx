@@ -11,6 +11,7 @@ import { NotificationDropdown } from '@/components/shared/notification-dropdown'
 import { ContributeVenueModal } from '@/components/venue/contribute-venue-modal';
 import { useAuthStore } from '@/stores/auth-store';
 import { logout as logoutApi } from '@/lib/api/auth';
+import { DemoBanner } from '@/components/shared/demo-banner';
 
 /* ── User avatar dropdown ────────────────────────────────────── */
 function UserMenu({ name, avatar, role }: { name: string | null; avatar: string | null; role: string | null }) {
@@ -152,7 +153,7 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="hidden md:flex items-center gap-3">
-            {isLoggedIn && (
+            {isLoggedIn && !user?.is_demo && (
               <button
                 onClick={() => setShowContribute(true)}
                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#e9590c] hover:bg-[#e9590c]/10 rounded-xl transition-colors"
@@ -168,7 +169,7 @@ export function Navbar() {
             ) : (
               <Link href="/login" className="nook-button-primary flex items-center gap-2">
                 <User size={18} />
-                <span>Đăng nhập</span>
+                <span>{process.env.NEXT_PUBLIC_DEMO_ENABLED === 'true' ? 'Đăng nhập / Dùng thử' : 'Đăng nhập'}</span>
               </Link>
             )}
           </div>
@@ -212,7 +213,7 @@ export function Navbar() {
                   {link.name}
                 </Link>
               ))}
-              {isLoggedIn && (
+              {isLoggedIn && !user?.is_demo && (
                 <button
                   onClick={() => { setIsMenuOpen(false); setShowContribute(true); }}
                   className="w-full px-3 py-4 text-base font-medium rounded-xl text-[#e9590c] hover:bg-[#e9590c]/5 text-left flex items-center gap-2"
@@ -238,7 +239,7 @@ export function Navbar() {
                     onClick={() => setIsMenuOpen(false)}
                     className="nook-button-primary text-center block"
                   >
-                    Đăng nhập / Đăng ký
+                    {process.env.NEXT_PUBLIC_DEMO_ENABLED === 'true' ? 'Đăng nhập / Dùng thử' : 'Đăng nhập / Đăng ký'}
                   </Link>
                 )}
               </div>
@@ -248,6 +249,7 @@ export function Navbar() {
       </AnimatePresence>
 
     </nav>
+    <DemoBanner />
 
     {/* Contribute Venue Modal — rendered outside nav to avoid backdrop-blur stacking context */}
     <AnimatePresence>

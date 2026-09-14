@@ -17,6 +17,14 @@ import type {
 } from '@/types/auth';
 
 /** Đăng nhập — lưu token vào cookie sau khi thành công */
+export async function loginDemo(role: 'customer' | 'owner'): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>('/auth/demo', { role }, { timeout: 30000 });
+  setCookie(ACCESS_TOKEN_KEY, data.access_token);
+  setCookie(REFRESH_TOKEN_KEY, data.refresh_token);
+  setCookie('user_type', data.user.type);
+  return data;
+}
+
 export async function login(body: LoginRequest): Promise<AuthResponse> {
   const { data } = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, body);
   setCookie(ACCESS_TOKEN_KEY, data.access_token);

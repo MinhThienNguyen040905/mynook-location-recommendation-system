@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -16,6 +17,7 @@ import {
   ReviewReaction,
 } from '@mynook/database';
 import { RMQ_EVENTS, VenueReviewDeletedEvent } from '@mynook/shared-types';
+import { DEMO_ACCOUNTS, DEMO_REVIEW_ID, DEMO_VENUE_ID, isDemoAccount } from '@mynook/shared-types';
 import { CreateReviewDto } from './dto/create-review.dto.js';
 import { NotificationService } from '../notification/notification.service.js';
 
@@ -314,6 +316,34 @@ export class ReviewService implements OnModuleInit {
 
   /** Tạo review mới + emit event để search-ai-service xử lý AI analysis */
   async create(accountId: string, dto: CreateReviewDto): Promise<Review> {
+    if (isDemoAccount(accountId)) {
+      if (process.env['DEMO_ENABLED'] !== 'true' || accountId !== DEMO_ACCOUNTS.customer.id || dto.venue_id !== DEMO_VENUE_ID) {
+        throw new ForbiddenException('Chỉ viết đánh giá tại quán mẫu.');
+      }
+      if (!Number.isInteger(dto.rating) || dto.rating < 1 || dto.rating > 5 ||
+          typeof dto.content !== 'string' || dto.content.trim().length < 20 || dto.content.length > 1000 || dto.media?.length) {
+        throw new BadRequestException('Đánh giá mẫu cần 1–5 sao, 20–1000 ký tự và không kèm tệp.');
+      }
+      // One stable review per shared demo account: repeated trials cannot grow the table.
+      // A transaction also keeps the sample dashboard totals in sync without RabbitMQ.
+      return this.reviewRepo.manager.transaction(async manager => {
+        const [review] = await manager.query(
+          `INSERT INTO interaction_schema.reviews (id, account_id, venue_id, rating, content, media)
+           VALUES ($1, $2, $3, $4, $5, '[]')
+           ON CONFLICT (id) DO UPDATE SET rating = EXCLUDED.rating, content = EXCLUDED.content,
+             ai_analysis_json = NULL, created_at = NOW()
+           WHERE reviews.account_id = EXCLUDED.account_id AND reviews.venue_id = EXCLUDED.venue_id
+           RETURNING *`,
+          [DEMO_REVIEW_ID, accountId, DEMO_VENUE_ID, dto.rating, dto.content.trim()],
+        );
+        if (!review) throw new ForbiddenException('Đánh giá mẫu chưa sẵn sàng.');
+        await manager.query(`UPDATE venue_schema.venues SET
+          rating_avg = (SELECT AVG(rating) FROM interaction_schema.reviews WHERE venue_id = $1),
+          review_count = (SELECT COUNT(*) FROM interaction_schema.reviews WHERE venue_id = $1)
+          WHERE id = $1`, [DEMO_VENUE_ID]);
+        return review;
+      });
+    }
     return this.saveAndEmitReview({
       accountId,
       venueId: dto.venue_id,

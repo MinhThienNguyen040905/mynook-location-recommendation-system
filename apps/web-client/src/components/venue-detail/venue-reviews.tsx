@@ -983,6 +983,8 @@ export function VenueReviews({ venueId, venueName, initialReviews }: VenueReview
         </h3>
         <button
           onClick={() => setShowWriteModal(true)}
+          disabled={!!user?.is_demo && (user.type !== 'customer' || venueId !== user.demo_venue_id)}
+          title={user?.is_demo ? 'Tài khoản khách hàng demo chỉ viết đánh giá tại quán mẫu' : undefined}
           className="flex items-center gap-2 bg-[#e9590c] hover:bg-[#c2410b] text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-colors"
         >
           <MessageSquarePlus size={16} />

@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, Lock, Eye, EyeOff, MapPin, Coffee, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { login } from "@/lib/api/auth";
+import { login, loginDemo } from "@/lib/api/auth";
 import { useAuthStore } from "@/stores/auth-store";
 import { loginSchema, type LoginFormData } from "@/lib/validators/auth";
 import { ROUTES } from "@/config/routes";
@@ -16,6 +16,7 @@ import { isAxiosError } from "axios";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [demoRole, setDemoRole] = useState<'customer' | 'owner' | null>(null);
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
 
@@ -28,6 +29,7 @@ export default function LoginPage() {
   });
 
   async function onSubmit(data: LoginFormData) {
+    if (demoRole) return;
     try {
       const res = await login(data);
       setUser(res.user);
@@ -58,11 +60,28 @@ export default function LoginPage() {
     }
   }
 
+  async function tryDemo(role: 'customer' | 'owner') {
+    if (demoRole || isSubmitting) return;
+    setDemoRole(role);
+    try {
+      const res = await loginDemo(role);
+      setUser(res.user);
+      toast.success(role === 'owner' ? 'Chào mừng đến dashboard chủ quán mẫu!' : 'Bạn đang dùng thử với vai trò khách hàng.');
+      // Reload to clear cached data when switching between shared demo roles.
+      window.location.assign(role === 'owner' ? '/dashboard' : `/venues/${res.user.demo_venue_id}`);
+    } catch (error) {
+      toast.error(isAxiosError(error) && error.response?.status === 429
+        ? 'Bạn đã dùng thử nhiều lần. Vui lòng chờ vài phút rồi thử lại.'
+        : 'Chưa thể mở bản demo. Vui lòng thử lại sau ít giây.');
+      setDemoRole(null);
+    }
+  }
+
   return (
     <div className="flex h-screen w-full bg-[#FAFAF9] dark:bg-[#221610] font-sans overflow-hidden">
       {/* Left Side: Authentication Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-10 overflow-y-auto relative">
-        <div className="w-full max-w-md space-y-5 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="w-full lg:w-1/2 flex flex-col items-center p-6 lg:p-10 overflow-y-auto relative">
+        <div className="w-full max-w-md space-y-5 my-auto py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Header */}
           <div className="text-center space-y-1">
             <h1 className="font-serif text-3xl text-[#e9590c] font-bold tracking-tight mb-1">
@@ -76,6 +95,25 @@ export default function LoginPage() {
             </p>
           </div>
 
+
+          {process.env.NEXT_PUBLIC_DEMO_ENABLED === 'true' && (
+            <section aria-label="Trải nghiệm demo" className="rounded-2xl border border-orange-200 bg-orange-50 p-4 space-y-3 text-slate-900">
+              <h3 className="font-semibold">Khám phá MyNook trong một lần bấm</h3>
+              <p className="text-sm text-slate-600">Không cần đăng ký hay nhập mật khẩu.</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button type="button" disabled={!!demoRole || isSubmitting} onClick={() => tryDemo('customer')}
+                  className="rounded-xl bg-orange-600 px-3 py-3 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                  {demoRole === 'customer' && <Loader2 size={16} className="animate-spin" />} Dùng thử khách hàng
+                </button>
+                <button type="button" disabled={!!demoRole || isSubmitting} onClick={() => tryDemo('owner')}
+                  className="rounded-xl border border-orange-300 bg-white px-3 py-3 text-sm font-semibold text-orange-700 hover:bg-orange-100 disabled:opacity-60 flex items-center justify-center gap-2">
+                  {demoRole === 'owner' && <Loader2 size={16} className="animate-spin" />} Dùng thử chủ quán
+                </button>
+              </div>
+              <p className="text-xs leading-relaxed text-slate-600">Khách hàng: lưu yêu thích, viết đánh giá tại quán mẫu. Chủ quán: xem dashboard, menu và thống kê mẫu. Tài khoản dùng chung; không nhập thông tin cá nhân.</p>
+              <Link href="/" className="inline-block text-sm font-medium text-orange-700 underline underline-offset-4">Khám phá không cần đăng nhập →</Link>
+            </section>
+          )}
 
           {/* Main Form */}
           <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
@@ -172,7 +210,7 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!demoRole}
               className="w-full flex justify-center py-2.5 px-4 rounded-lg shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:to-orange-600 hover:shadow-orange-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#e9590c] transition-all duration-200 transform active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
@@ -194,7 +232,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="absolute bottom-6 text-xs text-gray-400 text-center w-full">
+        <div className="shrink-0 text-xs text-gray-400 text-center w-full pb-2">
           &copy; 2026 MyNook Inc. All rights reserved.
         </div>
       </div>

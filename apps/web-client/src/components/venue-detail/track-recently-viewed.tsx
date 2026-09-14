@@ -10,10 +10,10 @@ export function TrackRecentlyViewed({ venueId }: { venueId: string }) {
 
   const user = useAuthStore((s) => s.user);
   useEffect(() => {
-    if (!user?.id || !venueId) return;
+    if (!user?.id || user.is_demo || !venueId) return;
     // Fire-and-forget — recently-viewed is non-critical UX.
     trackVenueView(venueId).catch(() => undefined);
-  }, [user?.id, venueId]);
+  }, [user?.id, user?.is_demo, venueId]);
 
   return null;
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_ROUTES, PUBLIC_ROUTES, OWNER_PREFIX, ADMIN_PREFIX } from '@/config/routes';
+import { ACCESS_TOKEN_KEY } from '@/lib/constants';
 
 /**
  * Next.js Proxy (Next.js 16) — auth-based route protection.
@@ -8,7 +9,7 @@ import { AUTH_ROUTES, PUBLIC_ROUTES, OWNER_PREFIX, ADMIN_PREFIX } from '@/config
  *
  * Logic:
  * - Public routes: always accessible
- * - Auth routes (login/register): redirect to home if already authenticated
+ * - Login stays accessible to switch demo roles or accounts
  * - Owner routes: require owner/admin role
  * - Admin routes: require admin role
  * - User routes: require authentication
@@ -21,9 +22,9 @@ export default function proxy(request: NextRequest) {
   // ──────────────────────────────────────────────────────────────────────
 
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get('access_token')?.value;
-  // Role is stored in a separate cookie after login (set by auth-provider)
-  const role = request.cookies.get('user_role')?.value;
+  const token = request.cookies.get(ACCESS_TOKEN_KEY)?.value;
+  // Routing hints only; the API gateway verifies the signed token and permissions.
+  const role = request.cookies.get('user_type')?.value;
 
   const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
@@ -31,7 +32,7 @@ export default function proxy(request: NextRequest) {
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname === route);
 
   // Auth routes: redirect authenticated users to home
-  if (isAuthRoute && token) {
+  if (isAuthRoute && pathname !== '/login' && token) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 

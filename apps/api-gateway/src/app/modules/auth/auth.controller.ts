@@ -39,6 +39,12 @@ import {
 export class AuthController {
   constructor(private readonly http: HttpService) {}
 
+  @Post('demo')
+  @ApiOperation({ summary: 'Dùng thử với tài khoản khách hàng hoặc chủ quán mẫu' })
+  async demoLogin(@Body() body: { role?: unknown }) {
+    return this.forward(this.http.post(`${AUTH_SERVICE_URL}/auth/demo`, { role: body?.role }));
+  }
+
   private async forward<T>(request$: Observable<AxiosResponse<T>>): Promise<T> {
     try {
       const { data } = await firstValueFrom(request$);

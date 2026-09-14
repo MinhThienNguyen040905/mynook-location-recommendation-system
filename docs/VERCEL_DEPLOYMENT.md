@@ -60,6 +60,38 @@ and provider errors never return the key to the browser.
 
 ## Demo scope and limits
 
+### One-click demo accounts
+
+Run `node tools/vercel/seed-demo.cjs` with Node.js 24 before enabling
+`DEMO_ENABLED=true` and `NEXT_PUBLIC_DEMO_ENABLED=true` in Vercel production.
+Redeploy so the public flag is included in the login page build. The seed is
+additive and repeatable: two reserved accounts, one clearly labeled fictional
+venue, three menu items and one sample review. It does not reset existing data.
+Accounts have no password; `/api/auth/demo` accepts only `customer` or `owner`
+and checks the expected account ID, email, role and active status.
+
+The gateway verifies signed tokens and enforces demo restrictions for every
+request, including tokens obtained through refresh. No admin access, profile or
+password edits, venue changes, uploads, reports or imports. Customers can save
+favorites and submit a text review only on the dedicated sample venue. Repeated
+submissions replace one fixed demo review, keeping storage bounded. The owner
+can view the sample dashboard/menu/analytics but cannot modify them. These
+accounts are shared; a banner explains this and links to role switching.
+
+Set `DEMO_ENABLED=false` to disable new demo sessions and access by existing
+demo tokens. Auth-service independently protects demo profiles/passwords and
+suppresses password reset issuance. No admin credentials are exposed.
+
+Validate the live roles and restrictions with:
+
+```sh
+node tools/vercel/verify-demo-accounts.cjs https://mynook-demo.vercel.app
+```
+
+This checks login/refresh, forbidden writes, owner data, favorites and a bounded
+sample review write. It restores the sample review text/rating and favorite
+membership after checking; the demo review timestamp is refreshed.
+
 Visitors can explore venues, use natural-language search and maps, and open
 venue details without creating an account. Existing account, favorite, review,
 owner and admin APIs retain their authentication requirements.

@@ -13,7 +13,7 @@ const values = {
   JWT_SECRET: randomBytes(48).toString('hex'), JWT_REFRESH_SECRET: randomBytes(48).toString('hex'),
   JWT_ACCESS_EXPIRES_IN: '15m', JWT_REFRESH_EXPIRES_IN: '7d',
 };
-for (const key of [...secrets, 'CLOUDINARY_CLOUD_NAME', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM']) {
+for (const key of [...secrets, 'CLOUDINARY_CLOUD_NAME', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_FROM', 'DEMO_ENABLED', 'NEXT_PUBLIC_DEMO_ENABLED']) {
   if (local[key]) values[key] = local[key];
 }
 // Serverless instances must share backend connections through transaction mode.

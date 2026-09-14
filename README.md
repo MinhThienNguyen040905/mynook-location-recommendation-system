@@ -3,6 +3,9 @@
 **Live demo:** https://mynook-demo.vercel.app
 
 Khám phá địa điểm và thử tìm kiếm bằng ngôn ngữ tự nhiên mà không cần đăng nhập.
+Tại [trang đăng nhập demo](https://mynook-demo.vercel.app/login), chọn **Dùng thử khách hàng**
+để lưu yêu thích và viết đánh giá tại quán mẫu, hoặc **Dùng thử chủ quán** để xem dashboard,
+menu và thống kê mẫu. Không cần mật khẩu. Đây là tài khoản dùng chung, không nhập thông tin cá nhân.
 Bản demo chạy Next.js + NestJS trên Vercel, dùng PostgreSQL của Supabase.
 Xem [hướng dẫn triển khai và giới hạn bản demo](docs/VERCEL_DEPLOYMENT.md).
 

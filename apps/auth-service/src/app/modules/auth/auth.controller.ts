@@ -20,6 +20,11 @@ import {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('demo')
+  demoLogin(@Body() body: { role?: unknown }) {
+    return this.authService.demoLogin(body?.role);
+  }
+
   @Post('register')
   @ApiOperation({ summary: 'Đăng ký tài khoản mới (user hoặc owner)' })
   @ApiResponse({ status: 201, description: 'Đăng ký thành công, trả về tokens + user info' })
