@@ -26,6 +26,16 @@ interface FormState {
   primary_category_id: string | null;
 }
 
+const WEEK_DAYS = [
+  { key: 'monday', label: 'Thứ 2' },
+  { key: 'tuesday', label: 'Thứ 3' },
+  { key: 'wednesday', label: 'Thứ 4' },
+  { key: 'thursday', label: 'Thứ 5' },
+  { key: 'friday', label: 'Thứ 6' },
+  { key: 'saturday', label: 'Thứ 7' },
+  { key: 'sunday', label: 'Chủ nhật' },
+] as const;
+
 function formFromVenue(v: Venue): FormState {
   const cats = v.categories ?? [];
   // Prefer backend-provided primary_category_id; fall back to the category
@@ -51,7 +61,7 @@ function formFromVenue(v: Venue): FormState {
 
 export function VenueGeneralInfo() {
   const searchParams = useSearchParams();
-  const venueId = searchParams.get('id');
+  const venueId = searchParams?.get('id');
 
   const [venue, setVenue] = useState<Venue | null>(null);
   const [loading, setLoading] = useState(true);
@@ -186,6 +196,32 @@ export function VenueGeneralInfo() {
   }
 
   const hours = form.opening_hours as Record<string, { open: string; close: string }>;
+
+  function setDayEnabled(day: string, enabled: boolean) {
+    setForm((prev) => {
+      const nextHours = { ...prev.opening_hours };
+      if (enabled) {
+        nextHours[day] = nextHours[day] ?? { open: '08:00', close: '22:00' };
+      } else {
+        delete nextHours[day];
+      }
+      return { ...prev, opening_hours: nextHours };
+    });
+  }
+
+  function setDayTime(day: string, field: 'open' | 'close', value: string) {
+    setForm((prev) => ({
+      ...prev,
+      opening_hours: {
+        ...prev.opening_hours,
+        [day]: {
+          open: prev.opening_hours[day]?.open ?? '08:00',
+          close: prev.opening_hours[day]?.close ?? '22:00',
+          [field]: value,
+        },
+      },
+    }));
+  }
 
   return (
     <div className="space-y-8">
@@ -351,6 +387,51 @@ export function VenueGeneralInfo() {
           <Clock className="text-primary size-5" /> Open Hours
         </h3>
         <div className="space-y-3">
+          {WEEK_DAYS.map((day) => {
+            const time = hours[day.key];
+            const enabled = !!time;
+
+            return (
+              <div
+                key={day.key}
+                className="grid grid-cols-1 gap-3 rounded-xl bg-slate-50/50 border border-slate-100 p-3 sm:grid-cols-[140px_1fr]"
+              >
+                <label className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(e) => setDayEnabled(day.key, e.target.checked)}
+                    className="size-4 rounded border-slate-300 text-primary focus:ring-primary"
+                  />
+                  {day.label}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Mở cửa</span>
+                    <input
+                      type="time"
+                      value={time?.open ?? '08:00'}
+                      disabled={!enabled}
+                      onChange={(e) => setDayTime(day.key, 'open', e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-300"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Đóng cửa</span>
+                    <input
+                      type="time"
+                      value={time?.close ?? '22:00'}
+                      disabled={!enabled}
+                      onChange={(e) => setDayTime(day.key, 'close', e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-300"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="hidden">
           {Object.keys(hours).length > 0 ? (
             Object.entries(hours).map(([day, time]) => (
               <div

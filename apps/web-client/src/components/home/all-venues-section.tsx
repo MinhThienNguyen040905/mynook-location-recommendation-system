@@ -1,6 +1,6 @@
 import { Star, MapPin } from "lucide-react";
 import Link from "next/link";
-import { getAllVenuesServer } from "@/lib/api/venues";
+import { getAllVenuesServer } from "@/lib/api/server";
 import { formatShortAddress } from "@/lib/utils";
 import type { Venue } from "@/types/venue";
 

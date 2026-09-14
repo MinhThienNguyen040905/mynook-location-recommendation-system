@@ -28,7 +28,10 @@ export class DatabaseModule {
             url: config.get<string>('DATABASE_URL'),
             extra: {
               max: Number(config.get<string>('DB_POOL_MAX') ?? 3),
+              connectionTimeoutMillis: 10_000,
+              idleTimeoutMillis: 10_000,
             },
+            retryAttempts: 2,
             entities: options.entities,
             synchronize: false, // Dùng SQL migration trên Supabase, KHÔNG để TypeORM tự sync
             ssl: config.get('DATABASE_URL')?.includes('supabase.com')

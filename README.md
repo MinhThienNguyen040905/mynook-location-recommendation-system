@@ -1,5 +1,11 @@
 # MyNook — Location Recommendation System
 
+**Live demo:** https://mynook-demo.vercel.app
+
+Khám phá địa điểm và thử tìm kiếm bằng ngôn ngữ tự nhiên mà không cần đăng nhập.
+Bản demo chạy Next.js + NestJS trên Vercel, dùng PostgreSQL của Supabase.
+Xem [hướng dẫn triển khai và giới hạn bản demo](docs/VERCEL_DEPLOYMENT.md).
+
 Hệ thống Đánh giá & Khám phá địa điểm, xây dựng trên kiến trúc **Strict Microservices** với Nx Monorepo.
 
 ## Tech Stack

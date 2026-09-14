@@ -96,7 +96,7 @@ export function Navbar() {
   const [showContribute, setShowContribute] = useState(false);
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
 
   const isLoggedIn = !isLoading && !!user;
   const userRole = user?.type ?? null;
@@ -177,6 +177,8 @@ export function Navbar() {
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? 'Đóng menu' : 'Mở menu'}
+              aria-expanded={isMenuOpen}
               className="p-2 text-nook-ink/60 hover:text-nook-olive transition-colors"
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}

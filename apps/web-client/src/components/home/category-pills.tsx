@@ -11,7 +11,7 @@ const SCROLL_STEP = 240;
 export function CategoryPills() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeQuery = searchParams.get("q");
+  const activeQuery = searchParams?.get("q");
 
   const { data, isLoading } = useQuery({
     queryKey: ["tags"],

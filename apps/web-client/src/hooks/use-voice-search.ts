@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { API_BASE_URL } from "@/config/api";
 
 type VoiceSearchState = "idle" | "recording" | "transcribing";
 
@@ -29,31 +30,22 @@ export function useVoiceSearch(onResult: (text: string) => void) {
       setState("transcribing");
       setError(null);
 
-      const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
-      if (!apiKey) {
-        setError("Groq API key is not configured.");
-        setState("idle");
-        return;
-      }
-
       const formData = new FormData();
       formData.append("file", audioBlob, "recording.webm");
-      formData.append("model", "whisper-large-v3");
-      formData.append("language", "vi");
 
       try {
         const res = await fetch(
-          "https://api.groq.com/openai/v1/audio/transcriptions",
+          `${API_BASE_URL}/search/transcribe`,
           {
             method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}` },
             body: formData,
           },
         );
 
         if (!res.ok) {
-          const body = await res.text();
-          throw new Error(`Groq API error ${res.status}: ${body}`);
+          throw new Error(res.status === 429
+            ? "Bạn đã thử quá nhiều lần. Vui lòng đợi một phút."
+            : "Chưa thể nhận dạng giọng nói. Bạn có thể nhập từ khóa để tìm kiếm.");
         }
 
         const data = await res.json();

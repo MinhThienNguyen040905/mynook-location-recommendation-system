@@ -1,0 +1,14 @@
+.env*
+.git
+.nx
+.claude
+.vscode
+SKILL.md
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+**/*.log
+docs
+tools/google-maps-importer

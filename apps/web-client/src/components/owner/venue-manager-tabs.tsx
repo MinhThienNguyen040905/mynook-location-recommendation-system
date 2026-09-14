@@ -15,9 +15,9 @@ const tabs = [
  * usePathname() thay thế activeTab state — URL là nguồn sự thật duy nhất.
  */
 export function VenueManagerTabs() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
-  const venueId = searchParams.get('id');
+  const venueId = searchParams?.get('id');
 
   return (
     <div className="flex border-b border-primary/10 gap-8 overflow-x-auto no-scrollbar mb-8">

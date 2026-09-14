@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { API_BASE_URL, API_ENDPOINTS } from '@/config/api';
+import { API_ENDPOINTS } from '@/config/api';
 import type {
   Review,
   ReviewComment,
@@ -49,21 +49,4 @@ export async function getMyReviews(limit = 20): Promise<UserReviewListResponse> 
     { params: { limit } },
   );
   return data;
-}
-
-/** Lấy danh sách reviews trên Server Component (cache 60s) */
-export async function getVenueReviewsServer(venueId: string): Promise<Review[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.REVIEWS.LIST(venueId)}`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      console.error(`Failed to load venue reviews: ${res.status} ${res.statusText}`);
-      return [];
-    }
-    return res.json();
-  } catch (error) {
-    console.error('Failed to load venue reviews:', error);
-    return [];
-  }
 }

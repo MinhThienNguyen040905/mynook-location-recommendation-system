@@ -12,6 +12,12 @@ interface RateLimitRule {
 
 const RULES: RateLimitRule[] = [
   {
+    name: 'voice',
+    limit: 10,
+    windowSeconds: 60,
+    match: (method, path) => method === 'POST' && path === '/api/search/transcribe',
+  },
+  {
     name: 'auth',
     limit: Number(process.env['RATE_LIMIT_AUTH_LIMIT'] || 10),
     windowSeconds: Number(process.env['RATE_LIMIT_AUTH_WINDOW_SECONDS'] || 300),
@@ -48,6 +54,8 @@ const RULES: RateLimitRule[] = [
 
 @Injectable()
 export class RedisRateLimitMiddleware implements NestMiddleware {
+  // Serverless demos may not have Redis. Keep a bounded per-instance fallback.
+  private readonly localLimits = new Map<string, { count: number; expiresAt: number }>();
   constructor(private readonly redis: RedisCacheService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
@@ -58,9 +66,25 @@ export class RedisRateLimitMiddleware implements NestMiddleware {
 
     const identity = this.identity(req);
     const key = `mynook:rate-limit:${rule.name}:${identity}`;
-    const count = await this.redis.incrementWithTtl(key, rule.windowSeconds);
-
-    if (count === null) return next();
+    const redisCount = await this.redis.incrementWithTtl(key, rule.windowSeconds);
+    const now = Date.now();
+    let local = this.localLimits.get(key);
+    if (redisCount === null) {
+      if (!local || local.expiresAt <= now) {
+        for (const [entryKey, entry] of this.localLimits) {
+          if (entry.expiresAt <= now) this.localLimits.delete(entryKey);
+        }
+        if (this.localLimits.size >= 10_000) {
+          res.setHeader('Retry-After', String(rule.windowSeconds));
+          res.status(429).json({ message: 'Please try again later.' });
+          return;
+        }
+        local = { count: 0, expiresAt: now + rule.windowSeconds * 1000 };
+        this.localLimits.set(key, local);
+      }
+      local.count++;
+    }
+    const count = redisCount ?? local!.count;
 
     const remaining = Math.max(rule.limit - count, 0);
     res.setHeader('X-RateLimit-Limit', String(rule.limit));
@@ -69,7 +93,9 @@ export class RedisRateLimitMiddleware implements NestMiddleware {
 
     if (count <= rule.limit) return next();
 
-    const ttl = await this.redis.ttl(key);
+    const ttl = redisCount === null
+      ? Math.ceil((local!.expiresAt - now) / 1000)
+      : await this.redis.ttl(key);
     const retryAfter = ttl && ttl > 0 ? ttl : rule.windowSeconds;
     res.setHeader('Retry-After', String(retryAfter));
     res.status(429).json({

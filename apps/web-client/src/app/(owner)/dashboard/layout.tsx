@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Navbar } from '@/components/layout/navbar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
   const isRoot = pathname === '/dashboard';
 
   return (

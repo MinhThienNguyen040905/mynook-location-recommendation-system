@@ -19,7 +19,7 @@ const NAV_ITEMS = [
 ];
 
 export function DashboardSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
 
   return (
     <aside className="fixed left-0 top-0 h-full w-60 bg-orange-600 flex flex-col z-40">

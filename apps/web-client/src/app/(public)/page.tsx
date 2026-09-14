@@ -8,6 +8,9 @@ import { TopRatedSection } from "@/components/home/top-rated-section";
 import { AllVenuesSection } from "@/components/home/all-venues-section";
 import { MarketingBanner } from "@/components/home/marketing-banner";
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 export default function HomePage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-5rem)] bg-[#f8f6f5] dark:bg-[#221610] font-sans">

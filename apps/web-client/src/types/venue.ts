@@ -96,7 +96,9 @@ export interface CreateVenueRequest {
   primary_category_id?: string;
 }
 
-export type UpdateVenueRequest = Partial<CreateVenueRequest>;
+export type UpdateVenueRequest = Partial<Omit<CreateVenueRequest, 'menu_image_url'>> & {
+  menu_image_url?: string | null;
+};
 
 export interface VenueSearchParams {
   query?: string;

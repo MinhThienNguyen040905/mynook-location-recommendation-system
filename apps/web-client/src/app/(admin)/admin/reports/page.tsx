@@ -111,8 +111,8 @@ function AdminReportsContent() {
   });
 
   useEffect(() => {
-    const reportId = searchParams.get('report');
-    const reportKind = searchParams.get('kind');
+    const reportId = searchParams?.get('report');
+    const reportKind = searchParams?.get('kind');
     if (!reportId || (reportKind !== 'review' && reportKind !== 'venue')) return;
 
     const linkedReportId = reportId;

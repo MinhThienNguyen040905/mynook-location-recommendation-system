@@ -38,8 +38,8 @@ export const FALLBACK_EXTRACTION: ExtractedQuery = {
   confidence: 'low',
 };
 
-const GROQ_TIMEOUT_MS = 3500;
-const GROQ_MODEL = 'llama-3.1-8b-instant';
+const GROQ_TIMEOUT_MS = 8000;
+const GROQ_MODEL = process.env['GROQ_SEARCH_MODEL'] || 'openai/gpt-oss-20b';
 const MAX_QUERY_LENGTH = 300;
 
 @Injectable()
@@ -59,7 +59,7 @@ export class QueryExtractionService implements OnModuleInit {
         'GROQ_API_KEY not set — query extraction will fall back to unclear intent',
       );
     }
-    this.groq = new Groq({ apiKey: apiKey || '' });
+    this.groq = new Groq({ apiKey: apiKey || '', timeout: GROQ_TIMEOUT_MS, maxRetries: 0 });
   }
 
   /**
@@ -85,8 +85,7 @@ export class QueryExtractionService implements OnModuleInit {
     const userPrompt = `Search query: "${query}"\n\nTrả về JSON theo schema.`;
 
     try {
-      const completion = await Promise.race([
-        this.groq.chat.completions.create({
+      const completion = await this.groq.chat.completions.create({
           model: GROQ_MODEL,
           messages: [
             { role: 'system', content: systemPrompt },
@@ -94,12 +93,9 @@ export class QueryExtractionService implements OnModuleInit {
           ],
           response_format: { type: 'json_object' },
           temperature: 0.2,
-          max_tokens: 400,
-        }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Groq timeout')), GROQ_TIMEOUT_MS),
-        ),
-      ]);
+          max_completion_tokens: 2000,
+          ...(GROQ_MODEL.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low' as const } : {}),
+        });
 
       const raw = completion.choices[0]?.message?.content;
       if (!raw) {

@@ -7,8 +7,8 @@ import { VenueReviews } from "@/components/venue-detail/venue-reviews";
 import { CommunityEditBanner } from "@/components/venue-detail/community-edit-banner";
 import { VenueMenuSection } from "@/components/venue-detail/venue-menu-section";
 import { TrackRecentlyViewed } from "@/components/venue-detail/track-recently-viewed";
-import { getVenueByIdServer } from "@/lib/api/venues";
-import { getVenueReviewsServer } from "@/lib/api/reviews";
+import { getVenueByIdServer } from "@/lib/api/server";
+import { getVenueReviewsServer } from "@/lib/api/server";
 import { formatAddress } from "@/lib/utils";
 
 export default async function VenueDetailPage({

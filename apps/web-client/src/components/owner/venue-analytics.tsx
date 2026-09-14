@@ -51,7 +51,7 @@ function formatNumber(value: number): string {
 
 export function VenueAnalytics() {
   const searchParams = useSearchParams();
-  const venueId = searchParams.get('id');
+  const venueId = searchParams?.get('id');
   const [data, setData] = useState<VenueInteractionAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

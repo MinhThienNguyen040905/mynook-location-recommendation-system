@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { API_BASE_URL, API_ENDPOINTS } from '@/config/api';
+import { API_ENDPOINTS } from '@/config/api';
 import type {
   Venue,
   VenueSearchParams,
@@ -91,64 +91,4 @@ export async function updateVenue(
 /** Xóa venue (soft delete) */
 export async function deleteVenue(id: string): Promise<void> {
   await apiClient.delete(API_ENDPOINTS.VENUES.DETAIL(id));
-}
-
-// ─── Server-side fetchers (dùng trong Server Component với fetch thuần) ──────
-// Không dùng axios — Next.js fetch() có built-in caching và revalidation.
-
-/** Lấy chi tiết địa điểm trên Server Component.
- * Venue detail includes community-edited fields like live crowd, so avoid
- * serving stale data after an inline edit.
- */
-export async function getVenueByIdServer(id: string): Promise<Venue | null> {
-  try {
-    const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.VENUES.DETAIL(id)}`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
-}
-
-/** Lấy tất cả venues trên Server Component (cache 60s) */
-export async function getAllVenuesServer(): Promise<Venue[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.VENUES.LIST}`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
-    return [];
-  }
-}
-
-/** Lấy trending venues trên Server Component (cache 5 phút) */
-export async function getTrendingVenuesServer(): Promise<Venue[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.VENUES.TRENDING}`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
-    return [];
-  }
-}
-
-/** Top-rated venues (Hot tuần này) — Server Component, cache 5 phút */
-export async function getTopRatedVenuesServer(
-  days = 7,
-  limit = 6,
-): Promise<Venue[]> {
-  try {
-    const url = `${API_BASE_URL}${API_ENDPOINTS.VENUES.TOP_RATED}?days=${days}&limit=${limit}`;
-    const res = await fetch(url, { next: { revalidate: 300 } });
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
-    return [];
-  }
 }

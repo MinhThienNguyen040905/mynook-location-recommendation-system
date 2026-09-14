@@ -46,6 +46,9 @@ export class GatewayCreateVenueDto {
   @ApiPropertyOptional({ example: [] })
   media?: unknown[];
 
+  @ApiPropertyOptional({ example: 'https://res.cloudinary.com/.../menu.jpg' })
+  menu_image_url?: string | null;
+
   @ApiPropertyOptional()
   opening_hours?: unknown;
 
@@ -101,6 +104,9 @@ export class GatewayUpdateVenueDto {
 
   @ApiPropertyOptional({ example: [] })
   media?: unknown[];
+
+  @ApiPropertyOptional({ example: 'https://res.cloudinary.com/.../menu.jpg' })
+  menu_image_url?: string | null;
 
   @ApiPropertyOptional()
   opening_hours?: unknown;

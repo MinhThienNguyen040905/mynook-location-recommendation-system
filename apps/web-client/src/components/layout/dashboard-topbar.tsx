@@ -23,7 +23,7 @@ const ROUTE_META: Record<string, { label: string; Icon: React.ElementType }> = {
 export function DashboardTopbar() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
   const user = useAuthStore((s) => s.user);
 
   const meta = ROUTE_META[pathname] ?? { label: 'Dashboard', Icon: User };

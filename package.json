@@ -12,7 +12,8 @@
     "infra:up": "docker compose up -d redis rabbitmq",
     "rabbitmq:up": "docker compose up -d rabbitmq",
     "rabbitmq:down": "docker compose down",
-    "rabbitmq:logs": "docker compose logs -f rabbitmq"
+    "rabbitmq:logs": "docker compose logs -f rabbitmq",
+    "build:vercel": "node tools/vercel/build.cjs"
   },
   "private": true,
   "devDependencies": {
@@ -43,9 +44,12 @@
     "npm-run-all": "^4.1.5",
     "nx": "22.5.1",
     "prettier": "^2.6.2",
+    "ts-loader": "^9.5.4",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
-    "webpack-cli": "^5.1.4"
+    "vite": "7.3.6",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0"
   },
   "workspaces": [
     "apps/*",
@@ -83,7 +87,7 @@
     "lucide-react": "^0.577.0",
     "motion": "^12.38.0",
     "multer": "^2.1.1",
-    "next": "~16.0.1",
+    "next": "16.3.5",
     "nodemailer": "^8.0.4",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -97,6 +101,7 @@
     "react-leaflet": "^5.0.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "typeorm": "^0.3.28",

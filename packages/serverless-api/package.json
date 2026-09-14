@@ -1,0 +1,7 @@
+{
+  "name": "@mynook/serverless-api",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.cjs",
+  "types": "index.d.ts"
+}

@@ -26,7 +26,7 @@ const NAV = [
 ];
 
 export function AdminSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '/';
 
   function handleLogout() {
     document.cookie = 'access_token=; Max-Age=0; path=/';

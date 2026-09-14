@@ -12,7 +12,7 @@ import type { SearchResult } from "@/types/venue";
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialQuery = searchParams.get("q") || "";
+  const initialQuery = searchParams?.get("q") || "";
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [total, setTotal] = useState(0);
@@ -61,7 +61,7 @@ function SearchContent() {
         setResults([]);
         setTotal(0);
         setHasSearched(true);
-        setSearchError("Không tải được kết quả tìm kiếm. Vui lòng kiểm tra API gateway/search service rồi thử lại.");
+        setSearchError("Chưa tải được kết quả. Vui lòng đợi một chút rồi thử lại.");
         setSelectedVenueId(null);
         setHoveredVenueId(null);
       } finally {

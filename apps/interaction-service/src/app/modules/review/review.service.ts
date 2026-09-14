@@ -133,6 +133,7 @@ export class ReviewService implements OnModuleInit {
   }
 
   private async ensureRmqConnected(): Promise<boolean> {
+    if (process.env['RMQ_ENABLED'] === 'false') return false;
     if (this.rmqConnected) return true;
 
     try {

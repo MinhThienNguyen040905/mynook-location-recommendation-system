@@ -879,7 +879,7 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
 
 export function VenueReviews({ venueId, venueName, initialReviews }: VenueReviewsProps) {
   const searchParams = useSearchParams();
-  const targetReviewId = searchParams.get('review');
+  const targetReviewId = searchParams?.get('review');
   const user = useAuthStore((state) => state.user);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [showWriteModal, setShowWriteModal] = useState(false);

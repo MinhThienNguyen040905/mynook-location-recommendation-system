@@ -17,6 +17,7 @@ import {
   analyzeMenuImage,
   bulkSaveMenu,
 } from '@/lib/api/menu';
+import { getVenueById, updateVenue } from '@/lib/api/venues';
 import type { AnalyzedMenuCategory } from '@/lib/api/menu';
 import { uploadMedia } from '@/lib/api/upload';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -396,11 +397,14 @@ function MenuImageAnalyzer({
 /* ── Main Component ────────────────────────────────────── */
 export function MenuManagement({ venueId: venueIdProp }: { venueId?: string } = {}) {
   const searchParams = useSearchParams();
-  const venueId = venueIdProp ?? searchParams.get('id');
+  const venueId = venueIdProp ?? searchParams?.get('id');
 
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCatId, setActiveCatId] = useState<string | null>(null);
+  const [menuImageUrl, setMenuImageUrl] = useState<string | null>(null);
+  const [menuImageUploading, setMenuImageUploading] = useState(false);
+  const menuImageInputRef = useRef<HTMLInputElement>(null);
 
   // New category form
   const [showNewCat, setShowNewCat] = useState(false);
@@ -424,8 +428,17 @@ export function MenuManagement({ venueId: venueIdProp }: { venueId?: string } = 
     }
   }
 
+  async function loadVenueMenuImage() {
+    if (!venueId) return;
+    try {
+      const venue = await getVenueById(venueId);
+      setMenuImageUrl(venue.menu_image_url ?? null);
+    } catch { /* ignore */ }
+  }
+
   useEffect(() => {
     loadCategories();
+    loadVenueMenuImage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venueId]);
 
@@ -489,11 +502,95 @@ export function MenuManagement({ venueId: venueIdProp }: { venueId?: string } = 
     loadCategories();
   }
 
+  async function handleMenuImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !venueId) return;
+    e.target.value = '';
+    setMenuImageUploading(true);
+    try {
+      const [result] = await uploadMedia([file]);
+      await updateVenue(venueId, { menu_image_url: result.url });
+      setMenuImageUrl(result.url);
+    } catch { /* ignore */ } finally {
+      setMenuImageUploading(false);
+    }
+  }
+
+  async function handleMenuImageRemove() {
+    if (!venueId) return;
+    setMenuImageUploading(true);
+    try {
+      await updateVenue(venueId, { menu_image_url: null });
+      setMenuImageUrl(null);
+    } catch { /* ignore */ } finally {
+      setMenuImageUploading(false);
+    }
+  }
+
+  async function refreshMenuState() {
+    await Promise.all([loadCategories(), loadVenueMenuImage()]);
+  }
+
   return (
     <div className="space-y-8">
 
+      {/* Current menu image */}
+      <div className="p-6 bg-white rounded-2xl border border-primary/10 shadow-sm space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <ImageIcon size={20} className="text-primary" />
+            <h3 className="text-lg font-bold text-gray-900">Ảnh menu hiện tại</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => menuImageInputRef.current?.click()}
+              disabled={menuImageUploading}
+              className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+            >
+              {menuImageUploading
+                ? <Loader2 size={16} className="animate-spin" />
+                : <ImageIcon size={16} />}
+              {menuImageUploading ? 'Đang tải...' : menuImageUrl ? 'Thay ảnh' : 'Chọn ảnh menu'}
+            </button>
+            {menuImageUrl && (
+              <button
+                type="button"
+                onClick={handleMenuImageRemove}
+                disabled={menuImageUploading}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 text-sm font-bold text-red-500 hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={15} /> Xóa
+              </button>
+            )}
+            <input
+              ref={menuImageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleMenuImageUpload}
+              className="hidden"
+            />
+          </div>
+        </div>
+
+        {menuImageUrl ? (
+          <div className="max-w-xl rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+            <img
+              src={menuImageUrl}
+              alt="Ảnh menu hiện tại"
+              className="w-full max-h-[520px] object-contain bg-white"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-10 text-center text-sm text-gray-400">
+            Chưa có ảnh menu. Bạn có thể tải ảnh lên hoặc dùng phần nhận diện AI bên dưới.
+          </div>
+        )}
+      </div>
+
       {/* Menu Image Analyzer */}
-      <MenuImageAnalyzer venueId={venueId} onSaved={loadCategories} />
+      <MenuImageAnalyzer venueId={venueId} onSaved={refreshMenuState} />
 
       {/* Categories bar */}
       <div className="p-6 bg-white rounded-2xl border border-primary/10 shadow-sm">

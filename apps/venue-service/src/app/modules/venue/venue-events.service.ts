@@ -33,6 +33,7 @@ export class VenueEventsService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    if (process.env['RMQ_ENABLED'] === 'false') return;
     try {
       await this.events.connect();
       this.rmqConnected = true;

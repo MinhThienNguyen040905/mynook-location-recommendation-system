@@ -15,12 +15,26 @@ const nextConfig = {
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
+  serverExternalPackages: ['@mynook/serverless-api'],
+  outputFileTracingRoot: path.join(__dirname, '../..'),
+  webpack(config, { isServer }) {
+    // Workspace symlinks resolve outside node_modules. Keep the precompiled
+    // Nest bundle external so Next does not bundle optional Nest transports.
+    if (isServer) {
+      config.externals = [
+        { '@mynook/serverless-api': 'commonjs @mynook/serverless-api' },
+        ...(Array.isArray(config.externals) ? config.externals : [config.externals]),
+      ];
+    }
+    return config;
+  },
 
   // Allow next/image to load from external domains used in mock data
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'picsum.photos' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
     ],
   },
 };

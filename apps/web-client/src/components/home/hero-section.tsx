@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search, ArrowRight, Mic, Loader2 } from "lucide-react";
 import { useVoiceSearch } from "@/hooks/use-voice-search";
 
@@ -72,6 +73,7 @@ export function HeroSection() {
               </div>
               <input
                 type="text"
+                aria-label="Tìm kiếm địa điểm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="block w-full pl-12 pr-12 py-3 bg-transparent border-none rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-[#e9590c]/20 focus:bg-slate-50 dark:focus:bg-slate-700/50 transition-all text-base outline-none"
@@ -116,6 +118,18 @@ export function HeroSection() {
           {voiceError && (
             <p className="mt-2 text-sm text-red-500">{voiceError}</p>
           )}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
+            <span className="text-slate-600">Dùng thử không cần đăng nhập:</span>
+            {["Cà phê yên tĩnh", "Nhà hàng quận 1", "Quán để làm việc"].map((query) => (
+              <Link
+                key={query}
+                href={`/search?q=${encodeURIComponent(query)}`}
+                className="rounded-full border border-[#e9590c]/20 bg-white/90 px-3 py-1.5 text-slate-700 transition hover:border-[#e9590c] hover:text-[#e9590c]"
+              >
+                {query}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </section>

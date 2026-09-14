@@ -1,9 +1,11 @@
-// AI Nook Finder — powered by Groq (llama model)
+import 'server-only';
+
+// Server-only AI helper. Never expose provider credentials in browser bundles.
 
 export async function getNookRecommendation(mood: string, activity: string) {
-  const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    console.warn('NEXT_PUBLIC_GROQ_API_KEY is not set.');
+    console.warn('GROQ_API_KEY is not set.');
     return null;
   }
 
