@@ -47,6 +47,7 @@
 | Sửa khoảng trống quan trọng (xem [README](README.md) mục *Khoảng trống quan trọng nhất*) | — | 🟡 |
 | Hoàn thiện tài khoản & xác thực + E2E Playwright (41 test) + Mailpit | [001](001-auth-account/spec.md) | ✅ 2026-11-25 — mọi khoảng trống đã đóng |
 | Chuyển đổi model AI (Groq gỡ Llama, HF hết hạn mức) | [018](018-ai-model-migration/spec.md) | ⏸️ tạm dừng — 7/8 test AI đạt, chờ quyết định tag mô tả |
+| Sửa build Vercel Preview lỗi (PR #15, từ commit spec 018 — nghi `onnxruntime-node`) | — | ⏸️ **hoãn** (2026-11-25) — tiêu chí hiện tại: chạy local đạt; cần log từ chủ project Vercel. Phải xong trước khi merge `develop` → `main` |
 | Thêm unit test cho logic search/tagging/sanitize | — | ⬜ |
 | Sửa bảo mật: bắt buộc `JWT_SECRET` ✅ (spec 001), chuyển Groq key khỏi FE ⬜ | — | 🟡 |
 
