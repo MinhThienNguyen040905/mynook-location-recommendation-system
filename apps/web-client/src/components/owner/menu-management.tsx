@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { menuAnalyzeErrorMessage } from '@/lib/constants';
 import { useSearchParams } from 'next/navigation';
 import {
   Plus, Edit3, Trash2, FolderPlus, Info,
@@ -204,8 +205,8 @@ function MenuImageAnalyzer({
     try {
       const result = await analyzeMenuImage(venueId, imageUrl);
       setResults(result.categories);
-    } catch {
-      setError('Phân tích ảnh thất bại. Vui lòng thử với ảnh rõ hơn.');
+    } catch (err) {
+      setError(menuAnalyzeErrorMessage(err));
     } finally {
       setAnalyzing(false);
     }

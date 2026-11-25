@@ -1,23 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AccountType } from '@mynook/shared-types';
 
-export class GatewayRegisterDto {
-  @ApiProperty({ example: 'user@example.com' })
-  email!: string;
-
-  @ApiProperty({ example: 'password123', minLength: 6 })
-  password!: string;
-
-  @ApiPropertyOptional({ example: 'Nguyễn Văn A' })
-  full_name?: string;
-
-  @ApiPropertyOptional({ example: '0901234567' })
-  phone_number?: string;
-
-  @ApiPropertyOptional({ enum: [AccountType.CUSTOMER, AccountType.OWNER], example: AccountType.CUSTOMER })
-  type?: AccountType.CUSTOMER | AccountType.OWNER;
-}
-
 export class GatewayLoginDto {
   @ApiProperty({ example: 'user@example.com' })
   email!: string;

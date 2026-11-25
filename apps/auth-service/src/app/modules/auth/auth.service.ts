@@ -16,7 +16,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 import { Account, RegistrationOtp } from '@mynook/database';
-import { AccountType, RMQ_EVENTS } from '@mynook/shared-types';
+import { AccountType, AUTH_ERROR_CODES, RMQ_EVENTS, getJwtSecrets } from '@mynook/shared-types';
 import type { UserRegisteredEvent } from '@mynook/shared-types';
 import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -26,6 +26,9 @@ import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { SendOtpDto, VerifyOtpDto } from './dto/send-otp.dto.js';
+import { OTP_MAX_ATTEMPTS, OTP_TTL_MS, generateOtp, hashOtp, otpMatches } from './otp.js';
+
+const jwtConfig = getJwtSecrets();
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -42,15 +45,23 @@ export class AuthService implements OnModuleInit {
     @Inject('EVENTS_SERVICE')
     private readonly eventsClient: ClientProxy,
   ) {
+    const smtpUser = process.env['SMTP_USER']?.trim();
     this.mailer = nodemailer.createTransport({
       host: process.env['SMTP_HOST'] || 'smtp.gmail.com',
       port: Number(process.env['SMTP_PORT'] || 587),
       secure: false,
-      auth: {
-        user: process.env['SMTP_USER'],
-        pass: process.env['SMTP_PASS'],
-      },
+      // Không có SMTP_USER (vd Mailpit khi dev / test) → gửi không xác thực
+      ...(smtpUser ? { auth: { user: smtpUser, pass: process.env['SMTP_PASS'] } } : {}),
     });
+  }
+
+  /** Địa chỉ web-client — dùng cho liên kết trong email */
+  private appUrl(): string {
+    return (process.env['APP_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000').replace(/\/+$/, '');
+  }
+
+  private fromAddress(): string {
+    return process.env['SMTP_FROM'] || '"MyNook" <noreply@mynook.com>';
   }
 
   async register(dto: RegisterDto) {
@@ -85,16 +96,28 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
+    // ⚠️ Giữ thứ tự: so mật khẩu TRƯỚC, kiểm tra khoá SAU. Nhờ vậy thông báo
+    // "bị khoá" chỉ lộ ra với người đã nhập đúng mật khẩu → không dò được email tồn tại.
     const isMatch = await bcrypt.compare(dto.password, user.password_hash);
     if (!isMatch) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
     if (!user.is_active) {
-      throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
+      throw this.accountDisabled();
     }
 
     return this.buildResponse(user);
+  }
+
+  /** 401 kèm mã máy đọc được để client phân biệt với sai mật khẩu (spec 001 AC-2.3, LOG-003) */
+  private accountDisabled(): UnauthorizedException {
+    return new UnauthorizedException({
+      statusCode: 401,
+      message: 'Tài khoản đã bị vô hiệu hóa',
+      error: 'Unauthorized',
+      error_code: AUTH_ERROR_CODES.ACCOUNT_DISABLED,
+    });
   }
 
   async getProfile(userId: string) {
@@ -108,14 +131,17 @@ export class AuthService implements OnModuleInit {
   async refresh(dto: RefreshTokenDto) {
     try {
       const payload = this.jwtService.verify(dto.refresh_token, {
-        secret: process.env['JWT_REFRESH_SECRET'] || 'mynook-refresh-dev-secret',
+        secret: jwtConfig.refreshSecret,
       });
 
       const user = await this.userRepo.findOne({
         where: { id: payload.sub },
       });
-      if (!user || !user.is_active) {
+      if (!user) {
         throw new UnauthorizedException('User không tồn tại hoặc đã bị vô hiệu hóa');
+      }
+      if (!user.is_active) {
+        throw this.accountDisabled();
       }
 
       return this.buildTokens(user);
@@ -126,9 +152,8 @@ export class AuthService implements OnModuleInit {
   }
 
   /**
-   * Quên mật khẩu — tạo reset token và lưu vào DB.
-   * Dev mode: trả token thẳng trong response.
-   * Production: gửi email chứa token (cần tích hợp mail service).
+   * Quên mật khẩu — tạo reset token, lưu dạng băm, gửi email chứa liên kết đặt lại
+   * (spec 001 GAP 1, LOG-004). Dev: trả thêm token trong response để tiện thử nghiệm.
    */
   async forgotPassword(dto: ForgotPasswordDto) {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
@@ -146,10 +171,34 @@ export class AuthService implements OnModuleInit {
     user.password_reset_expires = new Date(Date.now() + 60 * 60 * 1000); // 1 giờ
     await this.userRepo.save(user);
 
-    // TODO (production): gửi email chứa link reset: /reset-password?token=<rawToken>
-    console.log(`[AUTH] Password reset token for ${dto.email}: ${rawToken}`);
-
     const isDev = (process.env['NODE_ENV'] ?? 'development') !== 'production';
+    const resetLink = `${this.appUrl()}/forgot-password?token=${rawToken}`;
+    try {
+      await this.mailer.sendMail({
+        from: this.fromAddress(),
+        to: dto.email,
+        subject: 'MyNook — Đặt lại mật khẩu',
+        text: `Mở liên kết sau để đặt lại mật khẩu (hiệu lực 1 giờ):\n${resetLink}\n\nNếu bạn không yêu cầu, hãy bỏ qua email này.`,
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+            <h2 style="color:#e9590c">MyNook</h2>
+            <p>Bạn vừa yêu cầu đặt lại mật khẩu. Liên kết có hiệu lực trong 1 giờ.</p>
+            <p style="text-align:center;margin:24px 0">
+              <a href="${resetLink}" style="background:#e9590c;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:bold">Đặt lại mật khẩu</a>
+            </p>
+            <p style="color:#666;font-size:13px;word-break:break-all">Hoặc mở: ${resetLink}</p>
+            <p style="color:#666;font-size:14px">Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
+          </div>
+        `,
+      });
+    } catch (err) {
+      // Không lộ lỗi ra phản hồi (giữ thông báo trung tính — AC-3.1, NFR-3)
+      this.logger.warn(`Failed to send password reset email: ${(err as Error).message}`);
+    }
+
+    // Chỉ ghi token ra log khi dev — log production không được chứa bí mật
+    if (isDev) this.logger.debug(`[dev] Password reset link for ${dto.email}: ${resetLink}`);
+
     return {
       message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.',
       ...(isDev && { dev_reset_token: rawToken }),
@@ -222,9 +271,9 @@ export class AuthService implements OnModuleInit {
     // Xoá OTP cũ của email này (nếu có)
     await this.otpRepo.delete({ email: dto.email });
 
-    // Tạo OTP 6 chữ số
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    // OTP 6 chữ số từ bộ sinh an toàn mật mã (GAP 5)
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
 
     // Hash password trước khi lưu tạm
     const salt = await bcrypt.genSalt(10);
@@ -237,7 +286,8 @@ export class AuthService implements OnModuleInit {
       full_name: dto.full_name || null,
       password_hash: passwordHash,
       account_type: dto.type ?? AccountType.CUSTOMER,
-      expires_at: new Date(Date.now() + 10 * 60 * 1000),
+      expires_at: new Date(Date.now() + OTP_TTL_MS),
+      attempts: 0,
     });
     await this.otpRepo.save(record);
 
@@ -245,9 +295,10 @@ export class AuthService implements OnModuleInit {
     const isDev = (process.env['NODE_ENV'] ?? 'development') !== 'production';
     try {
       await this.mailer.sendMail({
-        from: process.env['SMTP_FROM'] || '"MyNook" <noreply@mynook.com>',
+        from: this.fromAddress(),
         to: dto.email,
         subject: 'MyNook — Mã xác thực đăng ký',
+        text: `Mã xác thực MyNook của bạn: ${otp}\nMã có hiệu lực trong 10 phút.`,
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
             <h2 style="color:#e9590c">MyNook</h2>
@@ -258,10 +309,11 @@ export class AuthService implements OnModuleInit {
         `,
       });
     } catch (err) {
-      console.warn('[AUTH] Failed to send OTP email:', (err as Error).message);
+      this.logger.warn(`Failed to send OTP email: ${(err as Error).message}`);
     }
 
-    console.log(`[AUTH] OTP for ${dto.email}: ${otp}`);
+    // Chỉ ghi OTP ra log khi dev — log production không được chứa bí mật
+    if (isDev) this.logger.debug(`[dev] OTP for ${dto.email}: ${otp}`);
 
     return {
       message: 'Mã OTP đã được gửi đến email của bạn.',
@@ -273,13 +325,20 @@ export class AuthService implements OnModuleInit {
    * Step 2: Verify OTP → tạo account thật.
    */
   async verifyOtpAndRegister(dto: VerifyOtpDto) {
-    const otpHash = crypto.createHash('sha256').update(dto.otp).digest('hex');
-
-    const record = await this.otpRepo.findOne({
-      where: { email: dto.email, otp_hash: otpHash },
-    });
+    // Tìm theo email (không theo hash) để đếm được số lần nhập sai — GAP 6
+    const record = await this.otpRepo.findOne({ where: { email: dto.email } });
 
     if (!record || record.expires_at < new Date()) {
+      throw new BadRequestException('Mã OTP không hợp lệ hoặc đã hết hạn');
+    }
+
+    if (!otpMatches(String(dto.otp ?? ''), record.otp_hash)) {
+      const attempts = (record.attempts ?? 0) + 1;
+      if (attempts >= OTP_MAX_ATTEMPTS) {
+        await this.otpRepo.delete({ email: dto.email });
+        throw new BadRequestException('Bạn đã nhập sai quá nhiều lần, vui lòng yêu cầu mã mới');
+      }
+      await this.otpRepo.update({ id: record.id }, { attempts });
       throw new BadRequestException('Mã OTP không hợp lệ hoặc đã hết hạn');
     }
 
@@ -346,9 +405,9 @@ export class AuthService implements OnModuleInit {
     return {
       access_token: this.jwtService.sign(payload),
       refresh_token: this.jwtService.sign(payload, {
-        secret: process.env['JWT_REFRESH_SECRET'] || 'mynook-refresh-dev-secret',
+        secret: jwtConfig.refreshSecret,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expiresIn: (process.env['JWT_REFRESH_EXPIRES_IN'] ?? '7d') as any,
+        expiresIn: jwtConfig.refreshExpiresIn as any,
       }),
     };
   }

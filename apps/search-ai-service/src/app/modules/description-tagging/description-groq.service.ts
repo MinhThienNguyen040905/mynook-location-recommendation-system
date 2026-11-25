@@ -2,7 +2,10 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import Groq from 'groq-sdk';
 
 const GROQ_TIMEOUT_MS = 4000;
-const GROQ_MODEL = 'llama-3.1-8b-instant';
+/** Đổi qua GROQ_DESCRIPTION_MODEL khi Groq gỡ model (spec 018). */
+const GROQ_MODEL = process.env['GROQ_DESCRIPTION_MODEL'] || 'openai/gpt-oss-20b';
+/** Token suy nghĩ của gpt-oss tính vào max_tokens. */
+const GROQ_MAX_TOKENS = 1000;
 const MAX_DESC_LENGTH = 1500;
 
 export interface DescriptionTagAnalysis {
@@ -30,6 +33,7 @@ export class DescriptionGroqService implements OnModuleInit {
       );
     }
     this.groq = new Groq({ apiKey: apiKey || '' });
+    this.logger.log(`Description tagging model: ${GROQ_MODEL}`);
   }
 
   async extractTags(opts: {
@@ -84,7 +88,8 @@ Trả về JSON theo schema. Chỉ chọn tag từ danh sách được phép.`;
           ],
           response_format: { type: 'json_object' },
           temperature: 0.2,
-          max_tokens: 300,
+          max_tokens: GROQ_MAX_TOKENS,
+          reasoning_effort: 'low',
         }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Groq timeout')), GROQ_TIMEOUT_MS),

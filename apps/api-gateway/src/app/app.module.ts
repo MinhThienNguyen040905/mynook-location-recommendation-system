@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { RedisCacheModule } from '@mynook/redis-cache';
+import { getJwtSecrets } from '@mynook/shared-types';
 import { JwtStrategy } from './common/strategies/jwt.strategy.js';
 import { RedisRateLimitMiddleware } from './common/middleware/redis-rate-limit.middleware.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -15,7 +16,7 @@ import { TagModule } from './modules/tag/tag.module.js';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
+      secret: getJwtSecrets().accessSecret,
     }),
     RedisCacheModule,
     AuthModule,

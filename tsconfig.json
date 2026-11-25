@@ -35,6 +35,9 @@
     },
     {
       "path": "./libs/redis-cache"
+    },
+    {
+      "path": "./libs/embedding"
     }
   ]
 }

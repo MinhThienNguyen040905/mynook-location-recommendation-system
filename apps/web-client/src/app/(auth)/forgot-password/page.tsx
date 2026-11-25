@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, Lock, ArrowRight, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
@@ -75,6 +76,7 @@ function EmailStep({ onNext }: { onNext: (email: string, token: string) => void 
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
             <input
               type="email"
+              aria-label="Email"
               placeholder="Email của bạn"
               {...register('email')}
               className={cn(
@@ -188,6 +190,7 @@ function ResetStep({
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
             <input
               type="password"
+              aria-label="Mật khẩu mới"
               placeholder="Mật khẩu mới"
               {...register('new_password')}
               className={cn(
@@ -227,6 +230,7 @@ function ResetStep({
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-nook-ink/30" size={20} />
             <input
               type="password"
+              aria-label="Xác nhận mật khẩu"
               placeholder="Xác nhận mật khẩu"
               {...register('confirm_password')}
               className={cn(
@@ -302,8 +306,19 @@ function StepDots({ current }: { current: number }) {
 
 /* ── Main page ───────────────────────────────────────────────── */
 export default function ForgotPasswordPage() {
-  const [step, setStep] = useState<Step>('email');
-  const [resetToken, setResetToken] = useState('');
+  // useSearchParams cần Suspense boundary (Next.js App Router)
+  return (
+    <Suspense fallback={null}>
+      <ForgotPasswordContent />
+    </Suspense>
+  );
+}
+
+function ForgotPasswordContent() {
+  // Mở từ liên kết trong email (?token=...) → vào thẳng bước đặt mật khẩu mới (spec 001 AC-3.3, LOG-004)
+  const tokenFromLink = useSearchParams().get('token') ?? '';
+  const [step, setStep] = useState<Step>(tokenFromLink ? 'reset' : 'email');
+  const [resetToken, setResetToken] = useState(tokenFromLink);
 
   const stepIndex = { email: 0, reset: 1, done: 2 }[step];
 

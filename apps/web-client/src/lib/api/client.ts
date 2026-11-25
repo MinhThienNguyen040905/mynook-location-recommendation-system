@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
 
     // Không refresh cho các auth endpoint (login, refresh, register...)
     const url: string = originalRequest.url ?? '';
-    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register') || url.includes('/auth/send-otp') || url.includes('/auth/verify-otp');
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/send-otp') || url.includes('/auth/verify-otp');
 
     if (error.response?.status !== 401 || originalRequest._retry || isAuthEndpoint) {
       return Promise.reject(error);
