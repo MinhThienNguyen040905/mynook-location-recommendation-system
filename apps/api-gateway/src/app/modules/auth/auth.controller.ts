@@ -23,7 +23,6 @@ import { AUTH_SERVICE_URL } from "@mynook/shared-types";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard.js";
 import { AuthHeadersInterceptor } from "../../common/interceptors/auth-headers.interceptor.js";
 import {
-  GatewayRegisterDto,
   GatewayLoginDto,
   GatewayRefreshTokenDto,
   GatewayForgotPasswordDto,
@@ -64,18 +63,8 @@ export class AuthController {
     );
   }
 
-  @Post("register")
-  @ApiOperation({ summary: "Đăng ký tài khoản mới (user hoặc owner)" })
-  @ApiResponse({
-    status: 201,
-    description: "Đăng ký thành công, trả về tokens + user info",
-  })
-  @ApiResponse({ status: 409, description: "Email đã được sử dụng" })
-  async register(@Body() body: GatewayRegisterDto) {
-    return this.forward(
-      this.http.post(`${AUTH_SERVICE_URL}/auth/register`, body),
-    );
-  }
+  // Không còn POST /auth/register: đăng ký bắt buộc qua send-otp → verify-otp
+  // (spec 001 GAP 2, LOG-004). Endpoint của auth-service chỉ dùng nội bộ.
 
   @Post("send-otp")
   @ApiOperation({ summary: "Gửi OTP xác thực email trước khi đăng ký" })

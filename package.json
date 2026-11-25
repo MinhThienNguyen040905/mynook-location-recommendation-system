@@ -9,10 +9,16 @@
     "redis:up": "docker compose up -d redis",
     "redis:down": "docker compose stop redis",
     "redis:logs": "docker compose logs -f redis",
-    "infra:up": "docker compose up -d redis rabbitmq",
+    "infra:up": "docker compose up -d redis rabbitmq mailpit",
     "rabbitmq:up": "docker compose up -d rabbitmq",
     "rabbitmq:down": "docker compose down",
-    "rabbitmq:logs": "docker compose logs -f rabbitmq"
+    "rabbitmq:logs": "docker compose logs -f rabbitmq",
+    "e2e": "playwright test -c test/playwright.config.ts",
+    "e2e:ui": "playwright test -c test/playwright.config.ts --ui",
+    "e2e:report": "playwright show-report test/.report",
+    "test:unit": "playwright test -c test/playwright.unit.config.ts",
+    "test:ai": "node test/ai/run.mjs",
+    "test:ai:report": "playwright show-report test/.report-ai"
   },
   "private": true,
   "devDependencies": {
@@ -55,6 +61,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@huggingface/inference": "^4.13.15",
+    "@huggingface/transformers": "^4.3.2",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.3",

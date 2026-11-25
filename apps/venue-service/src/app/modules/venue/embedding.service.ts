@@ -1,23 +1,22 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { HfInference } from '@huggingface/inference';
 import { Venue } from '@mynook/database';
+import {
+  EMBEDDING_DIM,
+  EMBEDDING_MODEL,
+  localEmbedder,
+  toPgVector,
+} from '@mynook/embedding';
 
-const EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
-const EMBEDDING_DIM = 384;
 /**
- * 5 second per-attempt embed call cap. HF cold-start can take ~2-3s; a longer cap
- * would stall background work if HF is slow. Retries multiply total wall time.
+ * Giới hạn thời gian mỗi lần sinh vector. Chạy cục bộ chỉ ~10 ms, nhưng lần đầu
+ * phải tải model (~23 MB, vài giây) → để rộng tay.
  */
-const EMBED_TIMEOUT_MS = 5_000;
+const EMBED_TIMEOUT_MS = 60_000;
 /**
- * Retry policy for transient HF failures (timeout, 429, 5xx, network).
- * Embedding is fire-and-forget so retries don't block the user — the user
- * already got their CRUD response. Goal: a venue created during HF cold-start
- * eventually gets its vector instead of going invisible to semantic search.
- *
- * Total worst-case wall time: 3 attempts × 5s timeout + 1s + 4s backoff = ~20s.
+ * Thử lại khi lỗi tạm thời — chủ yếu lần tải model đầu bị lỗi mạng.
+ * Embedding chạy ngầm sau CRUD nên thử lại không chặn người dùng.
  */
 const EMBED_MAX_ATTEMPTS = 3;
 const EMBED_RETRY_BASE_MS = 1_000;
@@ -28,12 +27,14 @@ const EMBED_RETRY_BASE_MS = 1_000;
  * hot create/update path owns data integrity without cross-service plumbing.
  *
  * Call sites should await `regenerateInBackground(id)` (fire-and-forget) so
- * the venue CRUD response isn't blocked by HuggingFace latency.
+ * the venue CRUD response isn't blocked by embedding latency.
+ *
+ * Vector sinh cục bộ bằng lib @mynook/embedding (all-MiniLM-L6-v2) thay
+ * HuggingFace Inference API — spec 018, LOG-001.
  */
 @Injectable()
 export class VenueEmbeddingService implements OnModuleInit {
   private readonly logger = new Logger(VenueEmbeddingService.name);
-  private hf!: HfInference;
 
   constructor(
     @InjectRepository(Venue)
@@ -42,10 +43,8 @@ export class VenueEmbeddingService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    const token = process.env['HUGGINGFACE_API_TOKEN'] || '';
-    this.hf = new HfInference(token || undefined);
     this.logger.log(
-      `VenueEmbeddingService ready (model: ${EMBEDDING_MODEL}, dim: ${EMBEDDING_DIM})`,
+      `VenueEmbeddingService: local model ${EMBEDDING_MODEL} (dim ${EMBEDDING_DIM})`,
     );
   }
 
@@ -83,7 +82,7 @@ export class VenueEmbeddingService implements OnModuleInit {
       vector = await this.embedWithRetry(doc, venueId);
     } catch (err) {
       this.logger.warn(
-        `HF embed failed for venue ${venueId} after ${EMBED_MAX_ATTEMPTS} attempts, saving doc without vector: ${err}`,
+        `Embed failed for venue ${venueId} after ${EMBED_MAX_ATTEMPTS} attempts, saving doc without vector: ${err}`,
       );
     }
 
@@ -93,7 +92,7 @@ export class VenueEmbeddingService implements OnModuleInit {
         `UPDATE venue_schema.venues
            SET search_document = $1, embedding = $2::vector
          WHERE id = $3`,
-        [doc, this.toPgVector(vector), venueId],
+        [doc, toPgVector(vector), venueId],
       );
     } else {
       await this.dataSource.query(
@@ -122,19 +121,17 @@ export class VenueEmbeddingService implements OnModuleInit {
   }
 
   private async embedWithTimeout(text: string): Promise<number[]> {
-    const result = await Promise.race([
-      this.hf.featureExtraction({
-        model: EMBEDDING_MODEL,
-        inputs: text,
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('HF embed timeout')),
-          EMBED_TIMEOUT_MS,
-        ),
-      ),
-    ]);
-    return this.flatten(result);
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      return await Promise.race([
+        localEmbedder.embed(text),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('embed timeout')), EMBED_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   /**
@@ -157,7 +154,7 @@ export class VenueEmbeddingService implements OnModuleInit {
         }
         const delay = EMBED_RETRY_BASE_MS * Math.pow(2, attempt - 1);
         this.logger.warn(
-          `HF embed attempt ${attempt}/${EMBED_MAX_ATTEMPTS} failed for venue ${venueId}: ${err}. Retrying in ${delay}ms`,
+          `Embed attempt ${attempt}/${EMBED_MAX_ATTEMPTS} failed for venue ${venueId}: ${err}. Retrying in ${delay}ms`,
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
@@ -180,13 +177,4 @@ export class VenueEmbeddingService implements OnModuleInit {
     return true;
   }
 
-  private flatten(data: unknown): number[] {
-    if (!Array.isArray(data)) return [];
-    if (typeof data[0] === 'number') return data as number[];
-    return this.flatten(data[0]);
-  }
-
-  private toPgVector(v: number[]): string {
-    return `[${v.join(',')}]`;
-  }
 }

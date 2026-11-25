@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, User, Eye, EyeOff, MapPin, Coffee, Loader2, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, MapPin, Coffee, Loader2, ArrowLeft, Store } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { sendOtp, verifyOtp } from "@/lib/api/auth";
@@ -13,6 +13,12 @@ import { useAuthStore } from "@/stores/auth-store";
 import { registerSchema, type RegisterFormData } from "@/lib/validators/auth";
 import { ROUTES } from "@/config/routes";
 import { isAxiosError } from "axios";
+
+/** Lựa chọn vai trò khi đăng ký (spec 001 AC-1.1, AC-1.6 — LOG-002) */
+const ROLE_OPTIONS = [
+  { value: "customer", label: "Khách hàng", hint: "Khám phá & đánh giá quán", Icon: Coffee },
+  { value: "owner", label: "Chủ quán", hint: "Đưa quán của bạn lên MyNook", Icon: Store },
+] as const;
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -29,11 +35,14 @@ export default function RegisterPage() {
     register: registerField,
     handleSubmit,
     getValues,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: { type: "customer" },
   });
+  const selectedRole = watch("type");
+  const selectedRoleLabel = ROLE_OPTIONS.find((o) => o.value === selectedRole)?.label;
 
   // Countdown timer for resend
   useEffect(() => {
@@ -185,6 +194,48 @@ export default function RegisterPage() {
 
               {/* Main Form */}
               <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+                {/* Vai trò */}
+                <fieldset>
+                  <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Bạn là
+                  </legend>
+                  <div className="grid grid-cols-2 gap-3">
+                    {ROLE_OPTIONS.map(({ value, label, hint, Icon }) => {
+                      const active = selectedRole === value;
+                      return (
+                        <label
+                          key={value}
+                          className={cn(
+                            "relative flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all duration-150",
+                            "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#e9590c]",
+                            active
+                              ? "border-[#e9590c] bg-orange-50 dark:bg-orange-900/20"
+                              : "border-gray-300 dark:border-gray-600 hover:border-[#e9590c]/50",
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            value={value}
+                            {...registerField("type")}
+                            className="sr-only"
+                          />
+                          <Icon
+                            size={20}
+                            className={cn("mt-0.5 shrink-0", active ? "text-[#e9590c]" : "text-gray-400")}
+                          />
+                          <span className="flex flex-col">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{label}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{hint}</span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {errors.type && (
+                    <p className="mt-1 text-xs text-red-500">{errors.type.message}</p>
+                  )}
+                </fieldset>
+
                 <div>
                   <label
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
@@ -327,6 +378,12 @@ export default function RegisterPage() {
                   Chúng tôi đã gửi mã 6 chữ số đến
                 </p>
                 <p className="font-medium text-gray-900 dark:text-white">{email}</p>
+                {selectedRoleLabel && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Đăng ký với vai trò:{" "}
+                    <span className="font-semibold text-[#e9590c]">{selectedRoleLabel}</span>
+                  </p>
+                )}
               </div>
 
               {/* OTP Input */}
@@ -337,6 +394,7 @@ export default function RegisterPage() {
                     ref={(el) => { inputRefs.current[index] = el; }}
                     type="text"
                     inputMode="numeric"
+                    aria-label={`Chữ số OTP thứ ${index + 1}`}
                     maxLength={1}
                     value={value}
                     onChange={(e) => handleOtpChange(index, e.target.value)}

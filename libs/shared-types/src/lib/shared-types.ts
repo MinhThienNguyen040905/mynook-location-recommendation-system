@@ -21,6 +21,17 @@ export enum BookingStatus {
   COMPLETED = 'completed',
 }
 
+// ---- Mã lỗi máy đọc được (trả trong thân lỗi HTTP: { message, error_code }) ----
+// web-client giữ bản sao trong apps/web-client/src/lib/constants.ts (không import lib này
+// vào Next.js vì nó kéo theo @nestjs/common) — sửa ở đây thì sửa cả bên đó.
+
+export const AUTH_ERROR_CODES = {
+  /** Tài khoản bị admin khoá (is_active = false) — login / refresh */
+  ACCOUNT_DISABLED: 'ACCOUNT_DISABLED',
+} as const;
+
+export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[keyof typeof AUTH_ERROR_CODES];
+
 // ---- Interfaces ----
 
 export interface IAccount {

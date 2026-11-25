@@ -1,0 +1,15 @@
+{
+  "$comment": "10 câu tìm kiếm mẫu cho spec 018 AC-1.1. 'categories': AI phải trích ra ÍT NHẤT MỘT key trong danh sách. 'district': tên quận phải được nhận diện. 'capacity' / 'timeContext': bộ tách regex (chỉ hiểu tiếng Việt có dấu). 'name': possible_name phải chứa chuỗi này (không phân biệt hoa thường).",
+  "queries": [
+    { "q": "quán cà phê yên tĩnh ở Thủ Đức", "categories": ["cafe"], "district": "Thủ Đức" },
+    { "q": "cafe yen tinh", "categories": ["cafe", "library", "coworking"] },
+    { "q": "lẩu cho 6 người buổi tối", "categories": ["hotpot"], "capacity": 6, "timeContext": "evening" },
+    { "q": "Highlands Coffee", "name": "highlands" },
+    { "q": "quán nướng ở Thủ Đức", "categories": ["bbq"], "district": "Thủ Đức" },
+    { "q": "trà sữa ngon giá rẻ", "categories": ["bubble_tea"] },
+    { "q": "quán chay yên tĩnh", "categories": ["vegan"] },
+    { "q": "chỗ ngồi làm việc có wifi", "categories": ["coworking", "cafe", "library"] },
+    { "q": "buffet hải sản", "categories": ["buffet", "seafood"] },
+    { "q": "quán ăn vặt cho nhóm bạn 8 người", "categories": ["street_food", "fast_food"], "capacity": 8 }
+  ]
+}

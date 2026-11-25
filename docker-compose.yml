@@ -32,6 +32,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Hộp thư giả cho dev / E2E: bắt mọi email (OTP, đặt lại mật khẩu) — không gửi ra ngoài.
+  # Cổng 1026 / 8026 (không dùng mặc định 1025 / 8025 để tránh xung đột dự án khác trên máy).
+  # Giao diện: http://localhost:8026 · auth-service: SMTP_HOST=localhost, SMTP_PORT=1026, SMTP_USER để trống.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: mynook-mailpit
+    restart: unless-stopped
+    ports:
+      - "1026:1025"
+      - "8026:8025"
+    environment:
+      MP_MAX_MESSAGES: 500
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   redis_data:
   rabbitmq_data:

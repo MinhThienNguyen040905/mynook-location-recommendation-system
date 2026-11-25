@@ -41,6 +41,11 @@ Required JSON schema:
   "summary": "Short one-line summary"
 }`;
 
+/** Đổi qua GROQ_REVIEW_MODEL khi Groq gỡ model (spec 018). gpt-oss là model suy luận. */
+const GROQ_REVIEW_MODEL = process.env['GROQ_REVIEW_MODEL'] || 'openai/gpt-oss-120b';
+/** Token suy nghĩ tính vào max_tokens → để dư, tránh cắt cụt JSON. */
+const GROQ_REVIEW_MAX_TOKENS = 1500;
+
 @Injectable()
 export class GroqAiService implements OnModuleInit {
   private readonly logger = new Logger(GroqAiService.name);
@@ -60,6 +65,7 @@ export class GroqAiService implements OnModuleInit {
     }
 
     this.groq = new Groq({ apiKey: this.apiKey });
+    this.logger.log(`Review analysis model: ${GROQ_REVIEW_MODEL}`);
   }
 
   /**
@@ -87,14 +93,15 @@ Analyze this review and return JSON using the required schema.`;
 
     try {
       const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_REVIEW_MODEL,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
         ],
         response_format: { type: 'json_object' },
         temperature: 0.3,
-        max_tokens: 512,
+        max_tokens: GROQ_REVIEW_MAX_TOKENS,
+        reasoning_effort: 'low',
       });
 
       const content = completion.choices[0]?.message?.content;

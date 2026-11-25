@@ -20,6 +20,9 @@
       "path": "../../libs/redis-cache/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/embedding/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/rmq-messaging/tsconfig.lib.json"
     },
     {

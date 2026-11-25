@@ -49,4 +49,13 @@ package-lock.json
 
 
 SKILL.md
-.claude/
+# Playwright E2E output
+test/.results/
+test/.report/
+test/.results-ai/
+test/.report-ai/
+test/.results-unit/
+# Claude Code: giữ lại slash commands spec-driven, bỏ qua cấu hình cá nhân
+.claude/*
+!.claude/commands/
+.claude/settings.local.json

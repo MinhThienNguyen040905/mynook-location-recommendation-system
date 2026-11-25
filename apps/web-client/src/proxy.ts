@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_ROUTES, PUBLIC_ROUTES, OWNER_PREFIX, ADMIN_PREFIX } from '@/config/routes';
+import { ACCESS_TOKEN_KEY, USER_TYPE_KEY } from '@/lib/constants';
 
 /**
  * Next.js Proxy (Next.js 16) — auth-based route protection.
@@ -12,18 +13,21 @@ import { AUTH_ROUTES, PUBLIC_ROUTES, OWNER_PREFIX, ADMIN_PREFIX } from '@/config
  * - Owner routes: require owner/admin role
  * - Admin routes: require admin role
  * - User routes: require authentication
+ *
+ * Tên cookie lấy từ lib/constants — cùng nguồn với lib/api/auth.ts (nơi ghi cookie).
+ * Xem specs/001-auth-account/log.md LOG-001.
  */
 export default function proxy(request: NextRequest) {
-  // ── Dev bypass: skip auth in development ──────────────────────────────
-  if (process.env.NODE_ENV === 'development') {
+  // ── Bỏ qua kiểm tra quyền: chỉ khi bật tường minh AUTH_DEV_BYPASS=true ──
+  if (process.env.AUTH_DEV_BYPASS === 'true') {
     return NextResponse.next();
   }
   // ──────────────────────────────────────────────────────────────────────
 
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get('access_token')?.value;
-  // Role is stored in a separate cookie after login (set by auth-provider)
-  const role = request.cookies.get('user_role')?.value;
+  const token = request.cookies.get(ACCESS_TOKEN_KEY)?.value;
+  // Vai trò được ghi vào cookie riêng khi đăng nhập (lib/api/auth.ts)
+  const role = request.cookies.get(USER_TYPE_KEY)?.value;
 
   const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),

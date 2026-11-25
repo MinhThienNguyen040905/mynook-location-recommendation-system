@@ -23,6 +23,9 @@
       "path": "../../libs/cloudinary/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/embedding/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/shared-types/tsconfig.lib.json"
     },
     {

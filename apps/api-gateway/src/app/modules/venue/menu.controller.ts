@@ -9,7 +9,10 @@ import {
   UseGuards,
   UseInterceptors,
   Request,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
+import type { AxiosError } from 'axios';
 import {
   ApiTags,
   ApiOperation,
@@ -111,13 +114,26 @@ export class MenuController {
     @Request() req: { authHeaders: Record<string, string> },
     @Body() body: unknown,
   ) {
-    const { data } = await firstValueFrom(
-      this.http.post(`${this.base(venueId)}/analyze-image`, body, {
-        headers: req.authHeaders,
-        timeout: 60000,
-      }),
-    );
-    return data;
+    try {
+      const { data } = await firstValueFrom(
+        this.http.post(`${this.base(venueId)}/analyze-image`, body, {
+          headers: req.authHeaders,
+          timeout: 60000,
+        }),
+      );
+      return data;
+    } catch (error) {
+      // Chuyển nguyên mã lỗi + thông báo của venue-service (vd "Menu quá dài — hãy chụp từng phần")
+      // thay vì 500 chung — spec 018 AC-4.3.
+      const upstream = error as AxiosError;
+      if (upstream.response) {
+        throw new HttpException(
+          upstream.response.data ?? { message: 'Menu analysis failed' },
+          upstream.response.status,
+        );
+      }
+      throw new HttpException({ message: 'Không thể kết nối đến venue-service' }, HttpStatus.BAD_GATEWAY);
+    }
   }
 
   @UseGuards(JwtAuthGuard)

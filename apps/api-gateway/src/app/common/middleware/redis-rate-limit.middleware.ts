@@ -17,7 +17,7 @@ const RULES: RateLimitRule[] = [
     windowSeconds: Number(process.env['RATE_LIMIT_AUTH_WINDOW_SECONDS'] || 300),
     match: (method, path) =>
       method === 'POST' &&
-      /^\/api\/auth\/(login|register|forgot-password|reset-password|send-otp|verify-otp)$/.test(
+      /^\/api\/auth\/(login|forgot-password|reset-password|send-otp|verify-otp)$/.test(
         path,
       ),
   },

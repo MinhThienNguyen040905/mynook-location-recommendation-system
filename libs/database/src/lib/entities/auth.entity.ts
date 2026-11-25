@@ -77,6 +77,10 @@ export class RegistrationOtp {
   @Column({ type: 'timestamptz' })
   expires_at!: Date;
 
+  /** Số lần nhập sai mã này — đủ OTP_MAX_ATTEMPTS thì mã bị huỷ (migration 014, spec 001 GAP 6) */
+  @Column({ type: 'int', default: 0 })
+  attempts!: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 }
