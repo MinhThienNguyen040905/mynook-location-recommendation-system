@@ -39,7 +39,10 @@ export const FALLBACK_EXTRACTION: ExtractedQuery = {
 };
 
 const GROQ_TIMEOUT_MS = 3500;
-const GROQ_MODEL = 'llama-3.1-8b-instant';
+/** Đổi qua GROQ_QUERY_MODEL khi Groq gỡ model (spec 018). gpt-oss là model suy luận. */
+const GROQ_MODEL = process.env['GROQ_QUERY_MODEL'] || 'openai/gpt-oss-20b';
+/** Token suy nghĩ của gpt-oss tính vào max_tokens → để dư, tránh cắt cụt JSON. */
+const GROQ_MAX_TOKENS = 1200;
 const MAX_QUERY_LENGTH = 300;
 
 @Injectable()
@@ -60,6 +63,7 @@ export class QueryExtractionService implements OnModuleInit {
       );
     }
     this.groq = new Groq({ apiKey: apiKey || '' });
+    this.logger.log(`Query extraction model: ${GROQ_MODEL}`);
   }
 
   /**
@@ -94,7 +98,8 @@ export class QueryExtractionService implements OnModuleInit {
           ],
           response_format: { type: 'json_object' },
           temperature: 0.2,
-          max_tokens: 400,
+          max_tokens: GROQ_MAX_TOKENS,
+          reasoning_effort: 'low',
         }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Groq timeout')), GROQ_TIMEOUT_MS),
