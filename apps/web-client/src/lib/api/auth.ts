@@ -1,9 +1,8 @@
 import { apiClient, setCookie, deleteCookie } from './client';
 import { API_ENDPOINTS } from '@/config/api';
-import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/lib/constants';
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_TYPE_KEY } from '@/lib/constants';
 import type {
   LoginRequest,
-  RegisterRequest,
   AuthResponse,
   AuthUser,
   ForgotPasswordRequest,
@@ -21,16 +20,7 @@ export async function login(body: LoginRequest): Promise<AuthResponse> {
   const { data } = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, body);
   setCookie(ACCESS_TOKEN_KEY, data.access_token);
   setCookie(REFRESH_TOKEN_KEY, data.refresh_token);
-  setCookie('user_type', data.user.type);
-  return data;
-}
-
-/** Đăng ký — tự động đăng nhập sau khi tạo tài khoản */
-export async function register(body: RegisterRequest): Promise<AuthResponse> {
-  const { data } = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, body);
-  setCookie(ACCESS_TOKEN_KEY, data.access_token);
-  setCookie(REFRESH_TOKEN_KEY, data.refresh_token);
-  setCookie('user_type', data.user.type);
+  setCookie(USER_TYPE_KEY, data.user.type);
   return data;
 }
 
@@ -45,7 +35,7 @@ export async function verifyOtp(body: VerifyOtpRequest): Promise<AuthResponse> {
   const { data } = await apiClient.post<AuthResponse>(API_ENDPOINTS.AUTH.VERIFY_OTP, body);
   setCookie(ACCESS_TOKEN_KEY, data.access_token);
   setCookie(REFRESH_TOKEN_KEY, data.refresh_token);
-  setCookie('user_type', data.user.type);
+  setCookie(USER_TYPE_KEY, data.user.type);
   return data;
 }
 
@@ -92,5 +82,5 @@ export async function updateProfile(body: UpdateProfileRequest): Promise<AuthUse
 export function logout() {
   deleteCookie(ACCESS_TOKEN_KEY);
   deleteCookie(REFRESH_TOKEN_KEY);
-  deleteCookie('user_type');
+  deleteCookie(USER_TYPE_KEY);
 }

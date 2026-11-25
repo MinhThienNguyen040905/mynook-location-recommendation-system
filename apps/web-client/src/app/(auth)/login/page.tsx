@@ -12,6 +12,7 @@ import { login } from "@/lib/api/auth";
 import { useAuthStore } from "@/stores/auth-store";
 import { loginSchema, type LoginFormData } from "@/lib/validators/auth";
 import { ROUTES } from "@/config/routes";
+import { AUTH_ERROR_CODES } from "@/lib/constants";
 import { isAxiosError } from "axios";
 
 export default function LoginPage() {
@@ -42,7 +43,9 @@ export default function LoginPage() {
     } catch (error) {
       if (isAxiosError(error)) {
         const status = error.response?.status;
-        if (status === 401) {
+        if (status === 401 && error.response?.data?.error_code === AUTH_ERROR_CODES.ACCOUNT_DISABLED) {
+          toast.error("Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên.");
+        } else if (status === 401) {
           toast.error("Email hoặc mật khẩu không đúng");
         } else if (status === 400) {
           toast.error(error.response?.data?.message || "Dữ liệu không hợp lệ");

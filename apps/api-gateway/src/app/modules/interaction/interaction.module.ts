@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { JwtModule } from '@nestjs/jwt';
+import { getJwtSecrets } from '@mynook/shared-types';
 import { NotificationController } from './notification.controller.js';
 import { ReviewController } from './review.controller.js';
 import { ReportController } from './report.controller.js';
@@ -12,7 +13,7 @@ import { FavoritesController } from './favorites.controller.js';
   imports: [
     HttpModule,
     JwtModule.register({
-      secret: process.env['JWT_SECRET'] || 'mynook-dev-secret',
+      secret: getJwtSecrets().accessSecret,
     }),
   ],
   controllers: [
